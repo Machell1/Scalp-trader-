@@ -94,6 +94,30 @@ Market data (`backtest/data/`) is **not** committed — regenerate it with `fetc
 - Backtests use bar (OHLC) data with pessimistic intrabar assumptions; pending-order
   trailing is not modelled. Live results will differ.
 
+## TradingView (tradingview/)
+
+Pine Script port of the EA for visual backtesting and alerts on TradingView.
+
+1. Copy `tradingview/DerivScalperPullback.pine` into the Pine Editor.
+2. Chart: **M15**, symbol from crypto/index whitelist (e.g. `BINANCE:BTCUSDT`, `TVC:NDX`).
+3. See `tradingview/README.md` for symbol mapping and Strategy Tester settings.
+
+## Edge discovery loop (backtest/edge_loop.py)
+
+Systematic hypothesis testing beyond the original 19-candidate grid:
+
+```bash
+cd backtest
+pip install numpy pandas matplotlib yfinance   # no MT5 needed on Linux
+python fetch_yahoo.py                          # proxy data
+python edge_loop.py --tf yahooM15              # M15 proxy (short history)
+python edge_loop.py --tf yahooH1               # H1 proxy (longer history)
+python edge_loop.py --tf derivM15_diverse      # real Deriv data (needs MT5)
+```
+
+See `docs/EDGE_PLAN.md` for hypotheses, ship gates, and latest iteration results.
+
+
 ## License / disclaimer
 
 For research and educational use. Trading leveraged products carries substantial risk of

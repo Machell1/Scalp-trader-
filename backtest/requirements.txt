@@ -1,4 +1,5 @@
 numpy>=1.24
 pandas>=2.0
 matplotlib>=3.7
-MetaTrader5>=5.0.45   # only needed to pull live Deriv data (fetch_diverse.py)
+yfinance>=0.2.40      # proxy data for Linux/CI (fetch_yahoo.py)
+MetaTrader5>=5.0.45   # only needed to pull live Deriv data (fetch_diverse.py; Windows)

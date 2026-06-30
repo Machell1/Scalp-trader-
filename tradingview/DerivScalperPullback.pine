@@ -1,0 +1,226 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © DerivScalper — M15 momentum pullback scalper (v1.1 research port)
+// See docs/EDGE_PLAN.md and backtest/RESULTS.md for evidence and limitations.
+//@version=6
+strategy("Deriv Scalper Pullback", overlay=true, pyramiding=0,
+     default_qty_type=strategy.percent_of_equity, default_qty_value=10,
+     commission_type=strategy.commission.percent, commission_value=0.02,
+     slippage=2, calc_on_every_tick=false, process_orders_on_close=false,
+     max_bars_back=500)
+
+// ── Inputs ──────────────────────────────────────────────────────────────
+grpSig  = "Signal"
+momBars = input.int(6, "Momentum lookback bars", minval=2, group=grpSig)
+momAtr  = input.float(2.0, "Min move (ATR multiples)", minval=0.5, step=0.1, group=grpSig)
+atrLen  = input.int(14, "ATR period", minval=1, group=grpSig)
+tradeBoth = input.bool(true, "Trade rallies (longs)", group=grpSig)
+
+grpVwap = "Anchored VWAP"
+useVwap  = input.bool(true, "AVWAP discount/premium gate", group=grpVwap)
+vwapMin  = input.int(8, "Min bars into session before trading", minval=1, group=grpVwap)
+
+grpEntry = "Entry"
+entryMode = input.string("Pullback Limit", "Entry mode",
+     options=["Pullback Limit", "Breakout Stop", "Market"], group=grpEntry)
+pullAtr   = input.float(0.6, "Pullback distance (ATR)", minval=0.1, step=0.1, group=grpEntry)
+brkAtr    = input.float(0.05, "Breakout offset (ATR)", minval=0.01, step=0.01, group=grpEntry)
+pendExp   = input.int(4, "Pending expiry bars", minval=1, maxval=10, group=grpEntry)
+
+grpRisk = "Risk & Exits"
+riskPct   = input.float(0.5, "Risk per trade (%)", minval=0.1, step=0.1, group=grpRisk)
+stopAtr   = input.float(1.0, "Stop distance (ATR)", minval=0.1, step=0.1, group=grpRisk)
+tpAtr     = input.float(3.0, "Take profit (ATR, 0=off)", minval=0.0, step=0.1, group=grpRisk)
+lockAtr   = input.float(0.25, "Lock trigger (ATR profit)", minval=0.0, step=0.05, group=grpRisk)
+trailAtr  = input.float(0.5, "Trail distance (ATR)", minval=0.0, step=0.1, group=grpRisk)
+maxHold   = input.int(8, "Max holding bars (0=off)", minval=0, group=grpRisk)
+
+grpUni = "Universe hint"
+assetClass = input.string("Crypto+Index only", "Asset class filter",
+     options=["Auto", "Crypto+Index only", "All"], group=grpUni,
+     tooltip="Crypto+Index = where backtest edge lives. FX loses on this logic.")
+
+// ── Indicators ────────────────────────────────────────────────────────
+atr = ta.atr(atrLen)
+
+// Session-anchored VWAP (resets each calendar day)
+isNewDay = ta.change(time("D")) != 0
+var float cumPV = 0.0
+var float cumV  = 0.0
+var int   sessBar = 0
+tp_ = hlc3
+if isNewDay
+    cumPV := tp_ * volume
+    cumV  := volume
+    sessBar := 1
+else
+    cumPV += tp_ * volume
+    cumV  += volume
+    sessBar += 1
+vwap = cumV > 0 ? cumPV / cumV : na
+vwapReady = sessBar >= vwapMin
+
+// Momentum impulse
+move     = close[momBars - 1] - close
+moveAtr  = move / atr
+bearBar  = close < open
+bullBar  = close > open
+falling  = moveAtr >= momAtr and bearBar
+rising   = -moveAtr >= momAtr and bullBar
+
+// Continuation direction
+goLong  = rising and tradeBoth
+goShort = falling
+
+// AVWAP gate: buy discount, sell premium
+if useVwap and vwapReady
+    if goLong and close >= vwap
+        goLong := false
+    if goShort and close <= vwap
+        goShort := false
+
+// Asset class heuristic (symbol name sniff)
+sym = syminfo.ticker
+isCrypto = str.contains(sym, "BTC") or str.contains(sym, "ETH") or str.contains(sym, "SOL") or
+           str.contains(sym, "XRP") or str.contains(sym, "LTC") or str.contains(sym, "BCH") or
+           str.contains(sym, "CRYPTO")
+isIndex  = str.contains(sym, "NDX") or str.contains(sym, "SPX") or str.contains(sym, "NAS") or
+           str.contains(sym, "DAX") or str.contains(sym, "FTSE") or str.contains(sym, "NI225") or
+           str.contains(sym, "HSI") or str.contains(sym, "US500") or str.contains(sym, "US100")
+isFx     = str.contains(sym, "EUR") or str.contains(sym, "GBP") or str.contains(sym, "JPY") or
+           str.contains(sym, "USD") and not isCrypto
+
+allowed = assetClass == "All" or assetClass == "Auto" or
+     (assetClass == "Crypto+Index only" and (isCrypto or isIndex))
+
+signalLong  = goLong and allowed and vwapReady
+signalShort = goShort and allowed and vwapReady
+
+// ── Pending order state machine ───────────────────────────────────────
+var float pendPrice = na
+var int   pendSide  = 0      // 1=long, -1=short
+var int   pendBar   = na
+var int   pendLeft  = 0
+
+// Position management state
+var int   entryBar  = na
+var float entryPx   = na
+var float curSL     = na
+var bool  locked    = false
+
+// Cancel expired pending
+if not na(pendBar) and bar_index - pendBar >= pendExp
+    pendPrice := na
+    pendSide  := 0
+    pendBar   := na
+
+// New signal → place pending (one at a time)
+flat = strategy.position_size == 0
+if flat and na(pendPrice)
+    if signalLong
+        if entryMode == "Pullback Limit"
+            pendPrice := close - pullAtr * atr
+            pendSide  := 1
+            pendBar   := bar_index
+        else if entryMode == "Breakout Stop"
+            pendPrice := close + brkAtr * atr
+            pendSide  := 1
+            pendBar   := bar_index
+        else  // Market
+            entryPx := close
+            entryBar := bar_index
+            riskDist = stopAtr * atr
+            curSL := entryPx - riskDist
+            locked := false
+            tpPx = tpAtr > 0 ? entryPx + tpAtr * atr : na
+            strategy.entry("L", strategy.long)
+            if not na(tpPx)
+                strategy.exit("LX", "L", stop=curSL, limit=tpPx)
+            else
+                strategy.exit("LX", "L", stop=curSL)
+    else if signalShort
+        if entryMode == "Pullback Limit"
+            pendPrice := close + pullAtr * atr
+            pendSide  := -1
+            pendBar   := bar_index
+        else if entryMode == "Breakout Stop"
+            pendPrice := close - brkAtr * atr
+            pendSide  := -1
+            pendBar   := bar_index
+        else
+            entryPx := close
+            entryBar := bar_index
+            riskDist = stopAtr * atr
+            curSL := entryPx + riskDist
+            locked := false
+            tpPx = tpAtr > 0 ? entryPx - tpAtr * atr : na
+            strategy.entry("S", strategy.short)
+            if not na(tpPx)
+                strategy.exit("SX", "S", stop=curSL, limit=tpPx)
+            else
+                strategy.exit("SX", "S", stop=curSL)
+
+// Fill pending on touch
+if flat and not na(pendPrice) and pendSide != 0
+    filled = (pendSide == 1 and low <= pendPrice) or (pendSide == -1 and high >= pendPrice)
+    if filled
+        entryPx := pendPrice
+        entryBar := bar_index
+        riskDist = stopAtr * atr
+        curSL := pendSide == 1 ? entryPx - riskDist : entryPx + riskDist
+        locked := false
+        tpPx = tpAtr > 0 ? (pendSide == 1 ? entryPx + tpAtr * atr : entryPx - tpAtr * atr) : na
+        if pendSide == 1
+            strategy.entry("L", strategy.long, limit=pendPrice)
+            if not na(tpPx)
+                strategy.exit("LX", "L", stop=curSL, limit=tpPx)
+            else
+                strategy.exit("LX", "L", stop=curSL)
+        else
+            strategy.entry("S", strategy.short, limit=pendPrice)
+            if not na(tpPx)
+                strategy.exit("SX", "S", stop=curSL, limit=tpPx)
+            else
+                strategy.exit("SX", "S", stop=curSL)
+        pendPrice := na
+        pendSide  := 0
+        pendBar   := na
+
+// Trail / lock / time exit on open position
+inPos = strategy.position_size != 0
+if inPos and not na(entryBar)
+    isLong = strategy.position_size > 0
+    profit = isLong ? close - entryPx : entryPx - close
+    // Lock to breakeven
+    if profit >= lockAtr * atr
+        locked := true
+        be = entryPx
+        curSL := isLong ? math.max(curSL, be) : math.min(curSL, be)
+        trail = isLong ? close - trailAtr * atr : close + trailAtr * atr
+        curSL := isLong ? math.max(curSL, trail) : math.min(curSL, trail)
+    // Update exit
+    tpPx = tpAtr > 0 ? (isLong ? entryPx + tpAtr * atr : entryPx - tpAtr * atr) : na
+    if isLong
+        strategy.exit("LX", "L", stop=curSL, limit=tpPx)
+    else
+        strategy.exit("SX", "S", stop=curSL, limit=tpPx)
+    // Time exit
+    if maxHold > 0 and bar_index - entryBar >= maxHold
+        strategy.close_all(comment="time")
+        entryBar := na
+
+// Reset on flat
+if not inPos
+    entryBar := na
+    entryPx  := na
+    curSL    := na
+    locked   := false
+
+// ── Visuals ───────────────────────────────────────────────────────────
+plot(useVwap ? vwap : na, "AVWAP", color=color.new(color.orange, 30), linewidth=2)
+plotshape(signalLong, "Long signal", shape.triangleup, location.belowbar, color.new(color.teal, 0), size=size.tiny)
+plotshape(signalShort, "Short signal", shape.triangledown, location.abovebar, color.new(color.red, 0), size=size.tiny)
+plot(not na(pendPrice) ? pendPrice : na, "Pending entry", color=color.yellow, style=plot.style_circles, linewidth=2)
+
+// ── Alerts ────────────────────────────────────────────────────────────
+alertcondition(signalLong, "Pullback long signal", "DerivScalper: LONG signal on {{ticker}} @ {{close}}")
+alertcondition(signalShort, "Pullback short signal", "DerivScalper: SHORT signal on {{ticker}} @ {{close}}")

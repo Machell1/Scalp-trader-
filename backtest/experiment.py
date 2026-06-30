@@ -74,14 +74,22 @@ def stt(a):
 def n_eff_symbols(data):
     """Effective # independent symbols from bar-return correlation matrix (participation ratio)."""
     rets = {}
-    for sym,df in data.items():
-        rets[sym]=pd.Series(df["close"].astype(float).values, index=pd.to_datetime(df["time"])).pct_change()
-    M = pd.concat(rets, axis=1).dropna()
+    for sym, df in data.items():
+        rets[sym] = pd.Series(df["close"].astype(float).values, index=pd.to_datetime(df["time"])).pct_change()
+    M = pd.concat(rets, axis=1).dropna(how="any")
+    if M.shape[0] < 50 or M.shape[1] < 2:
+        return float(len(data)), 0.0
     C = M.corr().to_numpy()
-    ev = np.linalg.eigvalsh(C)
-    ev = ev[ev>0]
-    pr = (ev.sum()**2)/(np.square(ev).sum())   # participation ratio
-    mean_r = (C.sum()-len(C))/(len(C)*(len(C)-1))
+    C = np.nan_to_num(C, nan=0.0, posinf=0.0, neginf=0.0)
+    try:
+        ev = np.linalg.eigvalsh(C)
+    except np.linalg.LinAlgError:
+        return float(len(data)), 0.0
+    ev = ev[ev > 0]
+    if ev.size == 0:
+        return float(len(data)), 0.0
+    pr = (ev.sum() ** 2) / (np.square(ev).sum())   # participation ratio
+    mean_r = (C.sum() - len(C)) / (len(C) * (len(C) - 1))
     return pr, mean_r
 
 def quarter_signs(data, p, cost):
