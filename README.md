@@ -86,6 +86,39 @@ python experiment.py           # full 19-candidate ship-gate on the index basket
 
 Market data (`backtest/data/`) is **not** committed — regenerate it with `fetch_diverse.py`.
 
+## TradingView edge search (Daily/H4 swing strategies)
+
+A second, independent search — connecting directly to **TradingView** (no MT5
+terminal needed) and pivoting from M15 scalping to **Daily/H4 swing systems**
+to fight cost-fragility and get ~19 years of real history instead of ~2
+months. Plan written *before* execution: [`EDGE_SEARCH_PLAN.md`](EDGE_SEARCH_PLAN.md).
+Full results: [`backtest/SWING_RESULTS.md`](backtest/SWING_RESULTS.md).
+
+**Headline: 0 of 22 candidates (5 strategy families × parameter/universe
+sweeps × 2 timeframes) cleared the ship gate.** The most important finding
+isn't a strategy — it's a warning: several trend-following entry rules that
+*looked* like edges (positive expectancy, survives 2x cost stress, good
+quarter-stability) turned out to be statistically indistinguishable from, or
+worse than, **literally random entry timing run through the same stop/trail
+exit**, because the exit machinery itself is convex on a long-run-bullish
+basket. The one lead that beat that proper null — RSI(2) mean-reversion
+*within* the prevailing trend — is flagged **observe-grade only** (same
+non-claim as the live EA): it survives 2x cost and has no excluded asset
+class, but its deflated Sharpe and permutation p-value both fall short of the
+bar, and it failed to replicate on a second timeframe. A monitoring-only Pine
+Script for it is at [`pinescript/RSI2TrendWatch.pine`](pinescript/RSI2TrendWatch.pine) —
+load it on TradingView to watch the signal live; it is **not** a recommendation
+to trade it.
+
+```bash
+cd backtest
+pip install -r requirements.txt
+pip install --no-cache-dir "git+https://github.com/rongardF/tvdatafeed.git"
+python fetch_tradingview.py   # pulls real OHLCV straight from TradingView, no account needed
+python swing_experiment.py D1
+python swing_experiment.py H4
+```
+
 ## Honest limitations
 
 - The edge is **small and cost-fragile**; it needs tight spreads and dies at 2× cost.

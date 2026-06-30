@@ -1,0 +1,103 @@
+// © scalp-trader research — RSI(2) mean-reversion-within-trend (F4), OBSERVE-GRADE ONLY
+//
+// STATUS: This is the one strategy family in backtest/SWING_RESULTS.md that beat a
+// matched random-entry null on real TradingView Daily data (2006/07-2026, 33 diverse
+// instruments). It did NOT clear the repo's formal ship gate (Deflated Sharpe <= 0.82
+// vs a 0.95 bar, permutation p >= 0.125 vs a 0.05 bar) and did NOT replicate on H4.
+// Treat this strictly as a MONITORING tool, not a system to trade on. See
+// backtest/EDGE_SEARCH_PLAN.md and backtest/SWING_RESULTS.md for the full evidence
+// and all the strategy families that were tried and rejected.
+//
+// Mechanism: only take RSI(2) extreme reversals BACK TOWARD the prevailing SMA(trend)
+// direction (buy oversold dips in an uptrend, sell overbought rallies in a downtrend).
+// Exit on RSI recovering to the midline, an ATR stop, or a bar-count time exit.
+//
+// Intended timeframe: Daily (the only timeframe this showed any signal on).
+//
+//@version=5
+strategy("RSI(2) Trend-Pullback Watch [OBSERVE-GRADE, NOT VALIDATED]",
+     overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity,
+     default_qty_value=1, pyramiding=0, calc_on_every_tick=false,
+     process_orders_on_close=true)
+
+// ---------------------------------------------------------------------------
+// Inputs (defaults = the best-scoring cell in SWING_RESULTS.md: stop 2.0 ATR)
+// ---------------------------------------------------------------------------
+rsiLen      = input.int(2,   "RSI length",              minval=1, group="Entry")
+rsiLongTh   = input.float(5.0,  "RSI <= this = oversold (long)",  minval=0, maxval=50, group="Entry")
+rsiShortTh  = input.float(95.0, "RSI >= this = overbought (short)", minval=50, maxval=100, group="Entry")
+rsiExitMid  = input.float(50.0, "RSI exit (cross back to)",  minval=0, maxval=100, group="Exit")
+trendLen    = input.int(200, "Trend SMA length (0 = off)", minval=0, group="Entry")
+allowLong   = input.bool(true,  "Allow longs",  group="Entry")
+allowShort  = input.bool(true,  "Allow shorts (the side that mattered most in testing)", group="Entry")
+atrLen      = input.int(14,  "ATR length", minval=1, group="Risk")
+stopAtrMult = input.float(2.0, "Initial stop (x ATR)", minval=0.1, group="Risk")
+maxHoldBars = input.int(100, "Max hold (bars) — time exit", minval=1, group="Risk")
+useAlerts   = input.bool(true, "Fire alertcondition() on signals", group="Misc")
+
+// ---------------------------------------------------------------------------
+// Indicators (causal — uses only data through the current confirmed bar)
+// ---------------------------------------------------------------------------
+rsiVal   = ta.rsi(close, rsiLen)
+trendSma = trendLen > 0 ? ta.sma(close, trendLen) : na
+atrVal   = ta.atr(atrLen)
+
+longRegime  = trendLen > 0 ? close > trendSma : true
+shortRegime = trendLen > 0 ? close < trendSma : true
+
+longSignal  = allowLong  and longRegime  and rsiVal <= rsiLongTh
+shortSignal = allowShort and shortRegime and rsiVal >= rsiShortTh
+
+// ---------------------------------------------------------------------------
+// Entries — next-bar-open equivalent: TradingView fills strategy.entry() at
+// the open of the bar AFTER the signal bar closes (process_orders_on_close).
+// ---------------------------------------------------------------------------
+if longSignal and strategy.position_size == 0
+    strategy.entry("RSI2-Long", strategy.long)
+
+if shortSignal and strategy.position_size == 0
+    strategy.entry("RSI2-Short", strategy.short)
+
+// ---------------------------------------------------------------------------
+// Exits — ATR stop, RSI-cross-to-mid, or time exit (whichever first)
+// ---------------------------------------------------------------------------
+var float entryPrice = na
+var int   entryBar   = na
+var float stopPrice  = na
+
+if strategy.position_size != 0 and strategy.position_size[1] == 0
+    entryPrice := strategy.position_avg_price
+    entryBar   := bar_index
+    stopPrice  := strategy.position_size > 0 ? entryPrice - stopAtrMult * atrVal : entryPrice + stopAtrMult * atrVal
+
+barsHeld = na(entryBar) ? 0 : bar_index - entryBar
+timeExit = barsHeld >= maxHoldBars
+
+if strategy.position_size > 0
+    rsiExit = rsiVal >= rsiExitMid
+    strategy.exit("RSI2-LongExit", "RSI2-Long", stop=stopPrice)
+    if rsiExit or timeExit
+        strategy.close("RSI2-Long", comment=rsiExit ? "RSI mid-cross" : "time exit")
+
+if strategy.position_size < 0
+    rsiExit = rsiVal <= rsiExitMid
+    strategy.exit("RSI2-ShortExit", "RSI2-Short", stop=stopPrice)
+    if rsiExit or timeExit
+        strategy.close("RSI2-Short", comment=rsiExit ? "RSI mid-cross" : "time exit")
+
+if strategy.position_size == 0
+    entryPrice := na
+    entryBar   := na
+    stopPrice  := na
+
+// ---------------------------------------------------------------------------
+// Plots / alerts
+// ---------------------------------------------------------------------------
+plot(trendLen > 0 ? trendSma : na, "Trend SMA", color=color.new(color.orange, 0), linewidth=2)
+plotshape(longSignal and strategy.position_size == 0, title="Long watch", style=shape.triangleup,
+     location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(shortSignal and strategy.position_size == 0, title="Short watch", style=shape.triangledown,
+     location=location.abovebar, color=color.red, size=size.tiny)
+
+alertcondition(useAlerts and longSignal,  title="RSI2 trend-pullback LONG watch",  message="RSI(2) oversold-in-uptrend watch signal (observe-grade, not a validated edge)")
+alertcondition(useAlerts and shortSignal, title="RSI2 trend-pullback SHORT watch", message="RSI(2) overbought-in-downtrend watch signal (observe-grade, not a validated edge)")
