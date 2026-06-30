@@ -65,6 +65,39 @@ default universe (`InpSymbolWhitelist`).
   the deflated-Sharpe / walk-forward gate. Treat live trading as a **minimum-size
   monitored experiment** that needs low-spread execution; scale only if it survives live.
 
+## 5. REAL Deriv spread cost — the decisive test (drives v1.2)
+
+`deriv_realcost.py` pulls each instrument's live Deriv spread, converts it to ATR units
+(per-side = 0.5 × median spread ÷ median ATR), and runs the exact Pine config at that real
+cost on the OOS slice. Deriv's spreads are wildly heterogeneous:
+
+| Instrument | real spread (ATR/side) | exp net of real cost |
+|---|---|---|
+| BTCUSD | 0.005 | +0.114 R |
+| US Tech 100 | 0.012 | +0.109 R |
+| Germany 40 | 0.010 | +0.053 R |
+| Wall Street 30 | 0.016 | +0.051 R |
+| … (majors) | ≤ 0.03 | positive |
+| LTCUSD | 0.205 | −0.384 R |
+| BCHUSD | 0.183 | −0.270 R |
+| US Mid Cap 400 | 0.143 | −0.226 R |
+
+Pooled over all 17 it is **−0.032 R** (dragged down by the blown-spread names). But gated by
+an a-priori **spread/ATR ≤ 0.05 per side** filter (a cost property, not outcome-fitting):
+
+| Universe | N | exp (real cost) | t | PF |
+|---|---|---|---|---|
+| spread ≤ 0.05/side (12 majors) | 10,711 | **+0.044 R** | **+4.07** | **1.11** |
+| spread ≤ 0.03/side (9 majors)  | 8,132  | **+0.059 R** | **+4.78** | **1.15** |
+
+**Conclusion:** at Deriv's real spreads the pullback edge is positive and significant on a
+spread-gated set of major crypto + indices (vs −64% on Binance, where 0.1% taker ≈ 0.23
+ATR/side). The cross-venue reconciliation: viability is entirely a spread/ATR question.
+
+**v1.2 ships this:** universe pruned to the ≤0.05 majors, a live `InpMaxSpreadAtr` gate that
+skips any symbol whose spread is too wide right now, and AVWAP off by default. Still
+observe / minimum-size grade pending a walk-forward + DSR on the gated universe.
+
 ## Reproduce
 
 ```bash
@@ -72,4 +105,5 @@ pip install -r requirements.txt
 python fetch_diverse.py      # MT5 terminal must be open + logged in
 python validate_diverse.py   # section 3
 python experiment.py         # section 2 (uses data/derivM15 index basket)
+python deriv_realcost.py     # section 5 — real Deriv spread cost (MT5 must be open)
 ```

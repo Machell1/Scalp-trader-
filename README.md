@@ -3,6 +3,10 @@
 A multi-symbol momentum **pullback** scalper for Deriv MT5, plus the Python research
 harness used to design and (honestly) stress-test it.
 
+> 🛠️ **Modifying the bot (human or AI agent)? Read [`HANDOFF.md`](HANDOFF.md) first.**
+> It states the validated facts you must not undo (pullback entry, no AVWAP, the spread
+> gate) and the out-of-sample-at-real-cost bar every change must clear.
+
 > ⚠️ **Status: OBSERVE / MINIMUM-SIZE EXPERIMENT — not a proven money-maker.**
 > The entry change in v1.1 is the only thing in an extensive backtest study that
 > improved out-of-sample performance across many real instruments, but even it is a
@@ -72,6 +76,7 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 | `experiment.py` | Marginal-contribution runner: permutation test, breadth haircut, WFE, DSR, cost-stress, ship gate |
 | `validate_diverse.py` | Confirms the pullback lead on the diverse 29-instrument basket |
 | `fetch_diverse.py` | Pulls real Deriv M15 data via the local `MetaTrader5` package |
+| `deriv_realcost.py` | **Real Deriv spread → ATR cost**; spread-gate evidence (source of truth) |
 | `deriv_recheck.py` | Re-checks shipped configs on real Deriv M15 indices |
 | `chart_*.py` | Result charts (see `docs/`) |
 

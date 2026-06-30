@@ -1,7 +1,8 @@
 """Closed-loop edge discovery for the pullback momentum scalper.
 
-Tests NEW hypotheses beyond the original 19-candidate grid (see docs/EDGE_PLAN.md).
-Uses the same ship gate as experiment.py. Run after fetch_yahoo.py or fetch_diverse.py.
+READ HANDOFF.md FIRST — validated facts (pullback entry, TP 3.0, no AVWAP default,
+spread gate) must not be undone. Source of truth for shipping: experiment.py and
+deriv_realcost.py on real Deriv M15 data — NOT Yahoo proxy runs.
 
 Usage:
   python fetch_yahoo.py          # proxy data on Linux
@@ -36,23 +37,21 @@ CLASS = {
 
 BASE = dict(tp_atr=3.0, entry_style="stop", entry_offset_atr=0.05, pending_expiry_bars=2)
 
-# Shipped config (v1.2): pullback 0.6, 4-bar expiry, no AVWAP
-PULLBACK = dict(entry_style="limit", entry_offset_atr=0.6, pending_expiry_bars=4)
-SHIPPED = {**PULLBACK, "tp_atr": 4.0}  # best WATCH combo from M15 crypto+index proxy
+# Validated v1.2 config (matches deriv_realcost.py PINE dict and HANDOFF.md)
+PULLBACK = dict(entry_style="limit", entry_offset_atr=0.6, pending_expiry_bars=3, tp_atr=3.0)
 
 CANDIDATES = [
-    # --- shipped / reference ---
-    ("SHIPPED pull0.6 exp4 tp4", "geom", SHIPPED),
+    # --- reference (HANDOFF validated) ---
+    ("validated pull0.6 tp3", "geom", PULLBACK),
     ("baseline chase STOP", "geom", {}),
-    ("pullback 0.6 exp4", "geom", PULLBACK),
 
-    # --- A: geometry sweep ---
+    # --- A: geometry sweep (must clear ship gate vs validated pull0.6 tp3) ---
     ("pullback 0.4", "geom", {**PULLBACK, "entry_offset_atr": 0.4}),
     ("pullback 0.5", "geom", {**PULLBACK, "entry_offset_atr": 0.5}),
     ("pullback 0.7", "geom", {**PULLBACK, "entry_offset_atr": 0.7}),
     ("pullback 0.8", "geom", {**PULLBACK, "entry_offset_atr": 0.8}),
     ("pullback 0.6 exp2", "geom", {**PULLBACK, "pending_expiry_bars": 2}),
-    ("pullback 0.6 exp3", "geom", {**PULLBACK, "pending_expiry_bars": 3}),
+    ("pullback 0.6 exp4", "geom", {**PULLBACK, "pending_expiry_bars": 4}),
 
     # --- B: combos (no AVWAP — failed OOS) ---
     ("pull0.6 + ADX20", "filter", {**PULLBACK, "adx_min": 20.0}),

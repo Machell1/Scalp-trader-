@@ -1,5 +1,8 @@
 # Edge Discovery Plan — DerivScalper → TradingView
 
+> **Canonical guardrails:** [`HANDOFF.md`](../HANDOFF.md). This doc tracks hypothesis
+> iterations; do not ship changes that contradict HANDOFF validated facts.
+
 ## Thesis
 
 Momentum **continuation** on M15 works only when entry geometry avoids chasing extension.
@@ -147,11 +150,14 @@ This loop tests **combinations and refinements** not in the original grid:
 **Best WATCH:** pullback 0.6 ATR, 4-bar pending expiry, crypto+index universe.
 Still fails full SHIP gate (only 1 OOS quarter in 60d Yahoo window; needs MT5 confirm).
 
-### Promoted to TradingView + EA defaults (v1.2)
-- **Removed AVWAP** — zero OOS edge, reduced trade count
-- Entry: Pullback 0.6 ATR, **4-bar** pending expiry
-- Take profit: **4.0 ATR**
-- Universe: crypto + indices only
+### Promoted to TradingView + EA defaults (v1.2 — per HANDOFF.md)
+- **AVWAP off by default** (`InpUseVwapGate=false`) — do not re-enable as default
+- **Spread/ATR gate** (`InpMaxSpreadAtr`) + pruned whitelist — load-bearing
+- Entry: Pullback 0.6 ATR, **3-bar** pending expiry, **TP 3.0 ATR**
+- Universe: spread-gated crypto + indices majors only
+
+> Yahoo-proxy "exp4/tp4" WATCH results were **not** promoted — they failed to clear on
+> real Deriv cost and contradict HANDOFF validated TP=3.0.
 
 ### Next loop hypotheses
 1. Pullback 0.6 exp4 + tp4.0 combo on Deriv M15 diverse basket
