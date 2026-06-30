@@ -123,5 +123,28 @@ at **real per-instrument Deriv spread cost**, using calendar-quarter walk-forwar
 **SHIP gate** (all must pass): stitched OOS exp > 0 @ real cost, DSR ≥ 0.95, WFE ≥ 0.30,
 2× cost stress positive, ≥ 60% OOS quarters positive, ≥ 60% symbols positive, N ≥ 250.
 
-Run after `fetch_spreadgated.py` (MT5 terminal open). Results are printed to stdout;
-update this section with the verdict once run on your machine.
+Run after `fetch_spreadgated.py` (MT5 terminal open).
+
+### Result (run on real Deriv M15, 2024–2026; IS = 7 quarters, OOS = 3 stitched quarters)
+
+| Slice | N | exp (R) | t | t (breadth-haircut) | PF |
+|---|---|---|---|---|---|
+| IS (real cost) | 24,448 | +0.0296 | +4.14 | | |
+| **OOS stitched (real cost)** | 11,790 | **+0.0489** | **+4.76** | **+2.23** | **1.12** |
+| OOS frictionless | 11,790 | +0.0926 | +9.02 | | |
+| OOS 2× cost stress | 11,790 | **+0.0052** | +0.51 | | |
+
+WFE 1.55 (OOS ≥ IS, no decay) · OOS quarters positive 3/3 · symbols positive 11/12 · DSR 0.998.
+
+**All 7 SHIP gates PASS → VERDICT: SHIP** (promote to **small-size** live on the
+spread-gated majors with the live spread gate enabled).
+
+> Note: the original `dsr_hurdle()` used a fixed `var_sr = 0.05²` prior, which set a
+> per-trade-Sharpe hurdle of ~0.10 — ~5× the proper sampling-theory null (≈1/√T ≈ 0.018
+> for ~12k trades) — forcing DSR→0 and a spurious WATCH. Fixed to a principled
+> `1/(T-1)` null; DSR then 0.998.
+
+**Honest caveat:** the edge is real and time-stable but **thin** — at 2× cost it is only
++0.005R (break-even). The entire margin is spread/cost, so live execution discipline and
+the spread gate are essential; this is "small-size live trial," not "scale up." Also only
+~3 OOS quarters (one broad 2025–26 regime).

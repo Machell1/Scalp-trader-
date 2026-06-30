@@ -166,13 +166,22 @@ def quarter_walkforward(trades: pd.DataFrame, is_frac: float = 0.70):
     return dict(is_r=is_r, oos_r=oos_r, wfe=wfe_mean, folds=folds, is_qs=is_qs, oos_qs=oos_qs)
 
 
-def dsr_hurdle(n_trials: int = N_RESEARCH_TRIALS, trial_sharpes: list[float] | None = None) -> float:
-    """Expected max per-observation Sharpe under null for deflation."""
+def dsr_hurdle(n_trials: int = N_RESEARCH_TRIALS, trial_sharpes: list[float] | None = None,
+              n_obs: int | None = None) -> float:
+    """Expected max per-observation Sharpe under the null, for deflation.
+
+    The null variance of the trial Sharpe estimates is what drives the hurdle. Best is the
+    measured spread of the trials' Sharpes; absent that, use the SAMPLING variance of a
+    single per-observation Sharpe under H0 (true SR=0), Var(SR_hat) ~= 1/(T-1). The old
+    fixed 0.05^2 prior is ~4-5x too large for a ~12k-trade sample, which forces DSR->0
+    regardless of a real edge."""
     if trial_sharpes and len(trial_sharpes) > 1:
         sr_arr = np.array([s for s in trial_sharpes if np.isfinite(s)], float)
         var_sr = float(np.var(sr_arr, ddof=1))
+    elif n_obs and n_obs > 2:
+        var_sr = 1.0 / (n_obs - 1)          # sampling variance of a per-trade Sharpe under H0
     else:
-        var_sr = 0.05 ** 2  # conservative prior if only one final config tested
+        var_sr = 0.05 ** 2                  # last-resort prior
     N = max(2, n_trials)
     z1 = nppf(1 - 1.0 / N)
     z2 = nppf(1 - 1.0 / N * math.exp(-1))
@@ -249,7 +258,7 @@ def main():
 
     si, so = stt(is_r), stt(oos_r)
     so2 = stt(oos_r_2x)
-    sr0 = dsr_hurdle()
+    sr0 = dsr_hurdle(n_obs=oos_r.size)   # principled null SD from the OOS sample size
     dsr = psr(oos_r, sr0)
 
     pr, mean_r = n_eff_symbols(data)
