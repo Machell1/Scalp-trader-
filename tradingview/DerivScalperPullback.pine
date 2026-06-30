@@ -1,0 +1,140 @@
+//@version=5
+// ──────────────────────────────────────────────────────────────────────────────
+//  DerivScalper Pullback — v1.2  (TradingView port of DerivScalperEA)
+//
+//  Single-symbol Pine port of the momentum-CONTINUATION pullback scalper for
+//  visual inspection and on-chart backtesting. The live EA (mql5/DerivScalperEA.mq5)
+//  is multi-symbol; here you run it on ONE chart.
+//
+//  HOW TO USE
+//    * Paste into the TradingView Pine Editor and "Add to chart".
+//    * Timeframe: M15.   Symbol: BINANCE:BTCUSDT  or  TVC:NDX (NASDAQ-100).
+//    * Defaults below are the validated v1.2 config — nothing to toggle.
+//
+//  v1.2 vs the v1.1 EA: the always-on Anchored-VWAP discount/premium gate is
+//  REMOVED. It produced in-sample sparkle but ZERO out-of-sample edge in testing
+//  (a textbook overfit), and the validated pullback edge was measured WITHOUT it.
+//
+//  STRATEGY
+//    Signal : a >= 2 ATR move over 6 bars + a same-direction candle (continuation).
+//    Entry  : a LIMIT order 0.6 ATR back TOWARD price (enter on the retrace, not by
+//             chasing beyond an already-extended move). Cancel if unfilled in 3 bars.
+//    Exits  : 1 ATR stop, 3 ATR take-profit, break-even lock at +0.25 ATR, then a
+//             0.5 ATR trailing stop, and an 8-bar time exit.
+//
+//  *** HONEST STATUS: observe / minimum-size experiment, not a proven edge. The
+//  pullback edge is small and cost-fragile (≈break-even after realistic spread,
+//  negative at 2x cost) and lives mainly in CRYPTO + INDICES. Set realistic
+//  commission/slippage in the Properties tab before trusting the equity curve. ***
+// ──────────────────────────────────────────────────────────────────────────────
+strategy("DerivScalper Pullback v1.2", overlay=true, initial_capital=10000,
+     default_qty_type=strategy.fixed, default_qty_value=1, pyramiding=0,
+     process_orders_on_close=true, calc_on_every_tick=false,
+     commission_type=strategy.commission.percent, commission_value=0.0,
+     slippage=0)
+
+// ─── Inputs (defaults = validated v1.2) ───
+gM = "Momentum"
+momBars   = input.int(6,    "Momentum lookback (bars)",     minval=2, group=gM)
+momAtr    = input.float(2.0,"Momentum threshold (ATR)",     step=0.1, group=gM)
+atrLen    = input.int(14,   "ATR period",                   minval=1, group=gM)
+bothSides = input.bool(true,"Trade both sides (longs+shorts)",        group=gM)
+
+gE = "Entry (pullback limit)"
+pullbackAtr = input.float(0.6,"Pullback entry distance (ATR back toward price)", step=0.1, group=gE)
+expiryBars  = input.int(3,    "Cancel unfilled entry after (bars)",             minval=1, group=gE)
+
+gX = "Exits"
+stopAtr  = input.float(1.0, "Initial stop (ATR)",            step=0.1, group=gX)
+tpAtr    = input.float(3.0, "Take profit (ATR, 0 = none)",   step=0.1, group=gX)
+lockAtr  = input.float(0.25,"Break-even lock trigger (ATR)", step=0.05,group=gX)
+trailAtr = input.float(0.5, "Trail distance after lock (ATR)",step=0.1,group=gX)
+maxHold  = input.int(8,     "Max holding (bars, 0 = off)",   minval=0, group=gX)
+
+gR = "Risk"
+riskPct = input.float(0.5,  "Risk per trade (% of equity)",  step=0.1, group=gR)
+
+atr = ta.atr(atrLen)
+
+// ─── Signal (continuation, evaluated on the confirmed bar) ───
+// move > 0  => price fell over the window; mirror of the EA's closePast-close1.
+move    = close[momBars - 1] - close
+moveAtr = atr > 0 ? move / atr : 0.0
+bull = close > open
+bear = close < open
+rising  = (-moveAtr >= momAtr) and bull   // continuation LONG
+falling = ( moveAtr >= momAtr) and bear   // continuation SHORT
+
+flat = strategy.position_size == 0
+
+// pullback limit levels: buy below price, sell above price (enter on the retrace)
+longLimit  = close - pullbackAtr * atr
+shortLimit = close + pullbackAtr * atr
+
+// risk-based position size: a stopAtr*ATR adverse move ≈ riskPct% of equity
+riskPerUnit = stopAtr * atr
+qty = riskPerUnit > 0 ? math.max((strategy.equity * riskPct / 100.0) / riskPerUnit, 0.0) : 0.0
+
+// ─── Entry + pending-expiry management (one trade at a time) ───
+var bool pendingActive = false
+var int  pendingBar    = na
+
+canEnter = flat and not pendingActive and qty > 0
+if canEnter
+    if rising
+        strategy.entry("L", strategy.long, qty=qty, limit=longLimit)
+        pendingActive := true
+        pendingBar    := bar_index
+    else if falling and bothSides
+        strategy.entry("S", strategy.short, qty=qty, limit=shortLimit)
+        pendingActive := true
+        pendingBar    := bar_index
+
+// cancel an unfilled pending after expiryBars
+if pendingActive and flat and not na(pendingBar) and (bar_index - pendingBar) >= expiryBars
+    strategy.cancel("L")
+    strategy.cancel("S")
+    pendingActive := false
+
+// once filled, clear the pending flag
+if pendingActive and not flat
+    pendingActive := false
+
+// ─── Manage the open position: BE lock + ATR trail + TP + time exit ───
+var float curStop  = na
+var float tpPrice  = na
+var int   entryBar = na
+
+justEntered = (not flat) and flat[1]
+if justEntered
+    e = strategy.position_avg_price
+    entryBar := bar_index
+    if strategy.position_size > 0
+        curStop := e - stopAtr * atr
+        tpPrice := tpAtr > 0 ? e + tpAtr * atr : na
+    else
+        curStop := e + stopAtr * atr
+        tpPrice := tpAtr > 0 ? e - tpAtr * atr : na
+
+if not flat
+    e = strategy.position_avg_price
+    if strategy.position_size > 0
+        if (close - e) >= lockAtr * atr
+            curStop := math.max(curStop, e)                  // lock to break-even
+            curStop := math.max(curStop, close - trailAtr * atr)  // then trail (one-way)
+        strategy.exit("xL", from_entry="L", stop=curStop, limit=tpPrice)
+    else
+        if (e - close) >= lockAtr * atr
+            curStop := math.min(curStop, e)
+            curStop := math.min(curStop, close + trailAtr * atr)
+        strategy.exit("xS", from_entry="S", stop=curStop, limit=tpPrice)
+    // time exit
+    if maxHold > 0 and not na(entryBar) and (bar_index - entryBar) >= maxHold
+        strategy.close_all(comment="time")
+
+// ─── Plots ───
+plotshape(canEnter and rising,  "Long signal",  shape.triangleup,   location.belowbar, color.new(color.teal, 0), size=size.tiny)
+plotshape(canEnter and falling and bothSides, "Short signal", shape.triangledown, location.abovebar, color.new(color.red, 0), size=size.tiny)
+plot(not flat ? curStop : na, "Stop",   color=color.new(color.red, 0),   style=plot.style_linebr, linewidth=1)
+plot(not flat ? tpPrice : na, "Target", color=color.new(color.green, 0), style=plot.style_linebr, linewidth=1)
+plot(atr, "ATR", color=color.gray, display=display.data_window)
