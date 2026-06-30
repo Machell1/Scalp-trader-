@@ -61,6 +61,20 @@ the bar clock. **Demo / minimum size first.**
 > This EA places orders on whatever account it is attached to. The author of this repo
 > does not place trades on your behalf; you choose when (and whether) to run it.
 
+## TradingView strategy lab
+
+`tradingview/DerivScalperEdgeLab.pine` ports the pullback scalper idea to a
+TradingView Strategy Tester script. Use it to inspect entries/exits and export
+bar data, then validate any promising lead with the local multi-symbol loop:
+
+```bash
+python3 backtest/edge_loop.py --tf derivM15_diverse
+```
+
+The pre-registered idea list and pass/fail rules are documented in
+[`backtest/EDGE_PLAN.md`](backtest/EDGE_PLAN.md). A result is only a real edge if
+the runner marks it `SHIP`; `WATCH` remains demo/minimum-size research.
+
 ## Backtest harness (backtest/)
 
 Real-data, anti-overfitting research framework. Results are in R-multiples (instrument-
@@ -71,6 +85,8 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 | `scalper_backtest.py` | Faithful bar-level simulation of the EA logic |
 | `scalper_confluence.py` | Adds the candidate confluences + pullback geometry (reproduces the baseline exactly) |
 | `experiment.py` | Marginal-contribution runner: permutation test, breadth haircut, WFE, DSR, cost-stress, ship gate |
+| `edge_loop.py` | Pre-registered TradingView/export-data idea loop for finding or rejecting a robust edge |
+| `EDGE_PLAN.md` | Strategy families, TradingView workflow, and SHIP/WATCH/NO-SHIP gates |
 | `validate_diverse.py` | Confirms the pullback lead on the diverse 29-instrument basket |
 | `fetch_diverse.py` | Pulls real Deriv M15 data via the local `MetaTrader5` package |
 | `deriv_recheck.py` | Re-checks shipped configs on real Deriv M15 indices |

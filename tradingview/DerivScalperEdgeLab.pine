@@ -1,0 +1,139 @@
+//@version=5
+strategy("Deriv Scalper Edge Lab", overlay=true, pyramiding=0, initial_capital=10000,
+     commission_type=strategy.commission.percent, commission_value=0.0,
+     calc_on_order_fills=true, process_orders_on_close=false)
+
+// TradingView port of the repository's DerivScalperEA research idea.
+// Use this as a Strategy Tester lab, not as a claim of live profitability.
+
+entryMode = input.string("Pullback limit", "Entry mode", options=["Pullback limit", "Breakout stop", "Market"])
+tradeSide = input.string("Both", "Trade side", options=["Both", "Long only", "Short only"])
+momentumBars = input.int(6, "Momentum bars", minval=2)
+momentumAtr = input.float(2.0, "Momentum threshold (ATR)", minval=0.1, step=0.1)
+atrPeriod = input.int(14, "ATR period", minval=2)
+entryOffsetAtr = input.float(0.6, "Entry offset (ATR)", minval=0.0, step=0.05)
+pendingExpiryBars = input.int(3, "Pending expiry bars", minval=1)
+stopAtr = input.float(1.0, "Stop distance (ATR)", minval=0.1, step=0.1)
+takeProfitAtr = input.float(3.0, "Take profit (ATR, 0 disables)", minval=0.0, step=0.1)
+lockTriggerAtr = input.float(0.25, "Trail starts after profit (ATR)", minval=0.0, step=0.05)
+trailAtr = input.float(0.5, "Trailing distance (ATR)", minval=0.0, step=0.05)
+maxHoldBars = input.int(8, "Time exit bars", minval=1)
+useAvwap = input.bool(false, "AVWAP discount/premium gate")
+vwapMinBars = input.int(8, "Minimum bars since daily reset", minval=1)
+useTrend = input.bool(false, "EMA slope trend gate")
+trendEmaPeriod = input.int(50, "Trend EMA period", minval=2)
+useAdx = input.bool(false, "ADX/+DI gate")
+adxMin = input.float(20.0, "ADX minimum", minval=1.0, step=1.0)
+useSession = input.bool(false, "Session gate")
+sessionInput = input.session("0930-1600", "Session")
+
+atr = ta.atr(atrPeriod)
+move = close[momentumBars - 1] - close
+moveAtr = move / atr
+falling = moveAtr >= momentumAtr and close < open
+rising = -moveAtr >= momentumAtr and close > open
+
+allowLong = tradeSide != "Short only"
+allowShort = tradeSide != "Long only"
+goLong = rising and allowLong
+goShort = falling and allowShort
+
+var float dayPv = na
+var float dayVol = na
+var int dayBars = 0
+newDay = ta.change(time("D")) != 0
+typical = hlc3
+vol = nz(volume, 1.0)
+if newDay or na(dayPv)
+    dayPv := typical * vol
+    dayVol := vol
+    dayBars := 1
+else
+    dayPv += typical * vol
+    dayVol += vol
+    dayBars += 1
+avwap = dayVol > 0 ? dayPv / dayVol : na
+
+if useAvwap
+    goLong := goLong and dayBars >= vwapMinBars and close <= avwap
+    goShort := goShort and dayBars >= vwapMinBars and close >= avwap
+
+trend = ta.ema(close, trendEmaPeriod)
+if useTrend
+    goLong := goLong and trend > trend[momentumBars]
+    goShort := goShort and trend < trend[momentumBars]
+
+[plusDi, minusDi, adx] = ta.dmi(14, 14)
+if useAdx
+    goLong := goLong and adx >= adxMin and plusDi > minusDi
+    goShort := goShort and adx >= adxMin and minusDi > plusDi
+
+if useSession
+    inSession = not na(time(timeframe.period, sessionInput))
+    goLong := goLong and inSession
+    goShort := goShort and inSession
+
+var int setupBar = na
+var int fillBar = na
+var float activeAtr = na
+var float longStop = na
+var float shortStop = na
+
+if strategy.position_size == 0
+    longStop := na
+    shortStop := na
+
+if strategy.position_size != 0 and strategy.position_size[1] == 0
+    fillBar := bar_index
+    setupBar := na
+
+if strategy.position_size == 0 and not na(setupBar) and bar_index - setupBar >= pendingExpiryBars
+    strategy.cancel("L")
+    strategy.cancel("S")
+    setupBar := na
+    activeAtr := na
+
+if strategy.position_size == 0 and na(setupBar) and not na(atr)
+    if goLong
+        activeAtr := atr
+        setupBar := bar_index
+        if entryMode == "Pullback limit"
+            strategy.entry("L", strategy.long, limit=close - entryOffsetAtr * atr)
+        else if entryMode == "Breakout stop"
+            strategy.entry("L", strategy.long, stop=close + entryOffsetAtr * atr)
+        else
+            strategy.entry("L", strategy.long)
+    else if goShort
+        activeAtr := atr
+        setupBar := bar_index
+        if entryMode == "Pullback limit"
+            strategy.entry("S", strategy.short, limit=close + entryOffsetAtr * atr)
+        else if entryMode == "Breakout stop"
+            strategy.entry("S", strategy.short, stop=close - entryOffsetAtr * atr)
+        else
+            strategy.entry("S", strategy.short)
+
+if strategy.position_size > 0 and not na(activeAtr)
+    baseStop = strategy.position_avg_price - stopAtr * activeAtr
+    longStop := na(longStop) ? baseStop : longStop
+    if close - strategy.position_avg_price >= lockTriggerAtr * activeAtr
+        longStop := math.max(longStop, strategy.position_avg_price, close - trailAtr * activeAtr)
+    limitPrice = takeProfitAtr > 0 ? strategy.position_avg_price + takeProfitAtr * activeAtr : na
+    strategy.exit("LX", "L", stop=longStop, limit=limitPrice)
+    if not na(fillBar) and bar_index - fillBar >= maxHoldBars
+        strategy.close("L", comment="time exit")
+
+if strategy.position_size < 0 and not na(activeAtr)
+    baseStop = strategy.position_avg_price + stopAtr * activeAtr
+    shortStop := na(shortStop) ? baseStop : shortStop
+    if strategy.position_avg_price - close >= lockTriggerAtr * activeAtr
+        shortStop := math.min(shortStop, strategy.position_avg_price, close + trailAtr * activeAtr)
+    limitPrice = takeProfitAtr > 0 ? strategy.position_avg_price - takeProfitAtr * activeAtr : na
+    strategy.exit("SX", "S", stop=shortStop, limit=limitPrice)
+    if not na(fillBar) and bar_index - fillBar >= maxHoldBars
+        strategy.close("S", comment="time exit")
+
+plot(useAvwap ? avwap : na, "Session AVWAP", color=color.orange)
+plot(useTrend ? trend : na, "Trend EMA", color=color.blue)
+plotshape(goLong, title="Long setup", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 0), size=size.tiny)
+plotshape(goShort, title="Short setup", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 0), size=size.tiny)
