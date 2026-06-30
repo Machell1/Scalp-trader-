@@ -3,6 +3,10 @@
 A multi-symbol momentum **pullback** scalper for Deriv MT5, plus the Python research
 harness used to design and (honestly) stress-test it.
 
+> 🛠️ **Modifying the bot (human or AI agent)? Read [`HANDOFF.md`](HANDOFF.md) first.**
+> It states the validated facts you must not undo (pullback entry, no AVWAP, the spread
+> gate) and the out-of-sample-at-real-cost bar every change must clear.
+
 > ⚠️ **Status: OBSERVE / MINIMUM-SIZE EXPERIMENT — not a proven money-maker.**
 > The entry change in v1.1 is the only thing in an extensive backtest study that
 > improved out-of-sample performance across many real instruments, but even it is a
