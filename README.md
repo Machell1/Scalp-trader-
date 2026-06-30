@@ -45,8 +45,7 @@ Clear that input to scan all non-synthetics.
 
 ## EA (mql5/DerivScalperEA.mq5)
 
-- **Signal:** ≥2 ATR move over 6 bars + same-direction candle → continuation, gated by a
-  session-anchored VWAP discount/premium rule.
+- **Signal:** ≥2 ATR move over 6 bars + same-direction candle → continuation.
 - **Entry:** `InpEntryMode` = `ENTRY_LIMIT_PULLBACK` (default, validated) or
   `ENTRY_STOP_BREAKOUT` (legacy). Pullback distance = `InpPullbackAtr` (0.6 ATR).
 - **Exits:** 1 ATR stop, 3 ATR take-profit, break-even lock at +0.25 ATR, 0.5 ATR trail,

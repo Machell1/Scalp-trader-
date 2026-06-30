@@ -36,29 +36,28 @@ CLASS = {
 
 BASE = dict(tp_atr=3.0, entry_style="stop", entry_offset_atr=0.05, pending_expiry_bars=2)
 
-# Pullback baseline (best known from prior study)
-PULLBACK = dict(entry_style="limit", entry_offset_atr=0.6, pending_expiry_bars=3)
+# Shipped config (v1.2): pullback 0.6, 4-bar expiry, no AVWAP
+PULLBACK = dict(entry_style="limit", entry_offset_atr=0.6, pending_expiry_bars=4)
+SHIPPED = {**PULLBACK, "tp_atr": 4.0}  # best WATCH combo from M15 crypto+index proxy
 
-# New hypotheses — Phase 2 grid
 CANDIDATES = [
-    # --- reference ---
+    # --- shipped / reference ---
+    ("SHIPPED pull0.6 exp4 tp4", "geom", SHIPPED),
     ("baseline chase STOP", "geom", {}),
-    ("pullback 0.6 (known)", "geom", PULLBACK),
+    ("pullback 0.6 exp4", "geom", PULLBACK),
 
     # --- A: geometry sweep ---
     ("pullback 0.4", "geom", {**PULLBACK, "entry_offset_atr": 0.4}),
     ("pullback 0.5", "geom", {**PULLBACK, "entry_offset_atr": 0.5}),
     ("pullback 0.7", "geom", {**PULLBACK, "entry_offset_atr": 0.7}),
     ("pullback 0.8", "geom", {**PULLBACK, "entry_offset_atr": 0.8}),
-    ("pullback 0.6 exp4", "geom", {**PULLBACK, "pending_expiry_bars": 4}),
     ("pullback 0.6 exp2", "geom", {**PULLBACK, "pending_expiry_bars": 2}),
+    ("pullback 0.6 exp3", "geom", {**PULLBACK, "pending_expiry_bars": 3}),
 
-    # --- B: combos ---
-    ("pull0.6 + AVWAP", "filter", {**PULLBACK, "vwap_window": 1}),
+    # --- B: combos (no AVWAP — failed OOS) ---
     ("pull0.6 + ADX20", "filter", {**PULLBACK, "adx_min": 20.0}),
     ("pull0.6 + H1 EMA50", "filter", {**PULLBACK, "htf_minutes": 60, "htf_ema": 50}),
     ("pull0.6 + struct stop", "geom", {**PULLBACK, "stop_mode": "struct"}),
-    ("pull0.6 + AVWAP + ADX20", "filter", {**PULLBACK, "vwap_window": 1, "adx_min": 20.0}),
 
     # --- C: signal tuning ---
     ("pull0.6 mom4", "geom", {**PULLBACK, "momentum_bars": 4}),

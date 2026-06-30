@@ -36,10 +36,9 @@
 |---|---|---|
 | Entry mode | Pullback Limit | Only geometry change that flipped OOS sign on Deriv M15 |
 | Pullback distance | 0.6 ATR | Validated on 29-instrument basket |
-| Pending expiry | 4 bars | Best WATCH on Yahoo M15 crypto+index proxy |
-| Take profit | 3.0 ATR | Independently validated |
+| Pending expiry | 4 bars | Best on M15 crypto+index proxy |
+| Take profit | 4.0 ATR | Shipped combo with pullback exp4 |
 | Asset filter | Crypto+Index only | FX loses; crypto+index is the cleanest pocket |
-| AVWAP gate | On | Matches live EA; buy discount / sell premium |
 
 ## Alerts
 

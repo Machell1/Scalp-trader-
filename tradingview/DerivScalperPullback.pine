@@ -15,10 +15,6 @@ momAtr  = input.float(2.0, "Min move (ATR multiples)", minval=0.5, step=0.1, gro
 atrLen  = input.int(14, "ATR period", minval=1, group=grpSig)
 tradeBoth = input.bool(true, "Trade rallies (longs)", group=grpSig)
 
-grpVwap = "Anchored VWAP"
-useVwap  = input.bool(true, "AVWAP discount/premium gate", group=grpVwap)
-vwapMin  = input.int(8, "Min bars into session before trading", minval=1, group=grpVwap)
-
 grpEntry = "Entry"
 entryMode = input.string("Pullback Limit", "Entry mode",
      options=["Pullback Limit", "Breakout Stop", "Market"], group=grpEntry)
@@ -29,7 +25,7 @@ pendExp   = input.int(4, "Pending expiry bars", minval=1, maxval=10, group=grpEn
 grpRisk = "Risk & Exits"
 riskPct   = input.float(0.5, "Risk per trade (%)", minval=0.1, step=0.1, group=grpRisk)
 stopAtr   = input.float(1.0, "Stop distance (ATR)", minval=0.1, step=0.1, group=grpRisk)
-tpAtr     = input.float(3.0, "Take profit (ATR, 0=off)", minval=0.0, step=0.1, group=grpRisk)
+tpAtr     = input.float(4.0, "Take profit (ATR, 0=off)", minval=0.0, step=0.1, group=grpRisk)
 lockAtr   = input.float(0.25, "Lock trigger (ATR profit)", minval=0.0, step=0.05, group=grpRisk)
 trailAtr  = input.float(0.5, "Trail distance (ATR)", minval=0.0, step=0.1, group=grpRisk)
 maxHold   = input.int(8, "Max holding bars (0=off)", minval=0, group=grpRisk)
@@ -42,23 +38,6 @@ assetClass = input.string("Crypto+Index only", "Asset class filter",
 // ── Indicators ────────────────────────────────────────────────────────
 atr = ta.atr(atrLen)
 
-// Session-anchored VWAP (resets each calendar day)
-isNewDay = ta.change(time("D")) != 0
-var float cumPV = 0.0
-var float cumV  = 0.0
-var int   sessBar = 0
-tp_ = hlc3
-if isNewDay
-    cumPV := tp_ * volume
-    cumV  := volume
-    sessBar := 1
-else
-    cumPV += tp_ * volume
-    cumV  += volume
-    sessBar += 1
-vwap = cumV > 0 ? cumPV / cumV : na
-vwapReady = sessBar >= vwapMin
-
 // Momentum impulse
 move     = close[momBars - 1] - close
 moveAtr  = move / atr
@@ -70,13 +49,6 @@ rising   = -moveAtr >= momAtr and bullBar
 // Continuation direction
 goLong  = rising and tradeBoth
 goShort = falling
-
-// AVWAP gate: buy discount, sell premium
-if useVwap and vwapReady
-    if goLong and close >= vwap
-        goLong := false
-    if goShort and close <= vwap
-        goShort := false
 
 // Asset class heuristic (symbol name sniff)
 sym = syminfo.ticker
@@ -92,8 +64,8 @@ isFx     = str.contains(sym, "EUR") or str.contains(sym, "GBP") or str.contains(
 allowed = assetClass == "All" or assetClass == "Auto" or
      (assetClass == "Crypto+Index only" and (isCrypto or isIndex))
 
-signalLong  = goLong and allowed and vwapReady
-signalShort = goShort and allowed and vwapReady
+signalLong  = goLong and allowed
+signalShort = goShort and allowed
 
 // ── Pending order state machine ───────────────────────────────────────
 var float pendPrice = na
@@ -216,7 +188,6 @@ if not inPos
     locked   := false
 
 // ── Visuals ───────────────────────────────────────────────────────────
-plot(useVwap ? vwap : na, "AVWAP", color=color.new(color.orange, 30), linewidth=2)
 plotshape(signalLong, "Long signal", shape.triangleup, location.belowbar, color.new(color.teal, 0), size=size.tiny)
 plotshape(signalShort, "Short signal", shape.triangledown, location.abovebar, color.new(color.red, 0), size=size.tiny)
 plot(not na(pendPrice) ? pendPrice : na, "Pending entry", color=color.yellow, style=plot.style_circles, linewidth=2)

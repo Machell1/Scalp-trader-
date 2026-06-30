@@ -30,9 +30,9 @@
 //|   guarantees profit. See README.md / backtest/RESULTS.md. ***     |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.10"
+#property version   "1.20"
 #property strict
-#property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (crypto + indices)."
+#property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (crypto + indices). No AVWAP."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -59,24 +59,19 @@ input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to c
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
 
-//--- Anchored VWAP (discount/premium gate) --------------------------
-input group "=== Anchored VWAP (AVWAP) ==="
-input int    InpVwapMinBars       = 8;    // Calibration: don't trade until this many bars into the session
-input int    InpVwapMaxBars       = 500;  // Safety cap: max bars scanned back to the session (day) open
-
 //--- Pending entry ---------------------------------------------------
 input group "=== Pending Entry ==="
 input ENUM_ENTRY_MODE InpEntryMode = ENTRY_LIMIT_PULLBACK; // Entry geometry (PULLBACK = validated; BREAKOUT = legacy)
 input double InpPullbackAtr        = 0.6;  // PULLBACK mode: place the LIMIT this many ATR back toward price
 input double InpEntryOffsetAtr     = 0.05; // BREAKOUT mode: place the STOP this many ATR beyond price
-input int    InpPendingExpiryBars  = 3;    // Cancel an untriggered pending order after N bars
+input int    InpPendingExpiryBars  = 4;    // Cancel an untriggered pending order after N bars
 input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop pending glued to price
 
 //--- Risk / exits ----------------------------------------------------
 input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.5;   // Risk per trade (% of balance)
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
-input double InpTakeProfitAtrMult= 3.0;   // Take-profit distance (ATR). 3.0 = let winners run (backtest-validated); 0 = trail only
+input double InpTakeProfitAtrMult= 4.0;   // Take-profit distance (ATR). 4.0 = let winners run; 0 = trail only
 input double InpLockTriggerAtr   = 0.25;  // Once price is this many ATR in profit, lock the trade
 input int    InpLockBufferPoints = 0;     // Extra points locked above break-even (0 = auto: spread+2)
 input double InpTrailAtrMult      = 0.5;  // Trailing distance after lock (ATR)
@@ -128,7 +123,7 @@ int OnInit()
    g_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    ResetDailyState();
 
-   PrintFormat("DerivScalperEA v1.1 ready. Entry=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("DerivScalperEA v1.2 ready. Entry=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
    return(INIT_SUCCEEDED);
@@ -294,18 +289,6 @@ void ScanSymbol(string symbol, int atrHandle)
 
    bool fallingFast = (moveAtr >= InpMomentumAtrMult) && (close1 < open1);
    bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
-
-   // Anchored VWAP is a permanent part of the strategy. Wait for it to calibrate
-   // (enough bars into the session), then buy ONLY at a discount (below VWAP) and
-   // sell ONLY at a premium (above VWAP).
-   int sessBars = 0;
-   double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
-   if(vwap <= 0.0 || sessBars < InpVwapMinBars)
-      return;                              // VWAP not calibrated yet this session
-   if(risingFast && close1 >= vwap)        // not a discount -> no buy
-      risingFast = false;
-   if(fallingFast && close1 <= vwap)       // not a premium -> no sell
-      fallingFast = false;
 
    // Continuation in the direction of the move. PULLBACK uses LIMIT orders (enter on
    // the retrace); BREAKOUT uses STOP orders (chase beyond price, the legacy behaviour).
@@ -641,46 +624,6 @@ bool ReadAtr(int handle, double &value)
       return(false);
    value = tmp[0];
    return(value > 0.0);
-  }
-
-//+------------------------------------------------------------------+
-//| Session-anchored VWAP: cumulative from the session (day) open up  |
-//| to bar `shift`, resetting every session. Tick-volume weighted.    |
-//+------------------------------------------------------------------+
-double AnchoredVwap(string symbol, ENUM_TIMEFRAMES tf, int shift, int maxBars, int &barsInSession)
-  {
-   barsInSession = 0;
-   datetime anchorTime = iTime(symbol, tf, shift);
-   if(anchorTime == 0)
-      return(0.0);
-   MqlDateTime ref;
-   TimeToStruct(anchorTime, ref);
-
-   double pv = 0.0, vv = 0.0;
-   for(int j = shift; j < shift + maxBars; j++)
-     {
-      datetime bt = iTime(symbol, tf, j);
-      if(bt == 0)
-         break;
-      MqlDateTime st;
-      TimeToStruct(bt, st);
-      // Stop at the session boundary (new calendar day = new VWAP anchor).
-      if(st.day != ref.day || st.mon != ref.mon || st.year != ref.year)
-         break;
-      barsInSession++;
-      double hi = iHigh(symbol, tf, j);
-      double lo = iLow(symbol, tf, j);
-      double cl = iClose(symbol, tf, j);
-      if(hi <= 0.0 || lo <= 0.0 || cl <= 0.0)
-         continue;
-      double typical = (hi + lo + cl) / 3.0;
-      double vol = (double)iTickVolume(symbol, tf, j);
-      if(vol <= 0.0)
-         vol = 1.0;             // equal-weight fallback if no volume
-      pv += typical * vol;
-      vv += vol;
-     }
-   return(vv > 0.0 ? pv / vv : 0.0);
   }
 
 bool DataReady(string symbol)

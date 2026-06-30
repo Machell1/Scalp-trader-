@@ -40,10 +40,10 @@ This loop tests **combinations and refinements** not in the original grid:
 - Pending expiry: 2 vs 4 bars
 
 ### B. Geometry + regime combos (untested pairs)
-- Pullback 0.6 + AVWAP discount/premium gate
 - Pullback 0.6 + ADX ≥ 20
 - Pullback 0.6 + H1 EMA50 alignment
 - Pullback 0.6 + struct stop (impulse extreme)
+- ~~Pullback + AVWAP~~ **removed** — failed OOS in all tests
 
 ### C. Universe restriction
 - Crypto + index symbols only (matches EA whitelist)
@@ -139,19 +139,19 @@ This loop tests **combinations and refinements** not in the original grid:
 | Candidate | OOS exp @0.02 | vs chase | Verdict |
 |---|---|---|---|
 | Chase STOP | +0.056 R | — | NO-SHIP |
-| **Pullback 0.6 exp4** | **+0.141 R** | **+0.085** | **WATCH** |
-| Pullback 0.6 (known) | +0.083 R | +0.027 | WATCH |
-| Pullback 0.6 tp4.0 | +0.089 R | +0.034 | WATCH |
-| Pullback + AVWAP | +0.035 R | −0.021 | NO-SHIP |
+| **Pullback 0.6 exp4 tp4 (SHIPPED)** | **+0.147 R** | **+0.092** | **WATCH** |
+| Pullback 0.6 exp4 | +0.141 R | +0.085 | WATCH |
+| Pullback + AVWAP | +0.035 R | −0.021 | removed |
 | Fade direction | −0.128 R | — | NO-SHIP |
 
 **Best WATCH:** pullback 0.6 ATR, 4-bar pending expiry, crypto+index universe.
 Still fails full SHIP gate (only 1 OOS quarter in 60d Yahoo window; needs MT5 confirm).
 
-### Promoted to TradingView defaults
-- Pending expiry: **4 bars** (was 3)
-- Asset filter: **Crypto+Index only** (was Auto)
-- Entry: Pullback 0.6 ATR, TP 3.0 ATR (unchanged)
+### Promoted to TradingView + EA defaults (v1.2)
+- **Removed AVWAP** — zero OOS edge, reduced trade count
+- Entry: Pullback 0.6 ATR, **4-bar** pending expiry
+- Take profit: **4.0 ATR**
+- Universe: crypto + indices only
 
 ### Next loop hypotheses
 1. Pullback 0.6 exp4 + tp4.0 combo on Deriv M15 diverse basket
