@@ -2,3 +2,5 @@ numpy>=1.24
 pandas>=2.0
 matplotlib>=3.7
 MetaTrader5>=5.0.45   # only needed to pull live Deriv data (fetch_diverse.py)
+# The crypto arm (fetch_crypto.py / crypto_research.py / crypto_validate_lead.py)
+# needs NO extra packages — it downloads public Binance dumps with the stdlib.

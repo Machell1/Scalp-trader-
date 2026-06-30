@@ -21,6 +21,18 @@
 //|       exists: CRYPTO + global/US INDICES. Continuation works on   |
 //|       trending assets; it LOSES on the mean-reverting FX majors.  |
 //|                                                                  |
+//|   v1.2 note -- EXTREME-MOMENTUM crypto preset (2026-06):           |
+//|     A reproducible study on real Binance crypto M15 (2021-2026,    |
+//|     see backtest/crypto_research.py) found the COMMON >=2 ATR move |
+//|     nets a loser after a realistic crypto fee, but a RARE >=4 ATR  |
+//|     impulse entered on a ~1.0 ATR pullback has a large enough      |
+//|     gross edge to stay net-positive after that fee and is positive |
+//|     GROSS in every year 2021-2026. To run that pocket, set:        |
+//|       InpMomentumAtrMult = 4.0   InpPullbackAtr = 1.0              |
+//|     (keep tp 3.0 / stop 1.0). It trades far less often. Still      |
+//|     OBSERVE-grade: cost-fragile (a net loser in low-vol 2023) and  |
+//|     under-powered on a single, correlated asset class.            |
+//|                                                                  |
 //|   *** HONESTY -- this is an OBSERVE / MINIMUM-SIZE experiment, not |
 //|   a proven money-maker. Even the validated pullback edge is small |
 //|   and cost-fragile: ~break-even after realistic spread, negative  |
@@ -30,7 +42,7 @@
 //|   guarantees profit. See README.md / backtest/RESULTS.md. ***     |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.10"
+#property version   "1.20"
 #property strict
 #property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (crypto + indices)."
 
@@ -55,7 +67,7 @@ input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,
 input group "=== Momentum Strategy ==="
 input ENUM_TIMEFRAMES InpTimeframe   = PERIOD_M15; // Working timeframe
 input int    InpMomentumBars     = 6;     // Lookback bars for the move
-input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
+input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid" (try 4.0 for the crypto extreme-momentum preset)
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
 

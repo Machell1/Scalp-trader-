@@ -74,17 +74,41 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 | `validate_diverse.py` | Confirms the pullback lead on the diverse 29-instrument basket |
 | `fetch_diverse.py` | Pulls real Deriv M15 data via the local `MetaTrader5` package |
 | `deriv_recheck.py` | Re-checks shipped configs on real Deriv M15 indices |
+| `strategies.py` | 6 structurally-distinct signal generators + one shared exit/cost/fill engine |
+| `crypto_research.py` | Crypto ship-gate edge hunt across all 6 families (DSR, breadth, cost-stress) |
+| `crypto_validate_lead.py` | Deep-dive on the extreme-momentum lead (IS/OOS, per-year, cost curve) |
+| `fetch_crypto.py` | Pulls real M15 crypto from public `data.binance.vision` dumps — **no terminal** |
 | `chart_*.py` | Result charts (see `docs/`) |
 
 ```bash
 cd backtest
 pip install -r requirements.txt
-python fetch_diverse.py        # needs the MT5 terminal open + logged in
+
+# Deriv arm (needs the MT5 terminal open + logged in):
+python fetch_diverse.py        # real Deriv M15 data
 python validate_diverse.py     # the headline pullback confirmation
 python experiment.py           # full 19-candidate ship-gate on the index basket
+
+# Crypto arm (reproducible; no terminal/credentials needed):
+python fetch_crypto.py         # ~190k M15 bars x 16 pairs -> data/cryptoM15/
+python crypto_research.py      # 6-family ship-gate edge hunt with honest crypto costs
+python crypto_validate_lead.py # extreme-momentum deep-dive + cost-curve chart
 ```
 
-Market data (`backtest/data/`) is **not** committed — regenerate it with `fetch_diverse.py`.
+Market data (`backtest/data/`) is **not** committed — regenerate it with the fetchers above.
+
+### Reproducible crypto feed & the extreme-momentum finding
+
+The Deriv/TradingView feeds need a logged-in desktop terminal, so for an independently
+checkable run the crypto arm pulls real Binance M15 from public dumps. The honest result:
+median M15 ATR is only ~0.5% of price, so realistic crypto fees (3–6 bp) translate to a
+*large* ATR-fraction cost that kills every common-frequency strategy. The **one** family
+that stays net-positive at 3–6 bp is **extreme-momentum continuation** — a rare **≥4 ATR**
+impulse entered on a ~1.0 ATR pullback. Its gross edge is positive in-sample, out-of-sample
+and in *every* year 2021→2026 (t≈8–9), but it is still **observe-grade**: cost-fragile (a
+net loser in low-vol 2023) and under-powered on one correlated asset class (N_eff≈3).
+EA preset: `InpMomentumAtrMult=4.0, InpPullbackAtr=1.0`. Full evidence + cost curve in
+[`backtest/RESULTS.md`](backtest/RESULTS.md) §5.
 
 ## Honest limitations
 

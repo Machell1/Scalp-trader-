@@ -65,11 +65,84 @@ default universe (`InpSymbolWhitelist`).
   the deflated-Sharpe / walk-forward gate. Treat live trading as a **minimum-size
   monitored experiment** that needs low-spread execution; scale only if it survives live.
 
+## 5. Reproducible crypto M15 arm (no MT5/TradingView terminal needed)
+
+The MT5/TradingView feeds above need a logged-in desktop terminal, which a headless
+CI/cloud box does not have. So this arm pulls **real Binance M15** from the public,
+bit-for-bit re-downloadable dumps at `data.binance.vision` (`fetch_crypto.py`): 16
+liquid pairs (majors + alts + a few `*-BTC` crosses), 2021-01 → 2026-05, ~190k bars
+each, real volume. Crypto is also the asset class where section 4 located the only
+positive expectancy, so it is the honest place to keep hunting.
+
+### Honest cost calibration (the thing that kills most "edges")
+Median M15 ATR is only ~0.5% of price, so a flat fee maps to a *large* ATR fraction:
+
+| Execution | per-side fee | ≈ cost_atr_frac |
+|---|---|---|
+| Deep maker / rebate / futures | ~1 bp | ~0.02 |
+| VIP / futures maker | ~3 bp | ~0.06 |
+| Standard maker | ~5–6 bp | ~0.12 |
+| **Retail spot taker** | **10 bp** | **~0.20 (off the chart)** |
+
+The repo's "realistic 0.02" is really an HFT-grade-execution assumption. The crypto
+ship gate therefore demands a config still be positive at **0.06 (≈3 bp)** *and* at
+**0.12 (≈6 bp, 2× stress)**.
+
+### Edge hunt — 6 structurally-distinct families, one shared exit engine
+`crypto_research.py` runs momentum continuation/fade, RSI(2) reversion, Bollinger
+reversion & breakout, Donchian breakout, VWAP reversion and opening-range breakout
+through the *same* exit/cost/fill model and the *same* gate (breadth haircut, DSR over
+all cells, cost-stress, WFE, quarter signs). **Every common-frequency strategy is a net
+loser at realistic cost.** The only family net-positive at 3–6 bp is **extreme-momentum
+continuation**: the rarer and larger the impulse, the bigger the gross edge per trade,
+because a fixed fee is a smaller fraction of a big move.
+
+| Config (OOS, crypto M15) | exp@0 | exp@.06 | exp@.12 (2×) | OOS t | +quarters |
+|---|---|---|---|---|---|
+| ≥2 ATR pullback (common) | +0.074 | −0.046 | −0.166 | −9.0 | 0/7 |
+| ≥3 ATR pullback1.0 | +0.121 | +0.000 | −0.120 | +0.1 | 2/7 |
+| **≥4 ATR pullback1.0** | **+0.169** | **+0.049** | −0.071 | +2.5 | **6/7** |
+| **≥5 ATR pullback1.0 tp4** | **+0.165** | **+0.085** | **+0.005** | +2.8 | **6/7** |
+
+### Is it real, or an OOS fluke? (`crypto_validate_lead.py`)
+The **gross** extreme-momentum edge is positive **in-sample and out-of-sample** (t≈8–9
+in both halves) and **positive gross in every calendar year 2021→2026** — a genuine,
+regime-spanning signal, not a recent artifact.
+
+| Year (≥4 ATR) | gross R | net @ .06 |
+|---|---|---|
+| 2021 | +0.246 | +0.126 |
+| 2022 | +0.109 | −0.011 |
+| 2023 | +0.012 | −0.108 |
+| 2024 | +0.128 | +0.008 |
+| 2025 | +0.188 | +0.068 |
+| 2026 (part) | +0.133 | +0.013 |
+
+### Verdict — a real edge, still observe-grade
+It is a meaningful improvement on the ≥2 ATR pullback (which dies at realistic cost),
+but it does **not** clear a formal ship gate, for two honest reasons:
+1. **Cost-fragile** — net-positive in most years, but a net loser in the low-volatility
+   chop of 2023, so the pooled in-sample *net* is only ~break-even.
+2. **Breadth** — one correlated asset class gives only **N_eff ≈ 3** effective bets, so
+   the breadth-haircut t (≈1.2) and the deflated Sharpe over the search fall short.
+
+So: trade it **minimum size with maker/low-fee execution**, and confirm the same effect
+on independent asset classes (indices/FX/metals) before scaling. EA preset:
+`InpMomentumAtrMult=4.0, InpPullbackAtr=1.0` (tp 3.0, stop 1.0). Cost curve:
+[`docs/crypto_xmom_costcurve.png`](../docs/crypto_xmom_costcurve.png).
+
 ## Reproduce
 
 ```bash
 pip install -r requirements.txt
+
+# Deriv arm (needs an open, logged-in MT5 terminal):
 python fetch_diverse.py      # MT5 terminal must be open + logged in
 python validate_diverse.py   # section 3
 python experiment.py         # section 2 (uses data/derivM15 index basket)
+
+# Crypto arm (no terminal — pulls public Binance dumps):
+python fetch_crypto.py        # ~190k M15 bars x 16 pairs -> data/cryptoM15/
+python crypto_research.py     # section 5 ship-gate edge hunt
+python crypto_validate_lead.py# extreme-momentum deep-dive + cost-curve chart
 ```
