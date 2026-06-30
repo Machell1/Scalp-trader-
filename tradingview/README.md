@@ -23,12 +23,17 @@
 
 ## Strategy Tester settings
 
-| Setting | Value |
-|---|---|
-| Timeframe | 15m |
-| Commission | 0.02% per side (adjust to your broker) |
-| Initial capital | $10,000 |
-| Order size | % of equity (strategy uses default 10%; tune to your risk) |
+| Setting | Value | Notes |
+|---|---|---|
+| Timeframe | 15m | Required |
+| Commission | **0.1% per order** | **Script default** — Binance spot taker ballpark |
+| Slippage | **3 ticks** | Script default |
+| Initial capital | $10,000 | Match your account |
+| Order size | % of equity | Tune to risk |
+
+> **Always test with fees on.** A frictionless BTC run (Apr–Jun 2026) showed +9.73% / PF 1.17 / 266 trades — that corroborates the crypto pocket at zero cost, but the edge collapses toward break-even once realistic fees are applied (see `docs/EDGE_PLAN.md` § TradingView corroboration).
+
+To compare frictionless vs realistic in TradingView: Strategy Tester → **Properties** → set Commission to `0` vs `0.1`.
 
 ## Default inputs (research-backed)
 

@@ -158,3 +158,33 @@ Still fails full SHIP gate (only 1 OOS quarter in 60d Yahoo window; needs MT5 co
 2. Session-specific windows for crypto (24h) vs indices (US open)
 3. Partial TP at 1.5 ATR, runner to 3.0 ATR
 4. Confirm exp4 on `fetch_diverse.py` real data when MT5 available
+
+---
+
+## TradingView corroboration (2026-06-30)
+
+### BTCUSDT · Binance · M15 · v1.2 · Apr 30 – Jun 30 2026
+
+| Metric | Frictionless (TV) | With fees (what matters) |
+|---|---|---|
+| Net P&L | +972 USDT (+9.73%) | **Re-run with commission 0.1%** |
+| Profit factor | 1.165 | expect ~1.0–1.1 |
+| Win rate | 44.74% (119/266) | ~42–46% |
+| Max DD | 6.55% | similar order of magnitude |
+| Verdict | Corroborates crypto pocket | edge likely **break-even to small +** |
+
+Python proxy on same window (BTC M15 OOS, shipped config):
+
+| Cost model | Exp/trade | Total R | Win% |
+|---|---|---|---|
+| Frictionless | +0.137 R | +14.4 | 49.5% |
+| 0.02 ATR/side | +0.097 R | +10.2 | 45.7% |
+| 0.04 (2× stress) | +0.057 R | +6.0 | 41.9% |
+| 0.06 (heavy / ~taker) | +0.017 R | +1.8 | 41.9% |
+
+**NDX (TVC:NDX) on same short window:** Python proxy negative (−0.10 R/trade @ realistic cost, N=24) — not enough M15 index bars in Yahoo; needs a longer TV run.
+
+### Honest read
+- TV frictionless +9.7% **matches** the research story: positive gross, cost-fragile.
+- One symbol, ~2 months, Binance ≠ Deriv — corroboration only, not proof.
+- **Next TV step:** re-run BTC with script defaults (0.1% commission, slippage 3), then `TVC:NDX` M15 with same fees.

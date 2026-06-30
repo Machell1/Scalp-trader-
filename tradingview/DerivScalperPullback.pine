@@ -1,11 +1,13 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © DerivScalper — M15 momentum pullback scalper (v1.1 research port)
-// See docs/EDGE_PLAN.md and backtest/RESULTS.md for evidence and limitations.
+// © DerivScalper — M15 momentum pullback scalper v1.2
+// DEFAULTS USE REALISTIC BINANCE SPOT FEES. Re-run Strategy Tester after any change.
+// See docs/EDGE_PLAN.md — frictionless +9.7% on BTC Apr-Jun 2026 corroborates the
+// crypto pocket; edge fades toward break-even once ~0.1%/side fees are applied.
 //@version=6
 strategy("Deriv Scalper Pullback", overlay=true, pyramiding=0,
      default_qty_type=strategy.percent_of_equity, default_qty_value=10,
-     commission_type=strategy.commission.percent, commission_value=0.02,
-     slippage=2, calc_on_every_tick=false, process_orders_on_close=false,
+     commission_type=strategy.commission.percent, commission_value=0.1,
+     slippage=3, calc_on_every_tick=false, process_orders_on_close=false,
      max_bars_back=500)
 
 // ── Inputs ──────────────────────────────────────────────────────────────
