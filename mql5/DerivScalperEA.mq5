@@ -28,11 +28,20 @@
 //|   forward ship gate. Run on DEMO or minimum size with low-spread  |
 //|   execution; only scale if it survives live. The author/EA never  |
 //|   guarantees profit. See README.md / backtest/RESULTS.md. ***     |
+//|                                                                  |
+//|   v1.2 (2026-06): validated against REAL Deriv spread cost.       |
+//|   At Deriv's actual spreads the pullback edge is POSITIVE net of  |
+//|   cost on a spread-gated set of majors (+0.044R, t+4, PF 1.11 OOS)|
+//|   but a few wide-spread names (LTC, BCH, Mid Cap 400, etc.) lose. |
+//|   So v1.2: (a) universe pruned to spread<=0.05 ATR/side majors,   |
+//|   (b) a LIVE spread/ATR gate (InpMaxSpreadAtr) skips any symbol    |
+//|   whose spread is too wide right now, (c) AVWAP OFF by default     |
+//|   (it added no OOS edge). Still observe / minimum-size grade.      |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.10"
+#property version   "1.20"
 #property strict
-#property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (crypto + indices)."
+#property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (spread-gated crypto + indices)."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -48,7 +57,7 @@ enum ENUM_ENTRY_MODE
 //--- Symbol universe -------------------------------------------------
 input group "=== Symbol Universe ==="
 input bool   InpScanMarketWatch  = true;     // Scan Market Watch (used only when the whitelist below is empty)
-input string InpSymbolWhitelist  = "BTCUSD,ETHUSD,LTCUSD,XRPUSD,SOLUSD,BCHUSD,US Tech 100,US SP 500,Wall Street 30,US Mid Cap 400,US Small Cap 2000,Germany 40,UK 100,Japan 225,France 40,Australia 200,Hong Kong 50"; // Validated universe (crypto + indices). CLEAR this to scan all non-synthetics.
+input string InpSymbolWhitelist  = "BTCUSD,ETHUSD,XRPUSD,SOLUSD,US Tech 100,US SP 500,Wall Street 30,US Small Cap 2000,Germany 40,UK 100,Japan 225,France 40"; // v1.2 SPREAD-GATED universe: only Deriv majors whose real spread<=0.05 ATR/side (positive net of cost, t+4). Dropped LTC/BCH/Mid Cap 400/Australia 200/Hong Kong 50 (spreads too wide). CLEAR to scan all.
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
@@ -61,6 +70,7 @@ input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only fal
 
 //--- Anchored VWAP (discount/premium gate) --------------------------
 input group "=== Anchored VWAP (AVWAP) ==="
+input bool   InpUseVwapGate       = false; // v1.2: AVWAP OFF by default (it added ZERO out-of-sample edge in testing; was overfit). Set true to re-enable.
 input int    InpVwapMinBars       = 8;    // Calibration: don't trade until this many bars into the session
 input int    InpVwapMaxBars       = 500;  // Safety cap: max bars scanned back to the session (day) open
 
@@ -90,6 +100,7 @@ input double InpDailyLossLimitPct= 3.0;   // Halt for the day after this daily l
 input double InpMaxDrawdownPct   = 15.0;  // Halt if equity drawdown from peak exceeds this
 input int    InpMaxConsecLosses  = 4;     // Pause for the day after this many losses in a row
 input int    InpMaxSpreadPoints  = 200;   // Skip a symbol if spread (points) exceeds this
+input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spread > this many ATR PER SIDE (0.05 = validated ceiling; the edge dies above it, e.g. LTC/BCH/Mid Cap). 0 = off.
 
 //--- Execution -------------------------------------------------------
 input group "=== Execution ==="
@@ -283,6 +294,18 @@ void ScanSymbol(string symbol, int atrHandle)
    if(!ReadAtr(atrHandle, atr) || atr <= 0.0)
       return;
 
+   // v1.2 spread/ATR gate (the key cost filter). The edge survives only where the
+   // round-trip spread is small relative to the 1-ATR stop; skip if the current spread
+   // PER SIDE exceeds the validated ceiling (this is what excludes wide-spread names
+   // like LTC/BCH/Mid Cap, and protects against spread blow-outs during news).
+   if(InpMaxSpreadAtr > 0.0)
+     {
+      double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
+      double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
+      if(0.5 * spreadPrice / atr > InpMaxSpreadAtr)
+         return;
+     }
+
    double close1    = iClose(symbol, InpTimeframe, 1);
    double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
    double open1     = iOpen(symbol, InpTimeframe, 1);
@@ -295,17 +318,20 @@ void ScanSymbol(string symbol, int atrHandle)
    bool fallingFast = (moveAtr >= InpMomentumAtrMult) && (close1 < open1);
    bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
 
-   // Anchored VWAP is a permanent part of the strategy. Wait for it to calibrate
-   // (enough bars into the session), then buy ONLY at a discount (below VWAP) and
-   // sell ONLY at a premium (above VWAP).
-   int sessBars = 0;
-   double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
-   if(vwap <= 0.0 || sessBars < InpVwapMinBars)
-      return;                              // VWAP not calibrated yet this session
-   if(risingFast && close1 >= vwap)        // not a discount -> no buy
-      risingFast = false;
-   if(fallingFast && close1 <= vwap)       // not a premium -> no sell
-      fallingFast = false;
+   // Optional Anchored-VWAP discount/premium gate (OFF by default in v1.2 -- it added no
+   // out-of-sample edge and was overfit). When enabled: wait for VWAP to calibrate, then
+   // buy ONLY at a discount (below VWAP) and sell ONLY at a premium (above VWAP).
+   if(InpUseVwapGate)
+     {
+      int sessBars = 0;
+      double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
+      if(vwap <= 0.0 || sessBars < InpVwapMinBars)
+         return;                              // VWAP not calibrated yet this session
+      if(risingFast && close1 >= vwap)        // not a discount -> no buy
+         risingFast = false;
+      if(fallingFast && close1 <= vwap)       // not a premium -> no sell
+         fallingFast = false;
+     }
 
    // Continuation in the direction of the move. PULLBACK uses LIMIT orders (enter on
    // the retrace); BREAKOUT uses STOP orders (chase beyond price, the legacy behaviour).
