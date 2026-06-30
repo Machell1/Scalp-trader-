@@ -106,4 +106,22 @@ python fetch_diverse.py      # MT5 terminal must be open + logged in
 python validate_diverse.py   # section 3
 python experiment.py         # section 2 (uses data/derivM15 index basket)
 python deriv_realcost.py     # section 5 — real Deriv spread cost (MT5 must be open)
+python fetch_spreadgated.py  # 12 spread-gated majors with spread column
+python walkforward_dsr.py    # section 6 — walk-forward + DSR gate (backlog #1)
 ```
+
+## 6. Walk-forward + DSR on spread-gated universe (backlog #1)
+
+`walkforward_dsr.py` runs the validated v1.2 config on the **12 spread-gated majors**
+at **real per-instrument Deriv spread cost**, using calendar-quarter walk-forward:
+
+- **IS:** first 70% of calendar quarters (pooled trades)
+- **OOS:** remaining quarters stitched chronologically
+- **WFE:** mean rolling OOS/IS expectancy across expanding-window quarterly folds
+- **DSR:** deflated Sharpe (PSR vs hurdle from ~25 prior research trials)
+
+**SHIP gate** (all must pass): stitched OOS exp > 0 @ real cost, DSR ≥ 0.95, WFE ≥ 0.30,
+2× cost stress positive, ≥ 60% OOS quarters positive, ≥ 60% symbols positive, N ≥ 250.
+
+Run after `fetch_spreadgated.py` (MT5 terminal open). Results are printed to stdout;
+update this section with the verdict once run on your machine.

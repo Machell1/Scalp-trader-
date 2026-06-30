@@ -57,9 +57,9 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
 
 ## PRIORITIZED BACKLOG (with acceptance criteria)
 
-1. **Walk-forward + DSR on the spread-gated universe** (the gating open item). Adapt
-   `backtest/experiment.py` / the DSR helpers to the 12 spread-gated majors. *Accept:* DSR
-   ≥ 0.95 and positive stitched-OOS at real cost → promote to small-size live; else WATCH.
+1. **Walk-forward + DSR on the spread-gated universe** — **runner:** `backtest/walkforward_dsr.py`
+   (fetch data: `backtest/fetch_spreadgated.py`). *Accept:* DSR ≥ 0.95 and positive
+   stitched-OOS at real cost → promote to small-size live; else WATCH.
 2. **Per-instrument live spread logging** so live spread/ATR can be compared to the
    backtest assumption (catch drift / news widening). *Accept:* EA logs spread/ATR per
    skipped+taken trade; no behavior change.
@@ -84,8 +84,8 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 - `backtest/scalper_confluence.py` — confluence/geometry extensions (reproduces baseline).
 - `backtest/experiment.py` — marginal-contribution + permutation + DSR + ship-gate runner.
 - `backtest/validate_diverse.py` — 29-instrument diverse validation.
-- `backtest/deriv_realcost.py` — REAL Deriv spread → ATR cost; the spread-gate evidence.
-- `backtest/fetch_diverse.py` — pull real Deriv M15 via the local `MetaTrader5` package.
+- `backtest/walkforward_dsr.py` — **backlog #1:** walk-forward + DSR on spread-gated 12 majors
+- `backtest/fetch_spreadgated.py` — pull spread-gated universe for walkforward_dsr
 - `backtest/RESULTS.md` — all numbers and the reasoning.
 
 ## Process notes

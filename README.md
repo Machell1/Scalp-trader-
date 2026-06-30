@@ -77,6 +77,8 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 | `validate_diverse.py` | Confirms the pullback lead on the diverse 29-instrument basket |
 | `fetch_diverse.py` | Pulls real Deriv M15 data via the local `MetaTrader5` package |
 | `deriv_realcost.py` | **Real Deriv spread → ATR cost**; spread-gate evidence (source of truth) |
+| `walkforward_dsr.py` | **Backlog #1:** walk-forward + DSR on 12 spread-gated majors |
+| `fetch_spreadgated.py` | Pull spread-gated universe CSVs (MT5 required) |
 | `deriv_recheck.py` | Re-checks shipped configs on real Deriv M15 indices |
 | `chart_*.py` | Result charts (see `docs/`) |
 
@@ -84,6 +86,8 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 cd backtest
 pip install -r requirements.txt
 python fetch_diverse.py        # needs the MT5 terminal open + logged in
+python fetch_spreadgated.py    # 12 spread-gated majors for walk-forward gate
+python walkforward_dsr.py      # backlog #1: walk-forward + DSR at real spread cost
 python validate_diverse.py     # the headline pullback confirmation
 python experiment.py           # full 19-candidate ship-gate on the index basket
 ```
@@ -108,15 +112,15 @@ Pine Script port of the EA for visual backtesting and alerts on TradingView.
 
 ## Edge discovery loop (backtest/edge_loop.py)
 
-Systematic hypothesis testing beyond the original 19-candidate grid:
+Exploratory grid only — **must not ship without** `experiment.py` / `deriv_realcost.py` on
+real Deriv M15. Yahoo runs are for quick screening, not validation (see `HANDOFF.md`).
 
 ```bash
 cd backtest
-pip install numpy pandas matplotlib yfinance   # no MT5 needed on Linux
-python fetch_yahoo.py                          # proxy data
-python edge_loop.py --tf yahooM15              # M15 proxy (short history)
-python edge_loop.py --tf yahooH1               # H1 proxy (longer history)
-python edge_loop.py --tf derivM15_diverse      # real Deriv data (needs MT5)
+pip install -r requirements.txt
+python fetch_diverse.py                        # real Deriv data (MT5 required)
+python deriv_realcost.py                       # real spread cost study
+python edge_loop.py --tf derivM15_diverse      # hypothesis grid on real data
 ```
 
 See `docs/EDGE_PLAN.md` for hypotheses, ship gates, and latest iteration results.
