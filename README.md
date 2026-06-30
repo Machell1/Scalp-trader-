@@ -7,13 +7,10 @@ harness used to design and (honestly) stress-test it.
 > It states the validated facts you must not undo (pullback entry, no AVWAP, the spread
 > gate) and the out-of-sample-at-real-cost bar every change must clear.
 
-> ⚠️ **Status: OBSERVE / MINIMUM-SIZE EXPERIMENT — not a proven money-maker.**
-> The entry change in v1.1 is the only thing in an extensive backtest study that
-> improved out-of-sample performance across many real instruments, but even it is a
-> *small, cost-fragile* edge: roughly break-even after realistic spread, negative at
-> 2× cost, and it does **not** clear a deflated-Sharpe / walk-forward ship gate.
-> Run it on **demo or minimum size with low-spread execution**. No EA can guarantee
-> profit. See [`backtest/RESULTS.md`](backtest/RESULTS.md) for the full evidence.
+> ⚠️ **Status: SHIP @ SMALL SIZE on Deriv spread-gated majors** — cleared walk-forward + DSR
+> on real Deriv M15 (see `backtest/RESULTS.md` §6). OOS **+0.049 R/trade** at real spread
+> cost, but **thin** (+0.005 R at 2× cost). Demo forward-test live spread/ATR before real
+> capital. Not for Binance/high-fee venues. Read [`HANDOFF.md`](HANDOFF.md) before changing anything.
 
 ## What changed in v1.1 (the validated improvement)
 

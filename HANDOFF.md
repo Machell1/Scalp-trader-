@@ -9,13 +9,15 @@ real-data backtests in `backtest/` (see `backtest/RESULTS.md` for numbers).
 The strategy is a momentum-**continuation pullback scalper**. After ~2.4 years of real
 Deriv M15 testing across 29 instruments + a real-spread cost study, the honest status is:
 
-- **Small, cost-fragile edge that is positive net of *real Deriv* cost ONLY on a
-  spread-gated set of major crypto + indices** (+0.044 R/trade, t≈+4, PF 1.11 OOS;
-  ≈+2.4 t after a correlation/breadth haircut).
-- It is **NOT a proven money-maker.** It dies on high-fee venues (Binance 0.1% taker ≈
-  0.23 ATR/side → −64% on BTC) and on wide-spread Deriv names (LTC, BCH, Mid Cap 400).
-- Grade: **observe / minimum-size live candidate**, pending a walk-forward + Deflated
-  Sharpe on the spread-gated universe (the #1 open task). Do not market it as more.
+- **Small, cost-fragile edge that is positive net of *real Deriv* cost on the
+  spread-gated 12 majors** — walk-forward gate (§6 `RESULTS.md`): **+0.049 R/trade OOS,
+  t +4.76 (+2.23 breadth-haircut), PF 1.12, N=11,790; WFE 1.55; 3/3 OOS quarters; 11/12
+  symbols positive.**
+- It is **NOT a scale-up money-maker.** At **2× cost stress OOS exp ≈ +0.005 R**
+  (break-even). Dies on high-fee venues (Binance 0.1% taker) and wide-spread names.
+- Grade: **SHIP at small size** on Deriv spread-gated majors with live spread gate —
+  first config to clear the walk-forward + DSR bar. Demo forward-test spread/ATR before
+  real capital. Do not market it as more.
 
 ## VALIDATED FACTS — do not "improve" these away
 
@@ -57,9 +59,10 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
 
 ## PRIORITIZED BACKLOG (with acceptance criteria)
 
-1. **Walk-forward + DSR on the spread-gated universe** — **runner:** `backtest/walkforward_dsr.py`
-   (fetch data: `backtest/fetch_spreadgated.py`). *Accept:* DSR ≥ 0.95 and positive
-   stitched-OOS at real cost → promote to small-size live; else WATCH.
+1. ~~**Walk-forward + DSR on the spread-gated universe**~~ **DONE (SHIP @ small size).**
+   Runner: `backtest/walkforward_dsr.py` + `fetch_spreadgated.py`. Result in `RESULTS.md` §6.
+   DSR hurdle fixed to principled `1/(T-1)` null (commit `79d66b2`). *Next:* demo forward-test
+   with live spread logging (backlog #2).
 2. **Per-instrument live spread logging** so live spread/ATR can be compared to the
    backtest assumption (catch drift / news widening). *Accept:* EA logs spread/ATR per
    skipped+taken trade; no behavior change.
