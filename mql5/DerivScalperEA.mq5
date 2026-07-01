@@ -37,9 +37,36 @@
 //|   (b) a LIVE spread/ATR gate (InpMaxSpreadAtr) skips any symbol    |
 //|   whose spread is too wide right now, (c) AVWAP OFF by default     |
 //|   (it added no OOS edge). Still observe / minimum-size grade.      |
+//|                                                                  |
+//|   v1.3 (2026-07): EXIT-ENGINE FIDELITY fix (P0 from the first 15  |
+//|   live trades — docs/LIVE_TRADE_ANALYSIS_2026-07-01.md). The v1.2 |
+//|   EA managed the break-even lock / trail PER TICK, but the engine |
+//|   that passed the walk-forward/DSR ship gate manages ON M15 BAR   |
+//|   CLOSE (backtest/scalper_confluence.py). 8 of the first 15 live  |
+//|   exits were impossible under the validated engine (scratch swarm,|
+//|   winners cut ~1R, zero TP exits). v1.3 reverts to the validated  |
+//|   mechanics — this is a fidelity fix, NOT a strategy change:      |
+//|     * InpManageOnBarClose=true (default): lock/trail update only  |
+//|       when a bar CLOSES on the position's OWN symbol, computed    |
+//|       from that bar's close; the broker-side SL stays static      |
+//|       between bar closes (intrabar execution on a static level = |
+//|       the harness's stop-vs-next-bar-range semantics).            |
+//|     * Lock/trail/TP distances use the ATR FROZEN at the signal    |
+//|       bar (persisted per position; no more per-tick ATR drift).   |
+//|     * The pullback LIMIT is anchored to the SIGNAL-BAR CLOSE      |
+//|       (iClose(sym,tf,1)), not the live bid/ask.                   |
+//|     * Reload guard: scan clocks initialise to the current forming |
+//|       bar, so an EA reload can never place mid-bar-anchored orders|
+//|     * Time exit counts CLOSED BARS of the position's symbol       |
+//|       (was wall-clock seconds).                                   |
+//|     * OnTimer heartbeat + per-symbol bar clocks: management and   |
+//|       scanning no longer stall when the CHART symbol's market is  |
+//|       closed (P1 from the same analysis).                         |
+//|     * Signal/spread decision logging (backlog #2; no behaviour    |
+//|       change) via InpLogDecisions.                                |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.20"
+#property version   "1.30"
 #property strict
 #property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (spread-gated crypto + indices)."
 
@@ -90,7 +117,8 @@ input double InpTakeProfitAtrMult= 3.0;   // Take-profit distance (ATR). 3.0 = l
 input double InpLockTriggerAtr   = 0.25;  // Once price is this many ATR in profit, lock the trade
 input int    InpLockBufferPoints = 0;     // Extra points locked above break-even (0 = auto: spread+2)
 input double InpTrailAtrMult      = 0.5;  // Trailing distance after lock (ATR)
-input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N bars (0 = off)
+input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N CLOSED bars of its own symbol (0 = off)
+input bool   InpManageOnBarClose = true;  // v1.3 FIDELITY: lock/trail from the position symbol's bar CLOSE with the signal-bar ATR (the validated engine). false = legacy per-tick (NOT validated)
 
 //--- Portfolio risk --------------------------------------------------
 input group "=== Portfolio Risk ==="
@@ -107,16 +135,18 @@ input group "=== Execution ==="
 input long   InpMagicNumber      = 770077;// Magic number tagging this EA's orders
 input ulong  InpDeviationPoints  = 30;    // Max slippage in points
 input string InpTradeComment     = "DerivScalper";
+input int    InpTimerSeconds     = 5;     // v1.3 heartbeat (sec): manage/scan even when the chart symbol's market is closed (0 = chart ticks only)
+input bool   InpLogDecisions     = true;  // v1.3 backlog #2: log one line per momentum signal (impulse/ATR/spread/anchor + take-or-skip reason)
 
 //--- Globals ---------------------------------------------------------
 CTrade        trade;
 CPositionInfo posInfo;
 COrderInfo    ordInfo;
 
-string g_symbols[];      // Tradable, non-synthetic symbols
-int    g_atrHandle[];    // Parallel ATR handle per symbol
+string   g_symbols[];      // Tradable, non-synthetic symbols
+int      g_atrHandle[];    // Parallel ATR handle per symbol
+datetime g_scanBarTime[];  // Parallel per-symbol scan clock (time of the forming bar last seen)
 
-datetime g_lastScanBar = 0;
 datetime g_currentDay  = 0;
 double   g_dayStartBalance = 0.0;
 double   g_peakEquity  = 0.0;
@@ -139,8 +169,15 @@ int OnInit()
    g_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    ResetDailyState();
 
-   PrintFormat("DerivScalperEA v1.1 ready. Entry=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   // v1.3 heartbeat: without a timer, OnTick only fires on CHART-symbol ticks, so
+   // management of open positions on OTHER symbols freezes whenever the chart
+   // symbol's market is closed. The timer keeps manage/scan alive regardless.
+   if(InpTimerSeconds > 0)
+      EventSetTimer(InpTimerSeconds);
+
+   PrintFormat("DerivScalperEA v1.3 ready. Entry=%s. Manage=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
+               (InpManageOnBarClose ? "BAR-CLOSE(validated)" : "PER-TICK(legacy, NOT validated)"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
    return(INIT_SUCCEEDED);
   }
@@ -148,6 +185,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
+   EventKillTimer();
    for(int i = 0; i < ArraySize(g_atrHandle); i++)
       if(g_atrHandle[i] != INVALID_HANDLE)
          IndicatorRelease(g_atrHandle[i]);
@@ -160,6 +198,7 @@ bool BuildSymbolUniverse()
   {
    ArrayResize(g_symbols, 0);
    ArrayResize(g_atrHandle, 0);
+   ArrayResize(g_scanBarTime, 0);
 
    string candidates[];
    if(StringLen(InpSymbolWhitelist) > 0)
@@ -210,8 +249,14 @@ void AddSymbol(string symbol)
    int idx = ArraySize(g_symbols);
    ArrayResize(g_symbols, idx + 1);
    ArrayResize(g_atrHandle, idx + 1);
+   ArrayResize(g_scanBarTime, idx + 1);
    g_symbols[idx]   = symbol;
    g_atrHandle[idx] = h;
+   // v1.3 reload-rescan guard: initialise the scan clock to the CURRENT forming bar
+   // so an EA reload/attach mid-bar can never emit a mid-bar-anchored order (this
+   // happened live at 07:47 - see docs/LIVE_TRADE_ANALYSIS_2026-07-01.md). If data
+   // is not synchronised yet (iTime==0) the first-sight guard in Heartbeat() covers it.
+   g_scanBarTime[idx] = (datetime)iTime(symbol, InpTimeframe, 0);
   }
 
 //+------------------------------------------------------------------+
@@ -244,21 +289,43 @@ string Trim(string s)
   }
 
 //+------------------------------------------------------------------+
-void OnTick()
+//| v1.3: OnTick AND a timer drive the same heartbeat, so management  |
+//| and scanning keep running when the chart symbol's market is       |
+//| closed (previously everything keyed off _Symbol's ticks/bars).    |
+//+------------------------------------------------------------------+
+void OnTick()  { Heartbeat(); }
+void OnTimer() { Heartbeat(); }
+
+void Heartbeat()
   {
    //--- Day rollover
    datetime today = DayStart(TimeCurrent());
    if(today != g_currentDay)
       ResetDailyState();
 
-   //--- Fast management runs on every tick (lock / trail / time exit)
+   //--- Manage pendings + open positions (in bar-close mode the lock/trail acts
+   //    only when a bar has closed on the position's own symbol; the time exit
+   //    and pending expiry are checked every heartbeat).
    ManageAll();
 
-   //--- Scan for new entries once per closed bar
-   datetime barTime = (datetime)iTime(_Symbol, InpTimeframe, 0);
-   if(barTime == g_lastScanBar)
+   //--- Scan for new entries once per closed bar of EACH symbol (per-symbol bar
+   //    clocks; the chart symbol's clock is irrelevant).
+   int due[];
+   int nDue = 0;
+   for(int i = 0; i < ArraySize(g_symbols); i++)
+     {
+      datetime barTime = (datetime)iTime(g_symbols[i], InpTimeframe, 0);
+      if(barTime == 0 || barTime == g_scanBarTime[i])
+         continue;
+      bool firstSight = (g_scanBarTime[i] == 0);
+      g_scanBarTime[i] = barTime;
+      if(firstSight)
+         continue;               // reload/late-sync guard: never act on a bar we did not watch open
+      ArrayResize(due, nDue + 1);
+      due[nDue++] = i;
+     }
+   if(nDue == 0)
       return;
-   g_lastScanBar = barTime;
 
    UpdatePeakEquity();
    if(g_halted)
@@ -270,11 +337,11 @@ void OnTick()
    if(g_tradesToday >= InpMaxTradesPerDay)
       return;
 
-   for(int i = 0; i < ArraySize(g_symbols); i++)
+   for(int k = 0; k < nDue; k++)
      {
       if(CountOpenAndPending() >= InpMaxConcurrent)
          break;
-      ScanSymbol(g_symbols[i], g_atrHandle[i]);
+      ScanSymbol(g_symbols[due[k]], g_atrHandle[due[k]]);
      }
   }
 
@@ -283,28 +350,12 @@ void OnTick()
 //+------------------------------------------------------------------+
 void ScanSymbol(string symbol, int atrHandle)
   {
-   if(HasExposure(symbol))           // already trading this symbol
-      return;
    if(!DataReady(symbol))
-      return;
-   if(SpreadTooWide(symbol))
       return;
 
    double atr;
    if(!ReadAtr(atrHandle, atr) || atr <= 0.0)
       return;
-
-   // v1.2 spread/ATR gate (the key cost filter). The edge survives only where the
-   // round-trip spread is small relative to the 1-ATR stop; skip if the current spread
-   // PER SIDE exceeds the validated ceiling (this is what excludes wide-spread names
-   // like LTC/BCH/Mid Cap, and protects against spread blow-outs during news).
-   if(InpMaxSpreadAtr > 0.0)
-     {
-      double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
-      double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
-      if(0.5 * spreadPrice / atr > InpMaxSpreadAtr)
-         return;
-     }
 
    double close1    = iClose(symbol, InpTimeframe, 1);
    double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
@@ -317,40 +368,76 @@ void ScanSymbol(string symbol, int atrHandle)
 
    bool fallingFast = (moveAtr >= InpMomentumAtrMult) && (close1 < open1);
    bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
+   if(!fallingFast && !risingFast)
+      return;                                   // no signal - nothing to log or place
+
+   double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
+   double spreadAtr = 0.5 * spreadPrice / atr;  // PER-SIDE spread, as in the backtest
+
+   // Gates, cheapest first. All the checks the pre-v1.3 code did before/after the
+   // signal are preserved; they are just evaluated after the signal so every
+   // gated-away signal gets a logged skip reason (backlog #2).
+   string verdict = "TAKE";
+   if(HasExposure(symbol))
+      verdict = "SKIP exposure";                // already trading this symbol
+   else if(SpreadTooWide(symbol))
+      verdict = "SKIP spread-points";
+   // v1.2 spread/ATR gate (the key cost filter). The edge survives only where the
+   // round-trip spread is small relative to the 1-ATR stop; skip if the current spread
+   // PER SIDE exceeds the validated ceiling (this is what excludes wide-spread names
+   // like LTC/BCH/Mid Cap, and protects against spread blow-outs during news).
+   else if(InpMaxSpreadAtr > 0.0 && spreadAtr > InpMaxSpreadAtr)
+      verdict = "SKIP spread-atr-gate";
+   else if(risingFast && !InpTradeBothSides)
+      verdict = "SKIP longs-disabled";
 
    // Optional Anchored-VWAP discount/premium gate (OFF by default in v1.2 -- it added no
    // out-of-sample edge and was overfit). When enabled: wait for VWAP to calibrate, then
    // buy ONLY at a discount (below VWAP) and sell ONLY at a premium (above VWAP).
-   if(InpUseVwapGate)
+   if(verdict == "TAKE" && InpUseVwapGate)
      {
       int sessBars = 0;
       double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
       if(vwap <= 0.0 || sessBars < InpVwapMinBars)
-         return;                              // VWAP not calibrated yet this session
-      if(risingFast && close1 >= vwap)        // not a discount -> no buy
-         risingFast = false;
-      if(fallingFast && close1 <= vwap)       // not a premium -> no sell
-         fallingFast = false;
+         verdict = "SKIP vwap-uncalibrated";    // VWAP not calibrated yet this session
+      else if(risingFast && close1 >= vwap)
+         verdict = "SKIP vwap-no-discount";     // not a discount -> no buy
+      else if(fallingFast && close1 <= vwap)
+         verdict = "SKIP vwap-no-premium";      // not a premium -> no sell
      }
 
+   // Backlog #2: one structured line per momentum signal (taken OR skipped), so live
+   // impulse / ATR / spread-vs-model never has to be reconstructed from bar data.
+   // Impulse sign convention matches the report tool: positive = up-move.
+   if(InpLogDecisions)
+      PrintFormat("DSLOG signal %s %s impulse=%.2fATR atr=%.6f spreadATRside=%.4f anchor=%.5f -> %s",
+                  symbol, (fallingFast ? "SELL" : "BUY"), -moveAtr, atr, spreadAtr, close1, verdict);
+
+   if(verdict != "TAKE")
+      return;
+
    // Continuation in the direction of the move. PULLBACK uses LIMIT orders (enter on
-   // the retrace); BREAKOUT uses STOP orders (chase beyond price, the legacy behaviour).
+   // the retrace, anchored to the SIGNAL-BAR CLOSE - the validated geometry);
+   // BREAKOUT uses STOP orders (chase beyond price, the legacy behaviour).
    ENUM_ORDER_TYPE buyType  = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_BUY_LIMIT  : ORDER_TYPE_BUY_STOP;
    ENUM_ORDER_TYPE sellType = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_SELL_LIMIT : ORDER_TYPE_SELL_STOP;
 
    if(fallingFast)
-      PlacePending(symbol, sellType, atr);
-   else if(risingFast && InpTradeBothSides)
-      PlacePending(symbol, buyType, atr);
+      PlacePending(symbol, sellType, atr, close1);
+   else if(risingFast)
+      PlacePending(symbol, buyType, atr, close1);
   }
 
 //+------------------------------------------------------------------+
 //| Place a pending order.                                           |
 //|  BREAKOUT: STOP just beyond price, in the move's direction.      |
-//|  PULLBACK: LIMIT ~InpPullbackAtr ATR back toward price, so we    |
-//|            enter on the retrace with the stop behind the floor.  |
+//|  PULLBACK: LIMIT ~InpPullbackAtr ATR back from the SIGNAL-BAR    |
+//|            CLOSE (`anchor`, v1.3 - matches the validated engine; |
+//|            pre-v1.3 anchored to live bid/ask), so we enter on    |
+//|            the retrace with the stop behind the pullback floor.  |
 //+------------------------------------------------------------------+
-void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
+void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double anchor)
   {
    double ask   = SymbolInfoDouble(symbol, SYMBOL_ASK);
    double bid   = SymbolInfoDouble(symbol, SYMBOL_BID);
@@ -361,9 +448,9 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
    bool isLimit = (type == ORDER_TYPE_BUY_LIMIT || type == ORDER_TYPE_SELL_LIMIT);
    bool isBuy   = (type == ORDER_TYPE_BUY_STOP  || type == ORDER_TYPE_BUY_LIMIT);
 
-   // How far the pending sits from current price.
-   //   PULLBACK (limit): InpPullbackAtr ATR back toward price (enter on the retrace).
-   //   BREAKOUT (stop) : small InpEntryOffsetAtr ATR just beyond price.
+   // How far the pending sits from its anchor.
+   //   PULLBACK (limit): InpPullbackAtr ATR back from the signal-bar close.
+   //   BREAKOUT (stop) : small InpEntryOffsetAtr ATR just beyond live price.
    double offset = isLimit ? (InpPullbackAtr * atr) : (InpEntryOffsetAtr * atr);
    offset = MathMax(offset, stopsLevel);     // respect the broker minimum distance
    if(offset <= 0.0)
@@ -380,19 +467,35 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
    double entry, sl, tp;
    if(isBuy)
      {
-      // BUY_STOP sits above the ask; BUY_LIMIT sits below the bid (pullback).
-      entry = isLimit ? NormalizeDouble(bid - offset, digits)
+      // BUY_LIMIT sits below the signal-bar close (pullback); BUY_STOP above the ask.
+      entry = isLimit ? NormalizeDouble(anchor - offset, digits)
                       : NormalizeDouble(ask + offset, digits);
       sl    = NormalizeDouble(entry - stopDist, digits);
       tp    = (tpDist > 0.0) ? NormalizeDouble(entry + tpDist, digits) : 0.0;
      }
    else
      {
-      // SELL_STOP sits below the bid; SELL_LIMIT sits above the ask (pullback).
-      entry = isLimit ? NormalizeDouble(ask + offset, digits)
+      // SELL_LIMIT sits above the signal-bar close (pullback); SELL_STOP below the bid.
+      entry = isLimit ? NormalizeDouble(anchor + offset, digits)
                       : NormalizeDouble(bid - offset, digits);
       sl    = NormalizeDouble(entry + stopDist, digits);
       tp    = (tpDist > 0.0) ? NormalizeDouble(entry - tpDist, digits) : 0.0;
+     }
+
+   // The signal-close anchor can be on the wrong side of the live market if price
+   // gapped more than the pullback offset in the seconds since the bar closed. The
+   // broker would reject such a limit; skip rather than invent an unvalidated
+   // market entry (the harness would simply have filled at the limit next touch).
+   if(isLimit)
+     {
+      bool placeable = isBuy ? (entry <= ask - stopsLevel - point)
+                             : (entry >= bid + stopsLevel + point);
+      if(!placeable)
+        {
+         PrintFormat("%s limit anchor already crossed (entry=%.5f bid=%.5f ask=%.5f) - signal skipped.",
+                     symbol, entry, bid, ask);
+         return;
+        }
      }
 
    double lots = CalculateLotSize(symbol, stopDist);
@@ -422,8 +525,15 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
    if(ok)
      {
       g_tradesToday++;
-      PrintFormat("%s %s %.2f lots entry=%.5f SL=%.5f TP=%.5f",
-                  symbol, tag, lots, entry, sl, tp);
+      // v1.3: FREEZE the signal-bar ATR for this trade's whole life. The position
+      // opened by a pending order inherits the order ticket as its POSITION_IDENTIFIER,
+      // so management can always find this value again - including after an EA reload
+      // or terminal restart (terminal global variables persist on disk).
+      ulong ordTicket = trade.ResultOrder();
+      if(ordTicket > 0)
+         StoreFrozenAtr(ordTicket, atr);
+      PrintFormat("%s %s %.2f lots entry=%.5f SL=%.5f TP=%.5f sigATR=%.6f",
+                  symbol, tag, lots, entry, sl, tp, atr);
      }
    else
       PrintFormat("%s pending failed: %d (%s)", symbol,
@@ -510,7 +620,8 @@ void ManagePendingOrders()
          datetime maxAge = ordInfo.TimeSetup() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe);
          if(TimeCurrent() >= maxAge)
            {
-            trade.OrderDelete(ticket);
+            if(trade.OrderDelete(ticket))
+               DeleteFrozenAtr(ticket);   // v1.3: drop the stored signal ATR with the order
             continue;
            }
         }
@@ -566,7 +677,22 @@ void ManagePendingOrders()
   }
 
 //+------------------------------------------------------------------+
-//| Lock-to-breakeven, tight trail and time exit on open positions   |
+//| Lock-to-breakeven, trail and time exit on open positions.        |
+//|                                                                  |
+//| v1.3 (InpManageOnBarClose=true, the VALIDATED engine):           |
+//|   * The lock/trail decision uses the CLOSE of the last CLOSED    |
+//|     bar on the position's OWN symbol - never the live tick -     |
+//|     and the ATR FROZEN at the signal bar. Recomputing this every |
+//|     heartbeat is idempotent within a bar (it depends only on     |
+//|     bar-1 data + a ratchet), so no per-position clock is needed  |
+//|     and the logic is reload-safe.                                |
+//|   * Between bar closes the broker-side SL is static, so an       |
+//|     intrabar tag of that static level reproduces the harness's   |
+//|     "stop tested against the next bar's range" semantics.        |
+//|   * Time exit fires after InpMaxHoldingBars CLOSED bars of the   |
+//|     position's symbol (the harness exits at the close of bar     |
+//|     entry+N-1, i.e. when N bars since entry have closed).        |
+//| Legacy (false): the pre-v1.3 per-tick engine - NOT validated.    |
 //+------------------------------------------------------------------+
 void ManageOpenPositions()
   {
@@ -580,8 +706,6 @@ void ManageOpenPositions()
 
       string symbol = posInfo.Symbol();
       int idx = SymbolIndex(symbol);
-      double atr = 0.0;
-      bool haveAtr = (idx >= 0) && ReadAtr(g_atrHandle[idx], atr) && atr > 0.0;
 
       double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
       int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
@@ -591,59 +715,178 @@ void ManageOpenPositions()
       double curSL  = posInfo.StopLoss();
       double curTP  = posInfo.TakeProfit();
       long   spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
+      double stopsLevel = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
 
       // Time-based exit for stagnant trades.
-      if(InpMaxHoldingBars > 0)
+      if(InpMaxHoldingBars > 0 && HoldingTimeUp(symbol, (datetime)posInfo.Time()))
         {
-         int barSecs = PeriodSeconds(InpTimeframe);
-         if(barSecs > 0 && (long)(TimeCurrent() - posInfo.Time()) >= (long)InpMaxHoldingBars * barSecs)
-           {
-            trade.PositionClose(ticket);
-            continue;
-           }
+         if(trade.PositionClose(ticket))
+            DeleteFrozenAtr((ulong)posInfo.Identifier());
+         continue;
         }
 
+      // ATR for the management distances: FROZEN signal-bar ATR in bar-close mode
+      // (validated); re-read live in legacy per-tick mode (the old drifting behaviour).
+      double atr = 0.0;
+      bool haveAtr = InpManageOnBarClose
+                     ? FrozenAtr((ulong)posInfo.Identifier(), idx, atr)
+                     : (idx >= 0 && ReadAtr(g_atrHandle[idx], atr) && atr > 0.0);
       if(!haveAtr)
          continue;
 
-      double lockBuffer = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
+      // Reference price for the lock/trail decision.
+      double refPrice;
+      if(InpManageOnBarClose)
+        {
+         datetime curBar = (datetime)iTime(symbol, InpTimeframe, 0);
+         if(curBar == 0 || (datetime)posInfo.Time() >= curBar)
+            continue;                    // entry bar has not closed yet - hands off
+         refPrice = iClose(symbol, InpTimeframe, 1);
+         if(refPrice <= 0.0)
+            continue;
+        }
+      else
+         refPrice = (posInfo.PositionType() == POSITION_TYPE_BUY) ? bid : ask;
+
+      // Documented delta vs the harness: the harness locks to EXACT entry (0 gross);
+      // the EA locks to entry +/- (spread+2)pts so a locked exit nets >= 0 after
+      // spread. ~0.01 ATR, and conservative in the profitable direction.
+      double lockBuffer  = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
       double lockTrigger = InpLockTriggerAtr * atr;
       double trailDist   = InpTrailAtrMult * atr;
 
       if(posInfo.PositionType() == POSITION_TYPE_BUY)
         {
-         double profit = bid - entry;
+         double profit = refPrice - entry;
          double newSL = curSL;
 
-         // The instant we are sufficiently green, lock so it can't go red.
+         // Sufficiently green at the reference price -> lock, then trail. Ratchet only.
          if(profit >= lockTrigger)
            {
             double lockSL = NormalizeDouble(entry + lockBuffer, digits);
             if(lockSL > newSL)
                newSL = lockSL;
-            double trailSL = NormalizeDouble(bid - trailDist, digits);
-            if(trailSL > newSL && trailSL < bid)
+            double trailSL = NormalizeDouble(refPrice - trailDist, digits);
+            if(trailSL > newSL)
                newSL = trailSL;
            }
-         if(newSL > curSL && newSL < bid)
-            trade.PositionModify(ticket, newSL, curTP);
+         // Half-point epsilon: never re-send an SL the broker already holds.
+         if(newSL > curSL + 0.5 * point)
+           {
+            if(newSL < bid - stopsLevel)
+               trade.PositionModify(ticket, newSL, curTP);
+            else if(newSL >= bid && InpManageOnBarClose)
+              {
+               // Price has already fallen through the bar-close stop level intrabar;
+               // the validated engine would be out at that level - exit at market now.
+               if(trade.PositionClose(ticket))
+                  DeleteFrozenAtr((ulong)posInfo.Identifier());
+              }
+            // else: inside the broker freeze band - retry next heartbeat.
+           }
         }
       else // SELL
         {
-         double profit = entry - ask;
+         double profit = entry - refPrice;
          double newSL = curSL;
          if(profit >= lockTrigger)
            {
             double lockSL = NormalizeDouble(entry - lockBuffer, digits);
             if(curSL == 0.0 || lockSL < newSL)
                newSL = lockSL;
-            double trailSL = NormalizeDouble(ask + trailDist, digits);
-            if((trailSL < newSL || newSL == 0.0) && trailSL > ask)
+            double trailSL = NormalizeDouble(refPrice + trailDist, digits);
+            if(trailSL < newSL)
                newSL = trailSL;
            }
-         if((curSL == 0.0 || newSL < curSL) && newSL > ask)
-            trade.PositionModify(ticket, newSL, curTP);
+         // Half-point epsilon: never re-send an SL the broker already holds.
+         if(curSL == 0.0 ? (newSL > 0.0) : (newSL < curSL - 0.5 * point))
+           {
+            if(newSL > ask + stopsLevel)
+               trade.PositionModify(ticket, newSL, curTP);
+            else if(newSL <= ask && InpManageOnBarClose)
+              {
+               if(trade.PositionClose(ticket))
+                  DeleteFrozenAtr((ulong)posInfo.Identifier());
+              }
+            // else: inside the broker freeze band - retry next heartbeat.
+           }
         }
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Time exit predicate.                                             |
+//|  Bar-close mode: true once InpMaxHoldingBars bars of the         |
+//|  position's OWN symbol have CLOSED since entry (validated).      |
+//|  Legacy mode: wall-clock seconds (the pre-v1.3 behaviour).       |
+//+------------------------------------------------------------------+
+bool HoldingTimeUp(string symbol, datetime openTime)
+  {
+   if(InpManageOnBarClose)
+     {
+      int elapsed = iBarShift(symbol, InpTimeframe, openTime);
+      return(elapsed >= InpMaxHoldingBars);
+     }
+   int barSecs = PeriodSeconds(InpTimeframe);
+   return(barSecs > 0 && (long)(TimeCurrent() - openTime) >= (long)InpMaxHoldingBars * barSecs);
+  }
+
+//+------------------------------------------------------------------+
+//| v1.3 frozen signal-ATR store (terminal global variables, which   |
+//| persist across EA reloads and terminal restarts). Keyed by the   |
+//| opening order's ticket == the position's POSITION_IDENTIFIER.    |
+//+------------------------------------------------------------------+
+string FrozenAtrName(ulong id)
+  {
+   return(StringFormat("DScalp.%I64d.ATR.%I64u", InpMagicNumber, id));
+  }
+
+void StoreFrozenAtr(ulong id, double atr)
+  {
+   GlobalVariableSet(FrozenAtrName(id), atr);
+  }
+
+void DeleteFrozenAtr(ulong id)
+  {
+   string name = FrozenAtrName(id);
+   if(GlobalVariableCheck(name))
+      GlobalVariableDel(name);
+  }
+
+bool FrozenAtr(ulong id, int idx, double &atr)
+  {
+   string name = FrozenAtrName(id);
+   if(GlobalVariableCheck(name))
+     {
+      atr = GlobalVariableGet(name);
+      return(atr > 0.0);
+     }
+   // Fallback (position predates v1.3, or the terminal variables were wiped):
+   // freeze the CURRENT ATR from now on so distances at least stop drifting.
+   if(idx < 0 || !ReadAtr(g_atrHandle[idx], atr) || atr <= 0.0)
+      return(false);
+   StoreFrozenAtr(id, atr);
+   PrintFormat("Position %I64u had no stored signal ATR - froze current ATR %.6f from now on.", id, atr);
+   return(true);
+  }
+
+//+------------------------------------------------------------------+
+//| Garbage-collect stale frozen-ATR variables (positions closed by  |
+//| the broker's SL/TP never pass through our delete path). Max      |
+//| trade life is InpMaxHoldingBars*M15 ~ 2h, so anything older than |
+//| 2 days is certainly orphaned. Runs once per day.                 |
+//+------------------------------------------------------------------+
+void SweepFrozenAtr()
+  {
+   string prefix = StringFormat("DScalp.%I64d.ATR.", InpMagicNumber);
+   datetime cutoff = TimeCurrent() - 2 * 86400;
+   for(int i = GlobalVariablesTotal() - 1; i >= 0; i--)
+     {
+      string name = GlobalVariableName(i);
+      if(StringFind(name, prefix) != 0)
+         continue;
+      if(GlobalVariableTime(name) < cutoff)
+         GlobalVariableDel(name);
      }
   }
 
@@ -772,6 +1015,7 @@ void ResetDailyState()
    g_dayStartBalance = AccountInfoDouble(ACCOUNT_BALANCE);
    g_tradesToday     = 0;
    g_halted          = false;
+   SweepFrozenAtr();
   }
 
 datetime DayStart(datetime t)
