@@ -137,6 +137,7 @@ struct PositionMgmtState
    datetime entryBarTime;
    datetime lastMgmtBarTime;
    int      barsClosed;
+   double   desiredSL;     // pending SL level to apply (retried every heartbeat until it sticks)
   };
 PositionMgmtState g_posState[];
 
@@ -323,13 +324,20 @@ void ScanAllOnNewBars()
 
    for(int i = 0; i < ArraySize(g_symbols); i++)
      {
-      if(CountOpenAndPending() >= InpMaxConcurrent)
-         break;
-
       datetime barTime = (datetime)iTime(g_symbols[i], InpTimeframe, 0);
+      if(barTime == 0)              // history not synchronized yet - don't corrupt the clock
+         continue;
+      if(g_lastScanBar[i] == 0)     // unseeded (symbol had no data at init): seed WITHOUT scanning
+        {
+         g_lastScanBar[i] = barTime;
+         continue;
+        }
       if(barTime == g_lastScanBar[i])
          continue;
-      g_lastScanBar[i] = barTime;
+      g_lastScanBar[i] = barTime;   // consume the bar even when at capacity (match validated-era
+                                    // behavior: signals are dropped, never scanned late mid-bar)
+      if(CountOpenAndPending() >= InpMaxConcurrent)
+         continue;
 
       ScanSymbol(g_symbols[i], g_atrHandle[i]);
      }
@@ -627,6 +635,7 @@ void ManagePendingOrders()
          if(TimeCurrent() >= maxAge)
            {
             trade.OrderDelete(ticket);
+            TakePendingSigAtr(ticket);   // prune the frozen-ATR entry (review hygiene fix)
             continue;
            }
         }
@@ -707,6 +716,14 @@ void ManageOpenPositions()
             continue;
         }
 
+      // Retry any SL update that failed/was deferred on a previous heartbeat (blocker fix).
+      if(g_posState[stateIdx].desiredSL > 0.0)
+        {
+         ApplyDesiredSL(ticket, stateIdx);
+         if(!posInfo.SelectByTicket(ticket))   // ApplyDesiredSL may have closed the position
+            continue;
+        }
+
       if(InpManageOnBarClose)
          ManagePositionBarClose(ticket, stateIdx);
       else
@@ -721,6 +738,8 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
   {
    string symbol = posInfo.Symbol();
    datetime curBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
+   if(curBarTime == 0)                     // history desync: don't corrupt the bar clock
+      return;
    if(curBarTime == g_posState[stateIdx].lastMgmtBarTime)
       return;
 
@@ -770,9 +789,14 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
       if(trailSL > newSL)
          newSL = trailSL;
 
-      double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
-      if(newSL > curSL && newSL < bid)
-         trade.PositionModify(ticket, newSL, curTP);
+      if(newSL > curSL)
+        {
+         // Record the harness-mandated stop and apply it reliably: if the market has
+         // already gapped through it, the validated engine's stop was HIT this bar ->
+         // close at market; on broker rejection keep retrying every heartbeat.
+         g_posState[stateIdx].desiredSL = newSL;
+         ApplyDesiredSL(ticket, stateIdx);
+        }
      }
    else
      {
@@ -788,9 +812,85 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
       if((trailSL < newSL || newSL == 0.0) && trailSL > 0.0)
          newSL = trailSL;
 
+      if(curSL == 0.0 || newSL < curSL)
+        {
+         g_posState[stateIdx].desiredSL = newSL;
+         ApplyDesiredSL(ticket, stateIdx);
+        }
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Apply the pending desired SL faithfully (blocker fix, review):    |
+//|  * market already at/through the level -> the validated engine's  |
+//|    stop was hit this bar -> close at market (honest exit).        |
+//|  * within the broker stops/freeze distance -> clamp just outside. |
+//|  * broker rejection / no quote -> keep desiredSL, retry on every  |
+//|    heartbeat until it sticks (ratchet is idempotent).             |
+//+------------------------------------------------------------------+
+void ApplyDesiredSL(ulong ticket, int stateIdx)
+  {
+   double want = g_posState[stateIdx].desiredSL;
+   if(want <= 0.0)
+      return;
+
+   string symbol = posInfo.Symbol();
+   int    digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double minDist = MathMax((double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL),
+                            (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_FREEZE_LEVEL)) * point;
+   double curSL = posInfo.StopLoss();
+   double curTP = posInfo.TakeProfit();
+
+   if(posInfo.PositionType() == POSITION_TYPE_BUY)
+     {
+      double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
+      if(bid <= 0.0)
+         return;                                  // no quote (session break): retry later
+      if(want <= curSL)
+        {
+         g_posState[stateIdx].desiredSL = 0.0;    // already ratcheted past - nothing to do
+         return;
+        }
+      if(want >= bid)
+        {
+         // Validated engine already exited at this stop level this bar.
+         if(trade.PositionClose(ticket))
+            g_posState[stateIdx].desiredSL = 0.0;
+         return;
+        }
+      double lvl = want;
+      if(minDist > 0.0 && lvl > bid - minDist)
+         lvl = NormalizeDouble(bid - minDist, digits);   // clamp inside broker constraint
+      if(lvl <= curSL)
+         return;                                  // clamp made it useless now; retry later
+      if(trade.PositionModify(ticket, lvl, curTP))
+         g_posState[stateIdx].desiredSL = 0.0;
+      // on failure desiredSL stays set -> retried next heartbeat
+     }
+   else
+     {
       double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
-      if((curSL == 0.0 || newSL < curSL) && newSL > ask)
-         trade.PositionModify(ticket, newSL, curTP);
+      if(ask <= 0.0)
+         return;
+      if(curSL != 0.0 && want >= curSL)
+        {
+         g_posState[stateIdx].desiredSL = 0.0;
+         return;
+        }
+      if(want <= ask)
+        {
+         if(trade.PositionClose(ticket))
+            g_posState[stateIdx].desiredSL = 0.0;
+         return;
+        }
+      double lvl = want;
+      if(minDist > 0.0 && lvl < ask + minDist)
+         lvl = NormalizeDouble(ask + minDist, digits);
+      if(curSL != 0.0 && lvl >= curSL)
+         return;
+      if(trade.PositionModify(ticket, lvl, curTP))
+         g_posState[stateIdx].desiredSL = 0.0;
      }
   }
 
@@ -809,7 +909,7 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
      }
 
    datetime curBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
-   if(curBarTime != g_posState[stateIdx].lastMgmtBarTime)
+   if(curBarTime != 0 && curBarTime != g_posState[stateIdx].lastMgmtBarTime)
      {
       g_posState[stateIdx].lastMgmtBarTime = curBarTime;
       g_posState[stateIdx].barsClosed++;
@@ -924,19 +1024,26 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    if(shift >= 0)
       entryBar = (datetime)iTime(symbol, InpTimeframe, shift);
 
+   // Frozen-ATR persistence (review fix): restore the ORIGINAL signal ATR across EA
+   // reloads via a terminal global variable, before falling back to the current ATR.
+   string gvName = "DSv121_atr_" + (string)positionId;
+   if(signalAtr <= 0.0 && GlobalVariableCheck(gvName))
+      signalAtr = GlobalVariableGet(gvName);
    if(signalAtr <= 0.0)
      {
       int idx = SymbolIndex(symbol);
       if(idx >= 0)
          ReadAtr(g_atrHandle[idx], signalAtr);
      }
+   if(signalAtr > 0.0)
+      GlobalVariableSet(gvName, signalAtr);
 
    int barsClosed = 0;
    for(int s = 1; s < 500; s++)
      {
       datetime bt = (datetime)iTime(symbol, InpTimeframe, s);
-      if(bt == 0 || bt <= entryBar)
-         break;
+      if(bt == 0 || bt < entryBar)   // count the entry bar's own close too (review fix:
+         break;                      // `<=` undercounted by 1 after mid-trade reloads)
       barsClosed++;
      }
 
@@ -947,6 +1054,7 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    g_posState[n].entryBarTime = entryBar;
    g_posState[n].lastMgmtBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
    g_posState[n].barsClosed = barsClosed;
+   g_posState[n].desiredSL = 0.0;
   }
 
 void SyncOpenPositionStates()
@@ -982,6 +1090,7 @@ void PruneClosedPositionStates()
         }
       if(!open)
         {
+         GlobalVariableDel("DSv121_atr_" + (string)g_posState[i].positionId);
          for(int j = i; j < ArraySize(g_posState) - 1; j++)
             g_posState[j] = g_posState[j + 1];
          ArrayResize(g_posState, ArraySize(g_posState) - 1);
