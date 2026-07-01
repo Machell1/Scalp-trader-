@@ -59,6 +59,15 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
 
 ## PRIORITIZED BACKLOG (with acceptance criteria)
 
+0. **P0 — EXIT-ENGINE FIDELITY (found in live forensics, 2026-07-01; see
+   `docs/LIVE_TRADE_ANALYSIS_2026-07-01.md`).** The live EA manages the BE-lock/trail **per tick**;
+   the engine that passed the ship gate manages **on M15 bar close**. 8 of the first 15 live exits
+   occurred with zero bar-closes elapsed — impossible under the validated engine (scratch swarm,
+   winners cut ~1R, zero TP exits, 6/15 shakeouts). Fix: `InpManageOnBarClose=true` default —
+   bar-close lock/trail on the position symbol's own bar clock, frozen signal-ATR, limit anchored
+   to the signal-bar close, reload-rescan guard, bar-based time exit, OnTimer heartbeat. *Accept:*
+   post-fix live exit mix is possible under `simulate_symbol_c` (no moved-stop exits inside one
+   bar); entry behavior unchanged. This is a reversion to the validated config, not a new idea.
 1. ~~**Walk-forward + DSR on the spread-gated universe**~~ **DONE (SHIP @ small size).**
    Runner: `backtest/walkforward_dsr.py` + `fetch_spreadgated.py`. Result in `RESULTS.md` §6.
    DSR hurdle fixed to principled `1/(T-1)` null (commit `79d66b2`). *Next:* demo forward-test
