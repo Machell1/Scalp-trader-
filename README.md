@@ -50,13 +50,19 @@ Clear that input to scan all non-synthetics.
 - **Entry:** `InpEntryMode` = `ENTRY_LIMIT_PULLBACK` (default, validated) or
   `ENTRY_STOP_BREAKOUT` (legacy). Pullback distance = `InpPullbackAtr` (0.6 ATR).
 - **Exits:** 1 ATR stop, 3 ATR take-profit, break-even lock at +0.25 ATR, 0.5 ATR trail,
-  8-bar time exit.
+  8-bar time exit. Since **v1.3** the lock/trail is computed **on each position symbol's
+  own M15 bar close with the ATR frozen at the signal bar** (`InpManageOnBarClose=true`)
+  — the mechanics the backtests actually validated. The pre-v1.3 per-tick management is
+  kept behind `InpManageOnBarClose=false` but was never validated (see
+  `docs/LIVE_TRADE_ANALYSIS_2026-07-01.md`).
 - **Risk rails:** 0.5%/trade, ≤3 concurrent, ≤20/day, 3% daily-loss halt, 15% drawdown
   halt, 4-consecutive-loss pause, spread filter.
 
 **Install:** copy `mql5/DerivScalperEA.mq5` into `MQL5/Experts/`, compile in MetaEditor,
-attach to any M15 chart. The EA scans its own symbol list — the chart symbol only drives
-the bar clock. **Demo / minimum size first.**
+attach to any M15 chart. The EA scans its own symbol list on per-symbol bar clocks and
+runs a 5-second timer heartbeat, so the chart symbol no longer matters (v1.3; before
+that, management stalled when the chart symbol's market closed). **Demo / minimum size
+first.**
 
 > This EA places orders on whatever account it is attached to. The author of this repo
 > does not place trades on your behalf; you choose when (and whether) to run it.

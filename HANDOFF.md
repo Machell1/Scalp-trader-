@@ -59,22 +59,32 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
 
 ## PRIORITIZED BACKLOG (with acceptance criteria)
 
-0. **P0 — EXIT-ENGINE FIDELITY (found in live forensics, 2026-07-01; see
-   `docs/LIVE_TRADE_ANALYSIS_2026-07-01.md`).** The live EA manages the BE-lock/trail **per tick**;
-   the engine that passed the ship gate manages **on M15 bar close**. 8 of the first 15 live exits
-   occurred with zero bar-closes elapsed — impossible under the validated engine (scratch swarm,
-   winners cut ~1R, zero TP exits, 6/15 shakeouts). Fix: `InpManageOnBarClose=true` default —
-   bar-close lock/trail on the position symbol's own bar clock, frozen signal-ATR, limit anchored
-   to the signal-bar close, reload-rescan guard, bar-based time exit, OnTimer heartbeat. *Accept:*
-   post-fix live exit mix is possible under `simulate_symbol_c` (no moved-stop exits inside one
-   bar); entry behavior unchanged. This is a reversion to the validated config, not a new idea.
+0. ~~**P0 — EXIT-ENGINE FIDELITY (found in live forensics, 2026-07-01; see
+   `docs/LIVE_TRADE_ANALYSIS_2026-07-01.md`).**~~ **IMPLEMENTED in EA v1.3 — pending live
+   exit-mix verification.** The v1.2 EA managed the BE-lock/trail **per tick**; the engine that
+   passed the ship gate manages **on M15 bar close**. 8 of the first 15 live exits occurred with
+   zero bar-closes elapsed — impossible under the validated engine (scratch swarm, winners cut
+   ~1R, zero TP exits, 6/15 shakeouts). v1.3 ships the full spec: `InpManageOnBarClose=true`
+   default — lock/trail computed from each position symbol's own bar-1 close (stateless ratchet,
+   reload-safe), signal-bar ATR frozen per trade (persisted in terminal global variables keyed by
+   the opening order ticket), pullback limit anchored to `iClose(sym,tf,1)`, reload-rescan guard
+   (per-symbol scan clocks init to the forming bar), bar-based time exit (`iBarShift >=
+   InpMaxHoldingBars`), OnTimer heartbeat. Legacy per-tick engine kept behind
+   `InpManageOnBarClose=false`, explicitly labelled NOT validated. *Remaining acceptance:* compile
+   in MetaEditor (0 errors), then a demo/live sample whose exit mix is possible under
+   `simulate_symbol_c` (no moved-stop exits inside one bar) and unchanged entry counts. This is a
+   reversion to the validated config, not a new idea.
 1. ~~**Walk-forward + DSR on the spread-gated universe**~~ **DONE (SHIP @ small size).**
    Runner: `backtest/walkforward_dsr.py` + `fetch_spreadgated.py`. Result in `RESULTS.md` §6.
    DSR hurdle fixed to principled `1/(T-1)` null (commit `79d66b2`). *Next:* demo forward-test
    with live spread logging (backlog #2).
-2. **Per-instrument live spread logging** so live spread/ATR can be compared to the
-   backtest assumption (catch drift / news widening). *Accept:* EA logs spread/ATR per
-   skipped+taken trade; no behavior change.
+2. ~~**Per-instrument live spread logging**~~ **DONE in EA v1.3** (`InpLogDecisions=true`):
+   one `DSLOG signal ...` line per momentum signal — impulse ATRs (positive = up-move, same
+   convention as `live_trade_report.py`), ATR, spread/ATR per side, limit anchor price, and the
+   take-or-skip reason. No behavior change. This also settles the trade-#2 impulse anomaly from
+   the forensics doc the next time it occurs. Related P1 also done: `live_trade_report.py` v2
+   converts R to the account currency via `order_calc_profit` (v1 inflated DE40/UK100 R by
+   14%/33%) and clips MAE/MFE at the actual exit price.
 3. **Maker-vs-taker / fill realism for the pullback LIMIT.** The backtest assumes the
    limit fills at its price; model partial/no-fill and a maker rebate. *Accept:* edge sign
    unchanged under pessimistic fill (non-filling impulses counted as missed winners).
@@ -90,7 +100,9 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 
 ## Repo map
 
-- `mql5/DerivScalperEA.mq5` — the live EA (v1.2). Multi-symbol; scans its whitelist.
+- `mql5/DerivScalperEA.mq5` — the live EA (v1.3). Multi-symbol; scans its whitelist.
+  v1.3 = exit-engine fidelity (bar-close lock/trail, frozen signal-ATR, signal-close
+  limit anchor, reload guard, bar time exit, OnTimer heartbeat, decision logging).
 - `tradingview/DerivScalperPullback.pine` — single-symbol Pine port (visual/backtest).
 - `backtest/scalper_backtest.py` — faithful bar-level simulator (the source of truth).
 - `backtest/scalper_confluence.py` — confluence/geometry extensions (reproduces baseline).
