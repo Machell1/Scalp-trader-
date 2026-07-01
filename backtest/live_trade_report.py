@@ -120,10 +120,11 @@ def main():
         pnl = dout.profit + dout.swap + dout.commission + din.commission
         r_mult = None
         if risk and risk > 0 and din.volume > 0:
-            info = mt5.symbol_info(sym)
-            tv, ts = info.trade_tick_value, info.trade_tick_size
-            risk_usd = (risk / ts) * tv * din.volume if ts > 0 else None
-            r_mult = pnl / risk_usd if risk_usd else None
+            mt5.symbol_select(sym, True)
+            close_type = mt5.ORDER_TYPE_BUY if side > 0 else mt5.ORDER_TYPE_SELL
+            risk_ccy = mt5.order_calc_profit(close_type, sym, din.volume, din.price, sl0)
+            risk_ccy = abs(risk_ccy) if risk_ccy is not None else None
+            r_mult = pnl / risk_ccy if risk_ccy else None
         ctx = atr_context(sym, t_open)
         mae, mfe = mae_mfe(sym, t_open, t_close, din.price, risk or 0, side)
         shk = shakeout(sym, t_close, tp0, side) if REASON.get(dout.reason) == "SL" else None
