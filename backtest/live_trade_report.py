@@ -9,6 +9,15 @@ Reconstructs every round trip with full context and dumps:
   * aggregate: exit mix, realized cost, fill stats — compared to backtest assumptions.
 
 Writes live_trades.json and prints a readable report.
+
+v2 fixes (P1 from docs/LIVE_TRADE_ANALYSIS_2026-07-01.md, found by the audit of v1):
+  * R denominator is now converted to the ACCOUNT currency via mt5.order_calc_profit
+    (v1 used raw trade_tick_value, which for DE40/UK100 is quoted in EUR/GBP and
+    overstated those R values by ~14%/33%). Conversion uses the current FX rate,
+    which for day-scale lookbacks is within a fraction of a percent of trade-time.
+  * MAE/MFE exclude the exit-minute M1 bar's extremes and use the exit price as the
+    final path point instead, so an intrabar stop can no longer report MAE > 1R
+    from wick overshoot past the level we actually exited at.
 """
 from __future__ import annotations
 import json
@@ -49,17 +58,41 @@ def atr_context(sym, t_open):
         out["spread_atr_perside"] = 0.5 * out["spread_price"] / a
     return out
 
-def mae_mfe(sym, t_open, t_close, entry, risk, side):
+def risk_in_account_ccy(sym, side, volume, entry, sl):
+    """Risk of the entry->SL move in the ACCOUNT currency.
+
+    v2 fix: mt5.order_calc_profit does the quote->account currency conversion that
+    raw trade_tick_value arithmetic misses (DE40 is EUR-quoted, UK100 GBP-quoted;
+    v1 overstated their R by ~14%/33%)."""
+    otype = mt5.ORDER_TYPE_BUY if side > 0 else mt5.ORDER_TYPE_SELL
+    p = mt5.order_calc_profit(otype, sym, volume, entry, sl)
+    if p is not None and p != 0:
+        return abs(p)
+    # Fallback (symbol not visible etc.): tick-value arithmetic - correct only for
+    # USD-quoted symbols; flag it so the number is never silently trusted.
+    info = mt5.symbol_info(sym)
+    if info is None or info.trade_tick_size <= 0:
+        return None
+    print(f"WARN {sym}: order_calc_profit unavailable - R uses raw tick value (no FX conversion)")
+    return (abs(entry - sl) / info.trade_tick_size) * info.trade_tick_value * volume
+
+def mae_mfe(sym, t_open, t_close, entry, risk, side, exit_px, t_close_ts):
     r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M1, t_open, t_close + timedelta(minutes=1))
     if r is None or len(r) == 0 or risk <= 0:
         return None, None
     df = pd.DataFrame(r)
+    # v2 fix: drop the exit-minute bar - its wick can overshoot the level we actually
+    # exited at (e.g. an intrabar stop showing MAE > 1R) - and terminate the price
+    # path at the real exit price instead.
+    df = df[df.time < (int(t_close_ts) // 60) * 60]
+    lows = list(df.low) + [exit_px]
+    highs = list(df.high) + [exit_px]
     if side > 0:
-        mae = (entry - df.low.min()) / risk
-        mfe = (df.high.max() - entry) / risk
+        mae = (entry - min(lows)) / risk
+        mfe = (max(highs) - entry) / risk
     else:
-        mae = (df.high.max() - entry) / risk
-        mfe = (entry - df.low.min()) / risk
+        mae = (max(highs) - entry) / risk
+        mfe = (entry - min(lows)) / risk
     return float(mae), float(mfe)
 
 def shakeout(sym, t_close, tp, side, nbars=8):
@@ -120,12 +153,11 @@ def main():
         pnl = dout.profit + dout.swap + dout.commission + din.commission
         r_mult = None
         if risk and risk > 0 and din.volume > 0:
-            info = mt5.symbol_info(sym)
-            tv, ts = info.trade_tick_value, info.trade_tick_size
-            risk_usd = (risk / ts) * tv * din.volume if ts > 0 else None
-            r_mult = pnl / risk_usd if risk_usd else None
+            risk_ccy = risk_in_account_ccy(sym, side, din.volume, din.price, sl0)
+            r_mult = pnl / risk_ccy if risk_ccy else None
         ctx = atr_context(sym, t_open)
-        mae, mfe = mae_mfe(sym, t_open, t_close, din.price, risk or 0, side)
+        mae, mfe = mae_mfe(sym, t_open, t_close, din.price, risk or 0, side,
+                           exit_px=dout.price, t_close_ts=dout.time)
         shk = shakeout(sym, t_close, tp0, side) if REASON.get(dout.reason) == "SL" else None
         hold_min = (t_close - t_open).total_seconds() / 60
         trades.append(dict(
