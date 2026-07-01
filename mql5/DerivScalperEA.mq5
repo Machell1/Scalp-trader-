@@ -241,15 +241,35 @@ void AddSymbol(string symbol)
    if(mode != SYMBOL_TRADE_MODE_FULL)
       return;
 
+   // ATR handle creation can fail transiently at terminal startup (history not yet
+   // synchronized, err 4805). Do NOT silently drop the symbol: keep it with an invalid
+   // handle and let the heartbeat retry until it recovers (RetryFailedAtrHandles).
    int h = iATR(symbol, InpTimeframe, InpAtrPeriod);
    if(h == INVALID_HANDLE)
-      return;
+      PrintFormat("WARN: ATR handle failed for %s at init (err %d) - will retry on heartbeat",
+                  symbol, GetLastError());
 
    int idx = ArraySize(g_symbols);
    ArrayResize(g_symbols, idx + 1);
    ArrayResize(g_atrHandle, idx + 1);
    g_symbols[idx]   = symbol;
    g_atrHandle[idx] = h;
+  }
+
+//+------------------------------------------------------------------+
+//| Retry ATR handles that failed at init (startup history race).    |
+//| No-op once every handle is valid.                                |
+//+------------------------------------------------------------------+
+void RetryFailedAtrHandles()
+  {
+   for(int i = 0; i < ArraySize(g_atrHandle); i++)
+     {
+      if(g_atrHandle[i] != INVALID_HANDLE)
+         continue;
+      g_atrHandle[i] = iATR(g_symbols[i], InpTimeframe, InpAtrPeriod);
+      if(g_atrHandle[i] != INVALID_HANDLE)
+         PrintFormat("ATR handle recovered for %s - symbol active", g_symbols[i]);
+     }
   }
 
 //+------------------------------------------------------------------+
@@ -303,6 +323,7 @@ void Heartbeat()
    if(today != g_currentDay)
       ResetDailyState();
 
+   RetryFailedAtrHandles();   // recover symbols whose ATR failed at startup (no-op when healthy)
    ManageAll();
    ScanAllOnNewBars();
   }
