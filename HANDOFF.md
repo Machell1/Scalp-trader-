@@ -59,30 +59,33 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
 
 ## PRIORITIZED BACKLOG (with acceptance criteria)
 
-0. **P0 — EXIT-ENGINE FIDELITY (found in live forensics, 2026-07-01; see
-   `docs/LIVE_TRADE_ANALYSIS_2026-07-01.md`).** The live EA manages the BE-lock/trail **per tick**;
-   the engine that passed the ship gate manages **on M15 bar close**. 8 of the first 15 live exits
-   occurred with zero bar-closes elapsed — impossible under the validated engine (scratch swarm,
-   winners cut ~1R, zero TP exits, 6/15 shakeouts). Fix: `InpManageOnBarClose=true` default —
-   bar-close lock/trail on the position symbol's own bar clock, frozen signal-ATR, limit anchored
-   to the signal-bar close, reload-rescan guard, bar-based time exit, OnTimer heartbeat. *Accept:*
-   post-fix live exit mix is possible under `simulate_symbol_c` (no moved-stop exits inside one
-   bar); entry behavior unchanged. This is a reversion to the validated config, not a new idea.
+> **Current delta brief: `docs/CURSOR_BRIEF_2026-07-01.md`** — read it for the post-v1.21
+> state, the review-fix semantics you must not regress (`ApplyDesiredSL`, ATR persistence,
+> clock guards), the deploy runbook, and the full P0–P4 backlog with acceptance criteria.
+
+0. ~~**P0 — EXIT-ENGINE FIDELITY**~~ **DONE (v1.21 + review fixes, commits `196c5a9`+`014a9fa`,
+   merged `c90e722`; LIVE since 2026-07-01 17:07).** Bar-close lock/trail on per-symbol clocks,
+   frozen signal-ATR (persisted), signal-close limit anchor, `ApplyDesiredSL` close-or-clamp-or-
+   retry engine, OnTimer heartbeat. *Open acceptance check:* after ≥10–15 live trades, run
+   `live_trade_report.py` — exit mix must be possible under `simulate_symbol_c` (zero moved-stop
+   exits with zero elapsed bar-closes; TP exits exist).
 1. ~~**Walk-forward + DSR on the spread-gated universe**~~ **DONE (SHIP @ small size).**
    Runner: `backtest/walkforward_dsr.py` + `fetch_spreadgated.py`. Result in `RESULTS.md` §6.
-   DSR hurdle fixed to principled `1/(T-1)` null (commit `79d66b2`). *Next:* demo forward-test
-   with live spread logging (backlog #2).
-2. **Per-instrument live spread logging** so live spread/ATR can be compared to the
-   backtest assumption (catch drift / news widening). *Accept:* EA logs spread/ATR per
-   skipped+taken trade; no behavior change.
-3. **Maker-vs-taker / fill realism for the pullback LIMIT.** The backtest assumes the
-   limit fills at its price; model partial/no-fill and a maker rebate. *Accept:* edge sign
-   unchanged under pessimistic fill (non-filling impulses counted as missed winners).
-4. **Session/liquidity gate** (only if it passes the bar) — restrict to each instrument's
-   liquid hours. *Accept:* marginal OOS improvement + permutation p<0.05; otherwise drop.
-5. **Sizing / portfolio heat** review — 0.5%/trade × up to 3 concurrent correlated majors
-   can stack; consider correlation-aware concurrency. *Accept:* lower drawdown at equal
-   expectancy on the gated set.
+   DSR hurdle fixed to principled `1/(T-1)` null (commit `79d66b2`).
+2. ~~**Per-instrument live spread logging**~~ **DONE (v1.21 SIGNAL/SKIP logs).** Every decision
+   logs impulse, ATR, spread/ATR/side, anchor, and skip reason. (P4 hygiene: align the SKIP
+   impulse sign convention with SIGNAL; add a verbosity input — see the brief.)
+3. **Maker-vs-taker / fill realism for the pullback LIMIT** — now unblocked by the logs.
+   Day-1: 75% fill rate vs ~59% modeled, price improvement common (conservative), N=20 only.
+   *Accept:* edge sign unchanged under pessimistic fill (non-fills counted as missed winners).
+4. **Session/liquidity gate on the PULLBACK config** (never tested on it; the old failure was
+   the chase entry). Day-1 hint: thin-hours −1.97R vs +2.82R (N tiny). *Accept:* full HANDOFF
+   gate on historical data; otherwise drop.
+5. **Sizing / portfolio heat** — correlation-aware concurrency (per-cluster caps: crypto / US
+   indices / EU indices). *Accept:* lower drawdown at equal pooled expectancy on the gated set.
+6. **NEW BOUNDARY (do not violate): no higher-timeframe ports.** The exact config has NO edge
+   on daily bars — NDX 1D 1985–2026 frictionless PF 0.988; SPX 1D 1871–2026 PF 0.843 (TradingView,
+   2026-07-01). The edge is intraday-M15-local. Treat any HTF proposal as out of scope.
 
 Lower priority / likely dead ends (already tested, do not re-propose as novel): ADX gate,
 HTF EMA alignment, efficiency-ratio/body filters, volatility-regime band, tick-volume
