@@ -49,18 +49,47 @@ def atr_context(sym, t_open):
         out["spread_atr_perside"] = 0.5 * out["spread_price"] / a
     return out
 
-def mae_mfe(sym, t_open, t_close, entry, risk, side):
+def risk_account_currency(sym, side, volume, entry, sl):
+    """1R risk in account currency (handles EUR/GBP-quoted index CFDs)."""
+    if not sl or volume <= 0:
+        return None
+    order_type = mt5.ORDER_TYPE_BUY if side > 0 else mt5.ORDER_TYPE_SELL
+    loss = mt5.order_calc_profit(order_type, sym, volume, entry, sl)
+    if loss is None:
+        return None
+    return abs(float(loss))
+
+def profit_to_r(sym, side, volume, entry, px, risk_usd):
+    if not risk_usd or risk_usd <= 0:
+        return None
+    order_type = mt5.ORDER_TYPE_BUY if side > 0 else mt5.ORDER_TYPE_SELL
+    p = mt5.order_calc_profit(order_type, sym, volume, entry, px)
+    if p is None:
+        return None
+    return float(p) / risk_usd
+
+def mae_mfe(sym, t_open, t_close, entry, side, volume, risk_usd, exit_reason=None, sl=None):
+    """MAE/MFE in R using account-currency risk; clip MAE when stopped out."""
     r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M1, t_open, t_close + timedelta(minutes=1))
-    if r is None or len(r) == 0 or risk <= 0:
+    if r is None or len(r) == 0 or not risk_usd or risk_usd <= 0:
         return None, None
     df = pd.DataFrame(r)
     if side > 0:
-        mae = (entry - df.low.min()) / risk
-        mfe = (df.high.max() - entry) / risk
+        adverse_px = float(df.low.min())
+        favorable_px = float(df.high.max())
     else:
-        mae = (df.high.max() - entry) / risk
-        mfe = (entry - df.low.min()) / risk
-    return float(mae), float(mfe)
+        adverse_px = float(df.high.max())
+        favorable_px = float(df.low.min())
+    mae = profit_to_r(sym, side, volume, entry, adverse_px, risk_usd)
+    mfe = profit_to_r(sym, side, volume, entry, favorable_px, risk_usd)
+    if mae is None or mfe is None:
+        return None, None
+    mae = abs(float(mae))
+    mfe = float(mfe)
+    if exit_reason == "SL" and sl:
+        # Adverse excursion cannot exceed ~1R once the initial stop is the exit.
+        mae = min(mae, 1.05)
+    return mae, mfe
 
 def shakeout(sym, t_close, tp, side, nbars=8):
     """After exit: did TP print within nbars M15 bars?"""
@@ -116,23 +145,20 @@ def main():
         req = oorig.price_open if oorig else None
         sl0 = oorig.sl if oorig else 0.0
         tp0 = oorig.tp if oorig else 0.0
-        risk = abs(din.price - sl0) if sl0 else None
+        risk_usd = risk_account_currency(sym, side, din.volume, din.price, sl0)
         pnl = dout.profit + dout.swap + dout.commission + din.commission
-        r_mult = None
-        if risk and risk > 0 and din.volume > 0:
-            info = mt5.symbol_info(sym)
-            tv, ts = info.trade_tick_value, info.trade_tick_size
-            risk_usd = (risk / ts) * tv * din.volume if ts > 0 else None
-            r_mult = pnl / risk_usd if risk_usd else None
+        r_mult = pnl / risk_usd if risk_usd else None
+        exit_reason = REASON.get(dout.reason, dout.reason)
         ctx = atr_context(sym, t_open)
-        mae, mfe = mae_mfe(sym, t_open, t_close, din.price, risk or 0, side)
-        shk = shakeout(sym, t_close, tp0, side) if REASON.get(dout.reason) == "SL" else None
+        mae, mfe = mae_mfe(sym, t_open, t_close, din.price, side, din.volume, risk_usd,
+                           exit_reason=exit_reason, sl=sl0)
+        shk = shakeout(sym, t_close, tp0, side) if exit_reason == "SL" else None
         hold_min = (t_close - t_open).total_seconds() / 60
         trades.append(dict(
             pos=pid, sym=sym, side="LONG" if side > 0 else "SHORT", lots=din.volume,
             t_open=str(t_open), t_close=str(t_close), hold_min=round(hold_min, 1),
             req_limit=req, fill=din.price, slip=(None if req is None else round((din.price - req) * side, 6)),
-            sl=sl0, tp=tp0, exit_px=dout.price, exit_reason=REASON.get(dout.reason, dout.reason),
+            sl=sl0, tp=tp0, exit_px=dout.price, exit_reason=exit_reason,
             pnl=round(pnl, 2), r=None if r_mult is None else round(r_mult, 3),
             atr=ctx.get("atr"), impulse_atr=None if ctx.get("impulse_atr") is None else round(ctx["impulse_atr"], 2),
             spread_atr_perside=None if ctx.get("spread_atr_perside") is None else round(ctx["spread_atr_perside"], 4),
