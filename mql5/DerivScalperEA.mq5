@@ -37,9 +37,15 @@
 //|   (b) a LIVE spread/ATR gate (InpMaxSpreadAtr) skips any symbol    |
 //|   whose spread is too wide right now, (c) AVWAP OFF by default     |
 //|   (it added no OOS edge). Still observe / minimum-size grade.      |
+//|                                                                  |
+//|   v1.21 (2026-07): EXIT-ENGINE FIDELITY (see docs/LIVE_TRADE_      |
+//|   ANALYSIS_2026-07-01.md). Live was managing lock/trail per tick;  |
+//|   the validated harness manages on M15 bar close. Default now:     |
+//|   InpManageOnBarClose=true, frozen signal-ATR, limit anchored to   |
+//|   signal-bar close, per-symbol bar clocks, OnTimer heartbeat.      |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.20"
+#property version   "1.21"
 #property strict
 #property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (spread-gated crypto + indices)."
 
@@ -90,7 +96,8 @@ input double InpTakeProfitAtrMult= 3.0;   // Take-profit distance (ATR). 3.0 = l
 input double InpLockTriggerAtr   = 0.25;  // Once price is this many ATR in profit, lock the trade
 input int    InpLockBufferPoints = 0;     // Extra points locked above break-even (0 = auto: spread+2)
 input double InpTrailAtrMult      = 0.5;  // Trailing distance after lock (ATR)
-input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N bars (0 = off)
+input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N closed bars (0 = off)
+input bool   InpManageOnBarClose = true;  // P0: lock/trail on M15 bar close (validated engine; false = legacy per-tick)
 
 //--- Portfolio risk --------------------------------------------------
 input group "=== Portfolio Risk ==="
@@ -107,6 +114,7 @@ input group "=== Execution ==="
 input long   InpMagicNumber      = 770077;// Magic number tagging this EA's orders
 input ulong  InpDeviationPoints  = 30;    // Max slippage in points
 input string InpTradeComment     = "DerivScalper";
+input int    InpHeartbeatSeconds = 5;     // OnTimer scan/manage heartbeat (0 = chart ticks only)
 
 //--- Globals ---------------------------------------------------------
 CTrade        trade;
@@ -115,8 +123,24 @@ COrderInfo    ordInfo;
 
 string g_symbols[];      // Tradable, non-synthetic symbols
 int    g_atrHandle[];    // Parallel ATR handle per symbol
+datetime g_lastScanBar[];// Per-symbol last processed bar (own bar clock, not chart symbol)
 
-datetime g_lastScanBar = 0;
+// Pending order ticket -> signal-bar ATR frozen at placement (transferred on fill).
+struct PendingSigAtr { ulong orderTicket; double atr; };
+PendingSigAtr g_pendingSigAtr[];
+
+// Open position metadata for bar-close management (keyed by POSITION_IDENTIFIER).
+struct PositionMgmtState
+  {
+   long     positionId;
+   double   signalAtr;
+   datetime entryBarTime;
+   datetime lastMgmtBarTime;
+   int      barsClosed;
+   double   desiredSL;     // pending SL level to apply (retried every heartbeat until it sticks)
+  };
+PositionMgmtState g_posState[];
+
 datetime g_currentDay  = 0;
 double   g_dayStartBalance = 0.0;
 double   g_peakEquity  = 0.0;
@@ -139,8 +163,20 @@ int OnInit()
    g_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    ResetDailyState();
 
-   PrintFormat("DerivScalperEA v1.1 ready. Entry=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   // Per-symbol bar clocks: skip mid-bar rescan after reload (see LIVE_TRADE_ANALYSIS §1).
+   ArrayResize(g_lastScanBar, ArraySize(g_symbols));
+   for(int i = 0; i < ArraySize(g_symbols); i++)
+      g_lastScanBar[i] = (datetime)iTime(g_symbols[i], InpTimeframe, 0);
+
+   if(InpHeartbeatSeconds > 0)
+      EventSetTimer(InpHeartbeatSeconds);
+
+   // Register any positions already open (e.g. after EA reload).
+   SyncOpenPositionStates();
+
+   PrintFormat("DerivScalperEA v1.21 ready. Entry=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
+               (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
    return(INIT_SUCCEEDED);
   }
@@ -148,6 +184,8 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
+   if(InpHeartbeatSeconds > 0)
+      EventKillTimer();
    for(int i = 0; i < ArraySize(g_atrHandle); i++)
       if(g_atrHandle[i] != INVALID_HANDLE)
          IndicatorRelease(g_atrHandle[i]);
@@ -246,20 +284,34 @@ string Trim(string s)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-   //--- Day rollover
+   Heartbeat();
+  }
+
+//+------------------------------------------------------------------+
+void OnTimer()
+  {
+   Heartbeat();
+  }
+
+//+------------------------------------------------------------------+
+//| Day rollover, position management, and per-symbol entry scans.   |
+//| OnTimer keeps this alive when the chart symbol's market closes.  |
+//+------------------------------------------------------------------+
+void Heartbeat()
+  {
    datetime today = DayStart(TimeCurrent());
    if(today != g_currentDay)
       ResetDailyState();
 
-   //--- Fast management runs on every tick (lock / trail / time exit)
    ManageAll();
+   ScanAllOnNewBars();
+  }
 
-   //--- Scan for new entries once per closed bar
-   datetime barTime = (datetime)iTime(_Symbol, InpTimeframe, 0);
-   if(barTime == g_lastScanBar)
-      return;
-   g_lastScanBar = barTime;
-
+//+------------------------------------------------------------------+
+//| Scan each symbol once per closed bar on that symbol's own clock. |
+//+------------------------------------------------------------------+
+void ScanAllOnNewBars()
+  {
    UpdatePeakEquity();
    if(g_halted)
       return;
@@ -272,10 +324,53 @@ void OnTick()
 
    for(int i = 0; i < ArraySize(g_symbols); i++)
      {
+      datetime barTime = (datetime)iTime(g_symbols[i], InpTimeframe, 0);
+      if(barTime == 0)              // history not synchronized yet - don't corrupt the clock
+         continue;
+      if(g_lastScanBar[i] == 0)     // unseeded (symbol had no data at init): seed WITHOUT scanning
+        {
+         g_lastScanBar[i] = barTime;
+         continue;
+        }
+      if(barTime == g_lastScanBar[i])
+         continue;
+      g_lastScanBar[i] = barTime;   // consume the bar even when at capacity (match validated-era
+                                    // behavior: signals are dropped, never scanned late mid-bar)
       if(CountOpenAndPending() >= InpMaxConcurrent)
-         break;
+         continue;
+
       ScanSymbol(g_symbols[i], g_atrHandle[i]);
      }
+  }
+
+//+------------------------------------------------------------------+
+//| Transfer signal ATR from pending fill to position state.           |
+//+------------------------------------------------------------------+
+void OnTradeTransaction(const MqlTradeTransaction &trans,
+                        const MqlTradeRequest &request,
+                        const MqlTradeResult &result)
+  {
+   if(trans.type != TRADE_TRANSACTION_DEAL_ADD)
+      return;
+   if(!HistoryDealSelect(trans.deal))
+      return;
+   if(HistoryDealGetInteger(trans.deal, DEAL_MAGIC) != InpMagicNumber)
+      return;
+   if(HistoryDealGetInteger(trans.deal, DEAL_ENTRY) != DEAL_ENTRY_IN)
+      return;
+
+   long posId = HistoryDealGetInteger(trans.deal, DEAL_POSITION_ID);
+   string symbol = HistoryDealGetString(trans.deal, DEAL_SYMBOL);
+   ulong orderTicket = (ulong)HistoryDealGetInteger(trans.deal, DEAL_ORDER);
+   datetime dealTime = (datetime)HistoryDealGetInteger(trans.deal, DEAL_TIME);
+   double sigAtr = TakePendingSigAtr(orderTicket);
+   if(sigAtr <= 0.0)
+     {
+      int idx = SymbolIndex(symbol);
+      if(idx >= 0)
+         ReadAtr(g_atrHandle[idx], sigAtr);
+     }
+   RegisterPositionState(posId, symbol, sigAtr, dealTime);
   }
 
 //+------------------------------------------------------------------+
@@ -286,31 +381,49 @@ void ScanSymbol(string symbol, int atrHandle)
    if(HasExposure(symbol))           // already trading this symbol
       return;
    if(!DataReady(symbol))
+     {
+      LogSkip(symbol, "data not ready");
       return;
+     }
    if(SpreadTooWide(symbol))
+     {
+      LogSkip(symbol, "spread points gate");
       return;
+     }
 
    double atr;
    if(!ReadAtr(atrHandle, atr) || atr <= 0.0)
+     {
+      LogSkip(symbol, "ATR unavailable");
       return;
+     }
 
    // v1.2 spread/ATR gate (the key cost filter). The edge survives only where the
    // round-trip spread is small relative to the 1-ATR stop; skip if the current spread
    // PER SIDE exceeds the validated ceiling (this is what excludes wide-spread names
    // like LTC/BCH/Mid Cap, and protects against spread blow-outs during news).
+   double spreadAtrSide = 0.0;
    if(InpMaxSpreadAtr > 0.0)
      {
       double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
       double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
-      if(0.5 * spreadPrice / atr > InpMaxSpreadAtr)
+      spreadAtrSide = 0.5 * spreadPrice / atr;
+      if(spreadAtrSide > InpMaxSpreadAtr)
+        {
+         LogSkip(symbol, StringFormat("spread/ATR/side %.4f > %.4f", spreadAtrSide, InpMaxSpreadAtr),
+                 atr, spreadAtrSide);
          return;
+        }
      }
 
    double close1    = iClose(symbol, InpTimeframe, 1);
    double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
    double open1     = iOpen(symbol, InpTimeframe, 1);
    if(close1 == 0.0 || closePast == 0.0)
+     {
+      LogSkip(symbol, "missing bar data");
       return;
+     }
 
    double move = closePast - close1;            // positive => price fell
    double moveAtr = move / atr;
@@ -326,11 +439,20 @@ void ScanSymbol(string symbol, int atrHandle)
       int sessBars = 0;
       double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
       if(vwap <= 0.0 || sessBars < InpVwapMinBars)
-         return;                              // VWAP not calibrated yet this session
+        {
+         LogSkip(symbol, "VWAP not calibrated");
+         return;
+        }
       if(risingFast && close1 >= vwap)        // not a discount -> no buy
          risingFast = false;
       if(fallingFast && close1 <= vwap)       // not a premium -> no sell
          fallingFast = false;
+     }
+
+   if(!fallingFast && !(risingFast && InpTradeBothSides))
+     {
+      LogSkip(symbol, StringFormat("no impulse (move=%.2f ATR)", moveAtr), atr, spreadAtrSide, moveAtr);
+      return;
      }
 
    // Continuation in the direction of the move. PULLBACK uses LIMIT orders (enter on
@@ -339,9 +461,9 @@ void ScanSymbol(string symbol, int atrHandle)
    ENUM_ORDER_TYPE sellType = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_SELL_LIMIT : ORDER_TYPE_SELL_STOP;
 
    if(fallingFast)
-      PlacePending(symbol, sellType, atr);
+      PlacePending(symbol, sellType, atr, close1, (close1 - closePast) / atr, spreadAtrSide);
    else if(risingFast && InpTradeBothSides)
-      PlacePending(symbol, buyType, atr);
+      PlacePending(symbol, buyType, atr, close1, (close1 - closePast) / atr, spreadAtrSide);
   }
 
 //+------------------------------------------------------------------+
@@ -350,7 +472,8 @@ void ScanSymbol(string symbol, int atrHandle)
 //|  PULLBACK: LIMIT ~InpPullbackAtr ATR back toward price, so we    |
 //|            enter on the retrace with the stop behind the floor.  |
 //+------------------------------------------------------------------+
-void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
+void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signalClose,
+                  double impulseAtr, double spreadAtrSide)
   {
    double ask   = SymbolInfoDouble(symbol, SYMBOL_ASK);
    double bid   = SymbolInfoDouble(symbol, SYMBOL_BID);
@@ -361,9 +484,9 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
    bool isLimit = (type == ORDER_TYPE_BUY_LIMIT || type == ORDER_TYPE_SELL_LIMIT);
    bool isBuy   = (type == ORDER_TYPE_BUY_STOP  || type == ORDER_TYPE_BUY_LIMIT);
 
-   // How far the pending sits from current price.
-   //   PULLBACK (limit): InpPullbackAtr ATR back toward price (enter on the retrace).
-   //   BREAKOUT (stop) : small InpEntryOffsetAtr ATR just beyond price.
+   // How far the pending sits from the anchor price.
+   //   PULLBACK (limit): InpPullbackAtr ATR back from the signal-bar CLOSE (validated harness).
+   //   BREAKOUT (stop) : small InpEntryOffsetAtr ATR just beyond live bid/ask.
    double offset = isLimit ? (InpPullbackAtr * atr) : (InpEntryOffsetAtr * atr);
    offset = MathMax(offset, stopsLevel);     // respect the broker minimum distance
    if(offset <= 0.0)
@@ -380,16 +503,16 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
    double entry, sl, tp;
    if(isBuy)
      {
-      // BUY_STOP sits above the ask; BUY_LIMIT sits below the bid (pullback).
-      entry = isLimit ? NormalizeDouble(bid - offset, digits)
+      // BUY_STOP sits above the ask; BUY_LIMIT sits below signal-bar close (pullback).
+      entry = isLimit ? NormalizeDouble(signalClose - offset, digits)
                       : NormalizeDouble(ask + offset, digits);
       sl    = NormalizeDouble(entry - stopDist, digits);
       tp    = (tpDist > 0.0) ? NormalizeDouble(entry + tpDist, digits) : 0.0;
      }
    else
      {
-      // SELL_STOP sits below the bid; SELL_LIMIT sits above the ask (pullback).
-      entry = isLimit ? NormalizeDouble(ask + offset, digits)
+      // SELL_STOP sits below the bid; SELL_LIMIT sits above signal-bar close (pullback).
+      entry = isLimit ? NormalizeDouble(signalClose + offset, digits)
                       : NormalizeDouble(bid - offset, digits);
       sl    = NormalizeDouble(entry + stopDist, digits);
       tp    = (tpDist > 0.0) ? NormalizeDouble(entry - tpDist, digits) : 0.0;
@@ -422,8 +545,9 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr)
    if(ok)
      {
       g_tradesToday++;
-      PrintFormat("%s %s %.2f lots entry=%.5f SL=%.5f TP=%.5f",
-                  symbol, tag, lots, entry, sl, tp);
+      StorePendingSigAtr(trade.ResultOrder(), atr);
+      PrintFormat("SIGNAL %s %s %.2f lots entry=%.5f (anchor=%.5f) SL=%.5f TP=%.5f | ATR=%.5f impulse=%.2f spread/ATR/side=%.4f",
+                  symbol, tag, lots, entry, signalClose, sl, tp, atr, impulseAtr, spreadAtrSide);
      }
    else
       PrintFormat("%s pending failed: %d (%s)", symbol,
@@ -511,6 +635,7 @@ void ManagePendingOrders()
          if(TimeCurrent() >= maxAge)
            {
             trade.OrderDelete(ticket);
+            TakePendingSigAtr(ticket);   // prune the frozen-ATR entry (review hygiene fix)
             continue;
            }
         }
@@ -570,6 +695,8 @@ void ManagePendingOrders()
 //+------------------------------------------------------------------+
 void ManageOpenPositions()
   {
+   PruneClosedPositionStates();
+
    for(int i = PositionsTotal() - 1; i >= 0; i--)
      {
       ulong ticket = PositionGetTicket(i);
@@ -579,77 +706,398 @@ void ManageOpenPositions()
          continue;
 
       string symbol = posInfo.Symbol();
-      int idx = SymbolIndex(symbol);
-      double atr = 0.0;
-      bool haveAtr = (idx >= 0) && ReadAtr(g_atrHandle[idx], atr) && atr > 0.0;
-
-      double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
-      int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
-      double bid    = SymbolInfoDouble(symbol, SYMBOL_BID);
-      double ask    = SymbolInfoDouble(symbol, SYMBOL_ASK);
-      double entry  = posInfo.PriceOpen();
-      double curSL  = posInfo.StopLoss();
-      double curTP  = posInfo.TakeProfit();
-      long   spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
-
-      // Time-based exit for stagnant trades.
-      if(InpMaxHoldingBars > 0)
+      long posId = (long)posInfo.Identifier();
+      int stateIdx = FindPositionState(posId);
+      if(stateIdx < 0)
         {
-         int barSecs = PeriodSeconds(InpTimeframe);
-         if(barSecs > 0 && (long)(TimeCurrent() - posInfo.Time()) >= (long)InpMaxHoldingBars * barSecs)
-           {
-            trade.PositionClose(ticket);
+         RegisterPositionState(posId, symbol, 0.0, posInfo.Time());
+         stateIdx = FindPositionState(posId);
+         if(stateIdx < 0)
             continue;
-           }
         }
 
-      if(!haveAtr)
-         continue;
-
-      double lockBuffer = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
-      double lockTrigger = InpLockTriggerAtr * atr;
-      double trailDist   = InpTrailAtrMult * atr;
-
-      if(posInfo.PositionType() == POSITION_TYPE_BUY)
+      // Retry any SL update that failed/was deferred on a previous heartbeat (blocker fix).
+      if(g_posState[stateIdx].desiredSL > 0.0)
         {
-         double profit = bid - entry;
-         double newSL = curSL;
+         ApplyDesiredSL(ticket, stateIdx);
+         if(!posInfo.SelectByTicket(ticket))   // ApplyDesiredSL may have closed the position
+            continue;
+        }
 
-         // The instant we are sufficiently green, lock so it can't go red.
-         if(profit >= lockTrigger)
-           {
-            double lockSL = NormalizeDouble(entry + lockBuffer, digits);
-            if(lockSL > newSL)
-               newSL = lockSL;
-            double trailSL = NormalizeDouble(bid - trailDist, digits);
-            if(trailSL > newSL && trailSL < bid)
-               newSL = trailSL;
-           }
-         if(newSL > curSL && newSL < bid)
-            trade.PositionModify(ticket, newSL, curTP);
-        }
-      else // SELL
+      if(InpManageOnBarClose)
+         ManagePositionBarClose(ticket, stateIdx);
+      else
+         ManagePositionPerTick(ticket, stateIdx);
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Validated engine: lock/trail/time-exit only on symbol bar close.  |
+//+------------------------------------------------------------------+
+void ManagePositionBarClose(ulong ticket, int stateIdx)
+  {
+   string symbol = posInfo.Symbol();
+   datetime curBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
+   if(curBarTime == 0)                     // history desync: don't corrupt the bar clock
+      return;
+   if(curBarTime == g_posState[stateIdx].lastMgmtBarTime)
+      return;
+
+   g_posState[stateIdx].lastMgmtBarTime = curBarTime;
+   g_posState[stateIdx].barsClosed++;
+
+   if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+     {
+      trade.PositionClose(ticket);
+      return;
+     }
+
+   double signalAtr = g_posState[stateIdx].signalAtr;
+   if(signalAtr <= 0.0)
+     {
+      int idx = SymbolIndex(symbol);
+      if(idx < 0 || !ReadAtr(g_atrHandle[idx], signalAtr) || signalAtr <= 0.0)
+         return;
+      g_posState[stateIdx].signalAtr = signalAtr;
+     }
+
+   double barClose = iClose(symbol, InpTimeframe, 1);
+   if(barClose <= 0.0)
+      return;
+
+   int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   double entry  = posInfo.PriceOpen();
+   double curSL  = posInfo.StopLoss();
+   double curTP  = posInfo.TakeProfit();
+   long   spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
+   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double lockBuffer = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
+   double lockTrigger = InpLockTriggerAtr * signalAtr;
+   double trailDist   = InpTrailAtrMult * signalAtr;
+
+   if(posInfo.PositionType() == POSITION_TYPE_BUY)
+     {
+      double profit = barClose - entry;
+      if(profit < lockTrigger)
+         return;
+
+      double newSL = curSL;
+      double lockSL = NormalizeDouble(entry + lockBuffer, digits);
+      if(lockSL > newSL)
+         newSL = lockSL;
+      double trailSL = NormalizeDouble(barClose - trailDist, digits);
+      if(trailSL > newSL)
+         newSL = trailSL;
+
+      if(newSL > curSL)
         {
-         double profit = entry - ask;
-         double newSL = curSL;
-         if(profit >= lockTrigger)
-           {
-            double lockSL = NormalizeDouble(entry - lockBuffer, digits);
-            if(curSL == 0.0 || lockSL < newSL)
-               newSL = lockSL;
-            double trailSL = NormalizeDouble(ask + trailDist, digits);
-            if((trailSL < newSL || newSL == 0.0) && trailSL > ask)
-               newSL = trailSL;
-           }
-         if((curSL == 0.0 || newSL < curSL) && newSL > ask)
-            trade.PositionModify(ticket, newSL, curTP);
+         // Record the harness-mandated stop and apply it reliably: if the market has
+         // already gapped through it, the validated engine's stop was HIT this bar ->
+         // close at market; on broker rejection keep retrying every heartbeat.
+         g_posState[stateIdx].desiredSL = newSL;
+         ApplyDesiredSL(ticket, stateIdx);
         }
+     }
+   else
+     {
+      double profit = entry - barClose;
+      if(profit < lockTrigger)
+         return;
+
+      double newSL = curSL;
+      double lockSL = NormalizeDouble(entry - lockBuffer, digits);
+      if(curSL == 0.0 || lockSL < newSL)
+         newSL = lockSL;
+      double trailSL = NormalizeDouble(barClose + trailDist, digits);
+      if((trailSL < newSL || newSL == 0.0) && trailSL > 0.0)
+         newSL = trailSL;
+
+      if(curSL == 0.0 || newSL < curSL)
+        {
+         g_posState[stateIdx].desiredSL = newSL;
+         ApplyDesiredSL(ticket, stateIdx);
+        }
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Apply the pending desired SL faithfully (blocker fix, review):    |
+//|  * market already at/through the level -> the validated engine's  |
+//|    stop was hit this bar -> close at market (honest exit).        |
+//|  * within the broker stops/freeze distance -> clamp just outside. |
+//|  * broker rejection / no quote -> keep desiredSL, retry on every  |
+//|    heartbeat until it sticks (ratchet is idempotent).             |
+//+------------------------------------------------------------------+
+void ApplyDesiredSL(ulong ticket, int stateIdx)
+  {
+   double want = g_posState[stateIdx].desiredSL;
+   if(want <= 0.0)
+      return;
+
+   string symbol = posInfo.Symbol();
+   int    digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double minDist = MathMax((double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL),
+                            (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_FREEZE_LEVEL)) * point;
+   double curSL = posInfo.StopLoss();
+   double curTP = posInfo.TakeProfit();
+
+   if(posInfo.PositionType() == POSITION_TYPE_BUY)
+     {
+      double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
+      if(bid <= 0.0)
+         return;                                  // no quote (session break): retry later
+      if(want <= curSL)
+        {
+         g_posState[stateIdx].desiredSL = 0.0;    // already ratcheted past - nothing to do
+         return;
+        }
+      if(want >= bid)
+        {
+         // Validated engine already exited at this stop level this bar.
+         if(trade.PositionClose(ticket))
+            g_posState[stateIdx].desiredSL = 0.0;
+         return;
+        }
+      double lvl = want;
+      if(minDist > 0.0 && lvl > bid - minDist)
+         lvl = NormalizeDouble(bid - minDist, digits);   // clamp inside broker constraint
+      if(lvl <= curSL)
+         return;                                  // clamp made it useless now; retry later
+      if(trade.PositionModify(ticket, lvl, curTP))
+         g_posState[stateIdx].desiredSL = 0.0;
+      // on failure desiredSL stays set -> retried next heartbeat
+     }
+   else
+     {
+      double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
+      if(ask <= 0.0)
+         return;
+      if(curSL != 0.0 && want >= curSL)
+        {
+         g_posState[stateIdx].desiredSL = 0.0;
+         return;
+        }
+      if(want <= ask)
+        {
+         if(trade.PositionClose(ticket))
+            g_posState[stateIdx].desiredSL = 0.0;
+         return;
+        }
+      double lvl = want;
+      if(minDist > 0.0 && lvl < ask + minDist)
+         lvl = NormalizeDouble(ask + minDist, digits);
+      if(curSL != 0.0 && lvl >= curSL)
+         return;
+      if(trade.PositionModify(ticket, lvl, curTP))
+         g_posState[stateIdx].desiredSL = 0.0;
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| Legacy per-tick management (InpManageOnBarClose=false only).      |
+//+------------------------------------------------------------------+
+void ManagePositionPerTick(ulong ticket, int stateIdx)
+  {
+   string symbol = posInfo.Symbol();
+   int idx = SymbolIndex(symbol);
+   double atr = g_posState[stateIdx].signalAtr;
+   if(atr <= 0.0)
+     {
+      if(idx < 0 || !ReadAtr(g_atrHandle[idx], atr) || atr <= 0.0)
+         return;
+     }
+
+   datetime curBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
+   if(curBarTime != 0 && curBarTime != g_posState[stateIdx].lastMgmtBarTime)
+     {
+      g_posState[stateIdx].lastMgmtBarTime = curBarTime;
+      g_posState[stateIdx].barsClosed++;
+      if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+        {
+         trade.PositionClose(ticket);
+         return;
+        }
+     }
+
+   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   double bid    = SymbolInfoDouble(symbol, SYMBOL_BID);
+   double ask    = SymbolInfoDouble(symbol, SYMBOL_ASK);
+   double entry  = posInfo.PriceOpen();
+   double curSL  = posInfo.StopLoss();
+   double curTP  = posInfo.TakeProfit();
+   long   spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
+
+   double lockBuffer = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
+   double lockTrigger = InpLockTriggerAtr * atr;
+   double trailDist   = InpTrailAtrMult * atr;
+
+   if(posInfo.PositionType() == POSITION_TYPE_BUY)
+     {
+      double profit = bid - entry;
+      double newSL = curSL;
+
+      if(profit >= lockTrigger)
+        {
+         double lockSL = NormalizeDouble(entry + lockBuffer, digits);
+         if(lockSL > newSL)
+            newSL = lockSL;
+         double trailSL = NormalizeDouble(bid - trailDist, digits);
+         if(trailSL > newSL && trailSL < bid)
+            newSL = trailSL;
+        }
+      if(newSL > curSL && newSL < bid)
+         trade.PositionModify(ticket, newSL, curTP);
+     }
+   else
+     {
+      double profit = entry - ask;
+      double newSL = curSL;
+      if(profit >= lockTrigger)
+        {
+         double lockSL = NormalizeDouble(entry - lockBuffer, digits);
+         if(curSL == 0.0 || lockSL < newSL)
+            newSL = lockSL;
+         double trailSL = NormalizeDouble(ask + trailDist, digits);
+         if((trailSL < newSL || newSL == 0.0) && trailSL > ask)
+            newSL = trailSL;
+        }
+      if((curSL == 0.0 || newSL < curSL) && newSL > ask)
+         trade.PositionModify(ticket, newSL, curTP);
      }
   }
 
 //+------------------------------------------------------------------+
 //| Helpers                                                          |
 //+------------------------------------------------------------------+
+void LogSkip(string symbol, string reason, double atr=0.0, double spreadAtrSide=0.0, double impulseAtr=0.0)
+  {
+   if(atr > 0.0)
+      PrintFormat("SKIP %s: %s | ATR=%.5f spread/ATR/side=%.4f impulse=%.2f",
+                  symbol, reason, atr, spreadAtrSide, impulseAtr);
+   else
+      PrintFormat("SKIP %s: %s", symbol, reason);
+  }
+
+void StorePendingSigAtr(ulong orderTicket, double atr)
+  {
+   if(orderTicket == 0 || atr <= 0.0)
+      return;
+   int n = ArraySize(g_pendingSigAtr);
+   ArrayResize(g_pendingSigAtr, n + 1);
+   g_pendingSigAtr[n].orderTicket = orderTicket;
+   g_pendingSigAtr[n].atr = atr;
+  }
+
+double TakePendingSigAtr(ulong orderTicket)
+  {
+   for(int i = 0; i < ArraySize(g_pendingSigAtr); i++)
+     {
+      if(g_pendingSigAtr[i].orderTicket == orderTicket)
+        {
+         double atr = g_pendingSigAtr[i].atr;
+         for(int j = i; j < ArraySize(g_pendingSigAtr) - 1; j++)
+            g_pendingSigAtr[j] = g_pendingSigAtr[j + 1];
+         ArrayResize(g_pendingSigAtr, ArraySize(g_pendingSigAtr) - 1);
+         return(atr);
+        }
+     }
+   return(0.0);
+  }
+
+int FindPositionState(long positionId)
+  {
+   for(int i = 0; i < ArraySize(g_posState); i++)
+      if(g_posState[i].positionId == positionId)
+         return(i);
+   return(-1);
+  }
+
+void RegisterPositionState(long positionId, string symbol, double signalAtr, datetime openTime)
+  {
+   if(FindPositionState(positionId) >= 0)
+      return;
+
+   datetime entryBar = (datetime)iTime(symbol, InpTimeframe, 0);
+   int shift = iBarShift(symbol, InpTimeframe, openTime, false);
+   if(shift >= 0)
+      entryBar = (datetime)iTime(symbol, InpTimeframe, shift);
+
+   // Frozen-ATR persistence (review fix): restore the ORIGINAL signal ATR across EA
+   // reloads via a terminal global variable, before falling back to the current ATR.
+   string gvName = "DSv121_atr_" + (string)positionId;
+   if(signalAtr <= 0.0 && GlobalVariableCheck(gvName))
+      signalAtr = GlobalVariableGet(gvName);
+   if(signalAtr <= 0.0)
+     {
+      int idx = SymbolIndex(symbol);
+      if(idx >= 0)
+         ReadAtr(g_atrHandle[idx], signalAtr);
+     }
+   if(signalAtr > 0.0)
+      GlobalVariableSet(gvName, signalAtr);
+
+   int barsClosed = 0;
+   for(int s = 1; s < 500; s++)
+     {
+      datetime bt = (datetime)iTime(symbol, InpTimeframe, s);
+      if(bt == 0 || bt < entryBar)   // count the entry bar's own close too (review fix:
+         break;                      // `<=` undercounted by 1 after mid-trade reloads)
+      barsClosed++;
+     }
+
+   int n = ArraySize(g_posState);
+   ArrayResize(g_posState, n + 1);
+   g_posState[n].positionId = positionId;
+   g_posState[n].signalAtr = signalAtr;
+   g_posState[n].entryBarTime = entryBar;
+   g_posState[n].lastMgmtBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
+   g_posState[n].barsClosed = barsClosed;
+   g_posState[n].desiredSL = 0.0;
+  }
+
+void SyncOpenPositionStates()
+  {
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket == 0 || !posInfo.SelectByTicket(ticket))
+         continue;
+      if(posInfo.Magic() != InpMagicNumber)
+         continue;
+      RegisterPositionState((long)posInfo.Identifier(), posInfo.Symbol(), 0.0, posInfo.Time());
+     }
+  }
+
+void PruneClosedPositionStates()
+  {
+   for(int i = ArraySize(g_posState) - 1; i >= 0; i--)
+     {
+      bool open = false;
+      for(int p = PositionsTotal() - 1; p >= 0; p--)
+        {
+         ulong ticket = PositionGetTicket(p);
+         if(ticket == 0 || !posInfo.SelectByTicket(ticket))
+            continue;
+         if(posInfo.Magic() != InpMagicNumber)
+            continue;
+         if((long)posInfo.Identifier() == g_posState[i].positionId)
+           {
+            open = true;
+            break;
+           }
+        }
+      if(!open)
+        {
+         GlobalVariableDel("DSv121_atr_" + (string)g_posState[i].positionId);
+         for(int j = i; j < ArraySize(g_posState) - 1; j++)
+            g_posState[j] = g_posState[j + 1];
+         ArrayResize(g_posState, ArraySize(g_posState) - 1);
+        }
+     }
+  }
+
 int SymbolIndex(string symbol)
   {
    for(int i = 0; i < ArraySize(g_symbols); i++)
