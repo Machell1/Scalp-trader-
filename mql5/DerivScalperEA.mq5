@@ -43,9 +43,17 @@
 //|   the validated harness manages on M15 bar close. Default now:     |
 //|   InpManageOnBarClose=true, frozen signal-ATR, limit anchored to   |
 //|   signal-bar close, per-symbol bar clocks, OnTimer heartbeat.      |
+//|                                                                  |
+//|   v1.22 (2026-07): P4 hygiene from the post-v1.21 review (see      |
+//|   docs/CURSOR_BRIEF_2026-07-01.md §4): SKIP impulse sign aligned   |
+//|   with SIGNAL, no-impulse log verbosity input, pending frozen-ATR  |
+//|   sweep (broker-side expiry leak), barsClosed recomputed from the  |
+//|   entry bar (multi-bar backfill), whitelist-orphan positions get   |
+//|   a transient ATR handle, explicit datetime casts. NO change to    |
+//|   the validated entry/exit semantics or the review-fix engine.     |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.21"
+#property version   "1.22"
 #property strict
 #property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (spread-gated crypto + indices)."
 
@@ -108,6 +116,11 @@ input double InpMaxDrawdownPct   = 15.0;  // Halt if equity drawdown from peak e
 input int    InpMaxConsecLosses  = 4;     // Pause for the day after this many losses in a row
 input int    InpMaxSpreadPoints  = 200;   // Skip a symbol if spread (points) exceeds this
 input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spread > this many ATR PER SIDE (0.05 = validated ceiling; the edge dies above it, e.g. LTC/BCH/Mid Cap). 0 = off.
+// P3 (brief §4): correlation-aware concurrency. OFF (0) by default - adoption requires the
+// acceptance study (lower drawdown at equal pooled expectancy). Day-1 saw 4 same-direction
+// Tech-100-cluster entries in 70 min stacking ~1.5% correlated heat.
+input int    InpMaxPerCluster    = 0;     // Max open+pending per correlation cluster (0 = off, current behavior)
+input string InpClusterSpec      = "BTCUSD|ETHUSD|XRPUSD|SOLUSD;US Tech 100|US SP 500|Wall Street 30|US Small Cap 2000;Germany 40|UK 100|France 40;Japan 225"; // Clusters ';'-separated, symbols '|'-separated
 
 //--- Execution -------------------------------------------------------
 input group "=== Execution ==="
@@ -115,6 +128,7 @@ input long   InpMagicNumber      = 770077;// Magic number tagging this EA's orde
 input ulong  InpDeviationPoints  = 30;    // Max slippage in points
 input string InpTradeComment     = "DerivScalper";
 input int    InpHeartbeatSeconds = 5;     // OnTimer scan/manage heartbeat (0 = chart ticks only)
+input bool   InpLogNoImpulse     = false; // Log "no impulse" SKIP lines (~1,100/day; gate/data skips are always logged)
 
 //--- Globals ---------------------------------------------------------
 CTrade        trade;
@@ -174,7 +188,7 @@ int OnInit()
    // Register any positions already open (e.g. after EA reload).
    SyncOpenPositionStates();
 
-   PrintFormat("DerivScalperEA v1.21 ready. Entry=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("DerivScalperEA v1.22 ready. Entry=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
@@ -386,11 +400,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
    datetime dealTime = (datetime)HistoryDealGetInteger(trans.deal, DEAL_TIME);
    double sigAtr = TakePendingSigAtr(orderTicket);
    if(sigAtr <= 0.0)
-     {
-      int idx = SymbolIndex(symbol);
-      if(idx >= 0)
-         ReadAtr(g_atrHandle[idx], sigAtr);
-     }
+      ReadAtrForSymbol(symbol, sigAtr);
    RegisterPositionState(posId, symbol, sigAtr, dealTime);
   }
 
@@ -401,6 +411,15 @@ void ScanSymbol(string symbol, int atrHandle)
   {
    if(HasExposure(symbol))           // already trading this symbol
       return;
+   if(InpMaxPerCluster > 0)
+     {
+      int cluster = ClusterOf(symbol);
+      if(cluster >= 0 && CountClusterExposure(cluster) >= InpMaxPerCluster)
+        {
+         LogSkip(symbol, StringFormat("cluster cap (%d in cluster %d)", InpMaxPerCluster, cluster));
+         return;
+        }
+     }
    if(!DataReady(symbol))
      {
       LogSkip(symbol, "data not ready");
@@ -470,9 +489,12 @@ void ScanSymbol(string symbol, int atrHandle)
          fallingFast = false;
      }
 
+   // Impulse sign convention matches SIGNAL lines: negative = falling (close1 - closePast).
+   double impulseAtr = -moveAtr;
    if(!fallingFast && !(risingFast && InpTradeBothSides))
      {
-      LogSkip(symbol, StringFormat("no impulse (move=%.2f ATR)", moveAtr), atr, spreadAtrSide, moveAtr);
+      if(InpLogNoImpulse)
+         LogSkip(symbol, StringFormat("no impulse (impulse=%.2f ATR)", impulseAtr), atr, spreadAtrSide, impulseAtr);
       return;
      }
 
@@ -482,9 +504,9 @@ void ScanSymbol(string symbol, int atrHandle)
    ENUM_ORDER_TYPE sellType = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_SELL_LIMIT : ORDER_TYPE_SELL_STOP;
 
    if(fallingFast)
-      PlacePending(symbol, sellType, atr, close1, (close1 - closePast) / atr, spreadAtrSide);
+      PlacePending(symbol, sellType, atr, close1, impulseAtr, spreadAtrSide);
    else if(risingFast && InpTradeBothSides)
-      PlacePending(symbol, buyType, atr, close1, (close1 - closePast) / atr, spreadAtrSide);
+      PlacePending(symbol, buyType, atr, close1, impulseAtr, spreadAtrSide);
   }
 
 //+------------------------------------------------------------------+
@@ -547,7 +569,7 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    ENUM_ORDER_TYPE_TIME ttype = ORDER_TIME_GTC;
    if(InpPendingExpiryBars > 0)
      {
-      expiry = TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe);
+      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe));
       ttype  = ORDER_TIME_SPECIFIED;
      }
 
@@ -623,7 +645,42 @@ double CalculateLotSize(string symbol, double stopDistancePrice)
 void ManageAll()
   {
    ManagePendingOrders();
+   SweepStalePendingSigAtr();
    ManageOpenPositions();
+  }
+
+//+------------------------------------------------------------------+
+//| Prune frozen-ATR entries whose pending order no longer exists     |
+//| (broker-side ORDER_TIME_SPECIFIED expiry never reaches our        |
+//| OrderDelete path, so entries could leak; bounded but untidy).     |
+//| A FILLED order whose OnTradeTransaction event has not been        |
+//| delivered yet gets its ATR transferred to the position state      |
+//| here instead of being dropped.                                    |
+//+------------------------------------------------------------------+
+void SweepStalePendingSigAtr()
+  {
+   for(int i = ArraySize(g_pendingSigAtr) - 1; i >= 0; i--)
+     {
+      ulong ticket = g_pendingSigAtr[i].orderTicket;
+      if(ordInfo.Select(ticket))
+         continue;                          // still live
+      if(HistoryOrderSelect(ticket))
+        {
+         ENUM_ORDER_STATE st = (ENUM_ORDER_STATE)HistoryOrderGetInteger(ticket, ORDER_STATE);
+         if(st == ORDER_STATE_FILLED || st == ORDER_STATE_PARTIAL)
+           {
+            long posId = HistoryOrderGetInteger(ticket, ORDER_POSITION_ID);
+            string sym = HistoryOrderGetString(ticket, ORDER_SYMBOL);
+            double atr = TakePendingSigAtr(ticket);
+            if(posId != 0)
+               RegisterPositionState(posId, sym, atr,
+                                     (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_DONE));
+            continue;
+           }
+        }
+      // canceled / expired / rejected / unknown: drop the entry
+      TakePendingSigAtr(ticket);
+     }
   }
 
 //+------------------------------------------------------------------+
@@ -652,7 +709,7 @@ void ManagePendingOrders()
       // ORDER_TIME_SPECIFIED). Applies to both stop and limit orders.
       if(InpPendingExpiryBars > 0)
         {
-         datetime maxAge = ordInfo.TimeSetup() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe);
+         datetime maxAge = (datetime)(ordInfo.TimeSetup() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe));
          if(TimeCurrent() >= maxAge)
            {
             trade.OrderDelete(ticket);
@@ -765,7 +822,7 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
       return;
 
    g_posState[stateIdx].lastMgmtBarTime = curBarTime;
-   g_posState[stateIdx].barsClosed++;
+   UpdateBarsClosed(stateIdx, symbol);
 
    if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
      {
@@ -776,8 +833,7 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
    double signalAtr = g_posState[stateIdx].signalAtr;
    if(signalAtr <= 0.0)
      {
-      int idx = SymbolIndex(symbol);
-      if(idx < 0 || !ReadAtr(g_atrHandle[idx], signalAtr) || signalAtr <= 0.0)
+      if(!ReadAtrForSymbol(symbol, signalAtr) || signalAtr <= 0.0)
          return;
       g_posState[stateIdx].signalAtr = signalAtr;
      }
@@ -921,11 +977,10 @@ void ApplyDesiredSL(ulong ticket, int stateIdx)
 void ManagePositionPerTick(ulong ticket, int stateIdx)
   {
    string symbol = posInfo.Symbol();
-   int idx = SymbolIndex(symbol);
    double atr = g_posState[stateIdx].signalAtr;
    if(atr <= 0.0)
      {
-      if(idx < 0 || !ReadAtr(g_atrHandle[idx], atr) || atr <= 0.0)
+      if(!ReadAtrForSymbol(symbol, atr) || atr <= 0.0)
          return;
      }
 
@@ -933,7 +988,7 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
    if(curBarTime != 0 && curBarTime != g_posState[stateIdx].lastMgmtBarTime)
      {
       g_posState[stateIdx].lastMgmtBarTime = curBarTime;
-      g_posState[stateIdx].barsClosed++;
+      UpdateBarsClosed(stateIdx, symbol);
       if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
         {
          trade.PositionClose(ticket);
@@ -1035,6 +1090,48 @@ int FindPositionState(long positionId)
    return(-1);
   }
 
+//+------------------------------------------------------------------+
+//| barsClosed = closed bars since (and including) the entry bar,     |
+//| recomputed from the entry bar's shift so a multi-bar backfill     |
+//| after a connection outage counts every bar, not just one          |
+//| (review P4: prevents a LATE time exit after outages).             |
+//+------------------------------------------------------------------+
+void UpdateBarsClosed(int stateIdx, string symbol)
+  {
+   datetime entryBar = g_posState[stateIdx].entryBarTime;
+   if(entryBar > 0)
+     {
+      int shift = iBarShift(symbol, InpTimeframe, entryBar, false);
+      if(shift >= 0)
+        {
+         // Entry bar at shift s => s bars opened after it => s closes elapsed
+         // (the entry bar's own close is counted, matching RegisterPositionState).
+         g_posState[stateIdx].barsClosed = shift;
+         return;
+        }
+     }
+   g_posState[stateIdx].barsClosed++;   // fallback: old increment semantics
+  }
+
+//+------------------------------------------------------------------+
+//| ATR for any symbol we hold a position in - falls back to an       |
+//| on-demand iATR handle when the symbol is no longer in the         |
+//| whitelist universe (review P4: whitelist-orphan positions kept    |
+//| their time exit but silently lost lock/trail).                    |
+//| iATR returns the SAME cached handle for identical parameters, so  |
+//| calling it repeatedly does not leak handles.                      |
+//+------------------------------------------------------------------+
+bool ReadAtrForSymbol(string symbol, double &value)
+  {
+   int idx = SymbolIndex(symbol);
+   if(idx >= 0 && ReadAtr(g_atrHandle[idx], value))
+      return(true);
+   int h = iATR(symbol, InpTimeframe, InpAtrPeriod);
+   if(h == INVALID_HANDLE)
+      return(false);
+   return(ReadAtr(h, value));
+  }
+
 void RegisterPositionState(long positionId, string symbol, double signalAtr, datetime openTime)
   {
    if(FindPositionState(positionId) >= 0)
@@ -1051,11 +1148,7 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    if(signalAtr <= 0.0 && GlobalVariableCheck(gvName))
       signalAtr = GlobalVariableGet(gvName);
    if(signalAtr <= 0.0)
-     {
-      int idx = SymbolIndex(symbol);
-      if(idx >= 0)
-         ReadAtr(g_atrHandle[idx], signalAtr);
-     }
+      ReadAtrForSymbol(symbol, signalAtr);
    if(signalAtr > 0.0)
       GlobalVariableSet(gvName, signalAtr);
 
@@ -1212,6 +1305,48 @@ bool HasExposure(string symbol)
          return(true);
      }
    return(false);
+  }
+
+//+------------------------------------------------------------------+
+//| Correlation cluster index for a symbol per InpClusterSpec         |
+//| (';' between clusters, '|' between symbols). -1 = unclustered.    |
+//+------------------------------------------------------------------+
+int ClusterOf(string symbol)
+  {
+   string clusters[];
+   int nc = StringSplit(InpClusterSpec, StringGetCharacter(";", 0), clusters);
+   for(int ci = 0; ci < nc; ci++)
+     {
+      string members[];
+      int nm = StringSplit(clusters[ci], StringGetCharacter("|", 0), members);
+      for(int mi = 0; mi < nm; mi++)
+         if(Trim(members[mi]) == symbol)
+            return(ci);
+     }
+   return(-1);
+  }
+
+//+------------------------------------------------------------------+
+//| Open positions + pendings (ours) whose symbol is in the cluster  |
+//+------------------------------------------------------------------+
+int CountClusterExposure(int cluster)
+  {
+   int count = 0;
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+      ulong t = PositionGetTicket(i);
+      if(t != 0 && posInfo.SelectByTicket(t) && posInfo.Magic() == InpMagicNumber &&
+         ClusterOf(posInfo.Symbol()) == cluster)
+         count++;
+     }
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong t = OrderGetTicket(i);
+      if(t != 0 && ordInfo.Select(t) && ordInfo.Magic() == InpMagicNumber &&
+         ClusterOf(ordInfo.Symbol()) == cluster)
+         count++;
+     }
+   return(count);
   }
 
 int CountOpenAndPending()
