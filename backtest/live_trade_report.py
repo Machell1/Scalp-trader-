@@ -4,13 +4,22 @@ Reconstructs every round trip with full context and dumps:
   * per-trade record: symbol, dir, lots, times, entry vs requested limit (fill quality),
     exit reason (SL/TP/EXPERT=time), P&L, R-multiple (risk from the originating order's SL),
     signal context (impulse ATRs, ATR at entry, spread/ATR at entry bar),
-    MAE/MFE in R (M1 path), post-exit shakeout check (did TP print within 8 bars after an SL?)
+    MAE/MFE in R (M1 path, truncated at the exit), post-exit shakeout check,
+    bar-close fidelity fields (bars elapsed, moved-stop flag)
   * every unfilled (canceled/expired) pending: what the market did next (missed R)
-  * aggregate: exit mix, realized cost, fill stats — compared to backtest assumptions.
+  * aggregate: exit mix, realized cost, fill stats — compared to backtest assumptions
+  * v1.21 ACCEPTANCE CHECK (HANDOFF backlog #0 / brief P0): the exit mix must be possible
+    under the bar-close engine — ZERO moved-stop exits with zero elapsed M15 bar-closes.
+    Pass --accept-from "YYYY-MM-DD HH:MM" to restrict the check to post-deploy trades.
+
+Caveat: R uses mt5.order_calc_profit, which converts at CURRENT FX rates; for
+historical DE40/UK100 trades the EUR/GBP→USD rate may have drifted slightly since
+the trade (fine for forensics, not for accounting).
 
 Writes live_trades.json and prints a readable report.
 """
 from __future__ import annotations
+import argparse
 import json
 from datetime import datetime, timedelta
 
@@ -22,6 +31,10 @@ from scalper_backtest import wilder_atr
 
 MAGIC = 770077
 FRM = datetime(2026, 6, 29)
+M15 = 15 * 60  # seconds per M15 bar
+
+# v1.21 bar-close engine went live at this server time (see CURSOR_BRIEF §1).
+DEPLOY_V121 = datetime(2026, 7, 1, 17, 7)
 
 def bars_m15(sym, t_from, t_to):
     r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M15, t_from, t_to)
@@ -68,28 +81,33 @@ def profit_to_r(sym, side, volume, entry, px, risk_usd):
         return None
     return float(p) / risk_usd
 
-def mae_mfe(sym, t_open, t_close, entry, side, volume, risk_usd, exit_reason=None, sl=None):
-    """MAE/MFE in R using account-currency risk; clip MAE when stopped out."""
-    r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M1, t_open, t_close + timedelta(minutes=1))
-    if r is None or len(r) == 0 or not risk_usd or risk_usd <= 0:
+def mae_mfe(sym, t_open, t_close, entry, exit_px, side, volume, risk_usd):
+    """MAE/MFE in R using account-currency risk, truncated AT the exit.
+
+    The M1 bar containing the exit also contains post-exit path, so its extremes are
+    NOT used; the exit price itself is the final path point instead. This replaces
+    the old flat min(mae, 1.05) clip (review P4)."""
+    if not risk_usd or risk_usd <= 0:
         return None, None
-    df = pd.DataFrame(r)
-    if side > 0:
-        adverse_px = float(df.low.min())
-        favorable_px = float(df.high.max())
+    r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M1, t_open, t_close)
+    df = pd.DataFrame(r) if r is not None and len(r) else pd.DataFrame()
+    if not df.empty:
+        # Drop the M1 bar containing the exit (its extremes leak post-exit path).
+        exit_minute = int(t_close.timestamp()) // 60 * 60
+        df = df[df.time < exit_minute]
+    if df.empty:
+        adverse_px = favorable_px = float(exit_px)
+    elif side > 0:
+        adverse_px = min(float(df.low.min()), float(exit_px))
+        favorable_px = max(float(df.high.max()), float(exit_px))
     else:
-        adverse_px = float(df.high.max())
-        favorable_px = float(df.low.min())
+        adverse_px = max(float(df.high.max()), float(exit_px))
+        favorable_px = min(float(df.low.min()), float(exit_px))
     mae = profit_to_r(sym, side, volume, entry, adverse_px, risk_usd)
     mfe = profit_to_r(sym, side, volume, entry, favorable_px, risk_usd)
     if mae is None or mfe is None:
         return None, None
-    mae = abs(float(mae))
-    mfe = float(mfe)
-    if exit_reason == "SL" and sl:
-        # Adverse excursion cannot exceed ~1R once the initial stop is the exit.
-        mae = min(mae, 1.05)
-    return mae, mfe
+    return abs(float(mae)), float(mfe)
 
 def shakeout(sym, t_close, tp, side, nbars=8):
     """After exit: did TP print within nbars M15 bars?"""
@@ -101,6 +119,23 @@ def shakeout(sym, t_close, tp, side, nbars=8):
     df = pd.DataFrame(r)
     return bool((df.high >= tp).any()) if side > 0 else bool((df.low <= tp).any())
 
+def bars_elapsed_m15(t_open, t_close):
+    """M15 bar-closes elapsed while the trade was open (server-clock boundaries)."""
+    return int(t_close.timestamp()) // M15 - int(t_open.timestamp()) // M15
+
+def stop_was_moved(exit_reason, exit_px, entry, sl0, side):
+    """True if an SL exit happened at a level the ENGINE must have MOVED (BE-lock/trail):
+    the exit sits meaningfully INSIDE the original stop, toward entry. Slippage BEYOND the
+    original stop (away from entry) is execution slippage on the initial SL, NOT a moved
+    stop — counting it as a violation was a false-positive path (review fix)."""
+    if exit_reason != "SL" or not sl0:
+        return None
+    risk = abs(entry - sl0)
+    if risk <= 0:
+        return None
+    inside = (exit_px - sl0) * side   # >0 = exit between sl0 and entry (moved); <0 = slipped past sl0
+    return bool(inside > 0.10 * risk)
+
 def fwd_move_atr(sym, t_from, side, a, nbars=8):
     r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M15, t_from, t_from + timedelta(minutes=15 * (nbars + 1)))
     if r is None or len(r) == 0 or not a:
@@ -110,6 +145,14 @@ def fwd_move_atr(sym, t_from, side, a, nbars=8):
     return float(((df.close.iloc[-1] - ref) / a) * (1 if side > 0 else -1))
 
 def main():
+    ap = argparse.ArgumentParser(description="Live trade forensics + v1.21 acceptance check")
+    ap.add_argument("--accept-from", default=None, metavar="YYYY-MM-DD HH:MM",
+                    help=f"only trades opened at/after this server time count for the "
+                         f"acceptance check (default: v1.21 deploy {DEPLOY_V121})")
+    args = ap.parse_args()
+    accept_from = (datetime.strptime(args.accept_from, "%Y-%m-%d %H:%M")
+                   if args.accept_from else DEPLOY_V121)
+
     if not mt5.initialize():
         raise SystemExit(f"MT5 init failed: {mt5.last_error()}")
     now = datetime.now() + timedelta(days=1)
@@ -150,10 +193,11 @@ def main():
         r_mult = pnl / risk_usd if risk_usd else None
         exit_reason = REASON.get(dout.reason, dout.reason)
         ctx = atr_context(sym, t_open)
-        mae, mfe = mae_mfe(sym, t_open, t_close, din.price, side, din.volume, risk_usd,
-                           exit_reason=exit_reason, sl=sl0)
+        mae, mfe = mae_mfe(sym, t_open, t_close, din.price, dout.price, side, din.volume, risk_usd)
         shk = shakeout(sym, t_close, tp0, side) if exit_reason == "SL" else None
         hold_min = (t_close - t_open).total_seconds() / 60
+        bars_held = bars_elapsed_m15(t_open, t_close)
+        moved = stop_was_moved(exit_reason, dout.price, din.price, sl0, side)
         trades.append(dict(
             pos=pid, sym=sym, side="LONG" if side > 0 else "SHORT", lots=din.volume,
             t_open=str(t_open), t_close=str(t_close), hold_min=round(hold_min, 1),
@@ -164,6 +208,8 @@ def main():
             spread_atr_perside=None if ctx.get("spread_atr_perside") is None else round(ctx["spread_atr_perside"], 4),
             mae_r=None if mae is None else round(mae, 2), mfe_r=None if mfe is None else round(mfe, 2),
             tp_hit_after_sl=shk,
+            bars_held=bars_held, stop_was_moved=moved,
+            barclose_violation=bool(moved and bars_held == 0),
         ))
 
     # ---- unfilled pendings ----
@@ -210,6 +256,42 @@ def main():
         print("exit mix:", dict(Counter(t["exit_reason"] for t in trades)))
         sp = [t["spread_atr_perside"] for t in trades if t["spread_atr_perside"] is not None]
         print(f"spread/ATR per side at entries: median {np.median(sp):.4f}  max {max(sp):.4f}")
+
+    acceptance_check(trades, accept_from)
+
+def acceptance_check(trades, accept_from):
+    """v1.21 acceptance (HANDOFF backlog #0): post-deploy exit mix must be possible
+    under the bar-close engine. Hard gate: zero moved-stop exits with zero elapsed
+    M15 bar-closes. Soft signals: TP exits present, scratch swarm gone."""
+    post = [t for t in trades
+            if datetime.strptime(t["t_open"], "%Y-%m-%d %H:%M:%S") >= accept_from]
+    print("\n" + "=" * 64)
+    print(f"v1.21 ACCEPTANCE CHECK (trades opened >= {accept_from})")
+    print("=" * 64)
+    if not post:
+        print("No post-deploy round trips yet - check is PENDING (need >=10-15 trades).")
+        return
+    violations = [t for t in post if t.get("barclose_violation")]
+    n_tp = sum(1 for t in post if t["exit_reason"] == "TP")
+    scratches = [t for t in post if t["r"] is not None and 0 < t["r"] < 0.1
+                 and t.get("stop_was_moved")]
+    print(f"post-deploy round trips: {len(post)}")
+    print(f"[{'FAIL' if violations else 'PASS'}] moved-stop exits inside a single bar "
+          f"(must be 0): {len(violations)}")
+    for t in violations:
+        print(f"       #{t['pos']} {t['sym']} {t['side']} opened {t['t_open']} "
+              f"closed {t['t_close']} ({t['hold_min']:.0f}m, {t['bars_held']} bar-closes) "
+              f"exit {t['exit_px']} vs orig SL {t['sl']}")
+    print(f"[{'ok' if n_tp > 0 else '??'}] TP exits present: {n_tp} "
+          f"({'expected under bar-close engine' if n_tp else 'none yet - fine at low N, worrying at N>=15'})")
+    print(f"[info] moved-stop scratches (<+0.1R): {len(scratches)} "
+          f"(day-1 swarm was 7/15; should be near zero now)")
+    if len(post) < 10:
+        print(f"NOTE: N={len(post)} < 10 - too few trades for a verdict; keep accumulating.")
+    elif violations:
+        print(">>> VERDICT: FAIL - engine bug; halt and diagnose (HANDOFF backlog #0).")
+    else:
+        print(">>> VERDICT: PASS - exit mix is possible under the validated engine.")
 
 if __name__ == "__main__":
     main()

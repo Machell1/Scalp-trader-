@@ -67,6 +67,7 @@ class CParams:
     # --- #7 session/time-of-day gate (ET) ---
     sess_start_hm: int = -1          # e.g. 930; -1 = off
     sess_end_hm: int = -1            # e.g. 1600
+    sess_tz: str = "America/New_York"  # "" = use the data's native (server) clock
     # --- #9 tick-volume confirmation (NEGATIVE CONTROL) ---
     vol_gate_k: float = 0.0          # >0 => require vol[i] >= k * SMA(vol,vol_sma)[i]
     vol_sma: int = 20
@@ -175,9 +176,12 @@ def precompute(df, p: CParams):
         ret = pd.Series(c).pct_change()
         rv = ret.rolling(p.rv_win).std()
         out["rv_pct"] = rv.rolling(p.rv_rank_win, min_periods=200).rank(pct=True).to_numpy()
-    # session ET hm
+    # session hm (ET by default; sess_tz="" keeps the data's native/server clock)
     if p.sess_start_hm >= 0:
-        t = pd.to_datetime(df["time"], utc=True).dt.tz_convert("America/New_York")
+        if p.sess_tz:
+            t = pd.to_datetime(df["time"], utc=True).dt.tz_convert(p.sess_tz)
+        else:
+            t = pd.to_datetime(df["time"])
         out["hm"] = (t.dt.hour * 100 + t.dt.minute).to_numpy()
     # tick volume gate
     if p.vol_gate_k > 0 and "volume" in df:
@@ -361,7 +365,7 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
 
         gross = (exit_price - entry) * side
         r = (gross - 2 * cost) / risk
-        trades.append(dict(i=i, side=side, r=r, fill_lag=entry_bar - i))
+        trades.append(dict(i=i, side=side, r=r, fill_lag=entry_bar - i, exit_i=exit_bar))
 
         i = max(exit_bar + 1, i + 1) if p.block_overlap else (i + 1)
 

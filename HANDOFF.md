@@ -67,8 +67,8 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
    merged `c90e722`; LIVE since 2026-07-01 17:07).** Bar-close lock/trail on per-symbol clocks,
    frozen signal-ATR (persisted), signal-close limit anchor, `ApplyDesiredSL` close-or-clamp-or-
    retry engine, OnTimer heartbeat. *Open acceptance check:* after ≥10–15 live trades, run
-   `live_trade_report.py` — exit mix must be possible under `simulate_symbol_c` (zero moved-stop
-   exits with zero elapsed bar-closes; TP exits exist).
+   `live_trade_report.py` — it now prints an automated PASS/FAIL section (moved-stop exits with
+   zero elapsed bar-closes flagged per trade; `--accept-from` defaults to the 17:07 deploy).
 1. ~~**Walk-forward + DSR on the spread-gated universe**~~ **DONE (SHIP @ small size).**
    Runner: `backtest/walkforward_dsr.py` + `fetch_spreadgated.py`. Result in `RESULTS.md` §6.
    DSR hurdle fixed to principled `1/(T-1)` null (commit `79d66b2`).
@@ -77,12 +77,18 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
    impulse sign convention with SIGNAL; add a verbosity input — see the brief.)
 3. **Maker-vs-taker / fill realism for the pullback LIMIT** — now unblocked by the logs.
    Day-1: 75% fill rate vs ~59% modeled, price improvement common (conservative), N=20 only.
-   *Accept:* edge sign unchanged under pessimistic fill (non-fills counted as missed winners).
+   *Tool:* `backtest/fill_realism.py` (live-vs-harness fill confusion matrix + improvement
+   stats; run weekly with MT5 open). *Accept:* edge sign unchanged under pessimistic fill
+   (non-fills counted as missed winners).
 4. **Session/liquidity gate on the PULLBACK config** (never tested on it; the old failure was
-   the chase entry). Day-1 hint: thin-hours −1.97R vs +2.82R (N tiny). *Accept:* full HANDOFF
-   gate on historical data; otherwise drop.
+   the chase entry). Day-1 hint: thin-hours −1.97R vs +2.82R (N tiny). *Tool:*
+   `backtest/session_gate_study.py` (5 pre-registered windows through the full gate: marginal +
+   permutation + WFE + DSR + 2× cost; needs `fetch_spreadgated.py` data). *Accept:* SHIP verdict
+   only; otherwise drop.
 5. **Sizing / portfolio heat** — correlation-aware concurrency (per-cluster caps: crypto / US
-   indices / EU indices). *Accept:* lower drawdown at equal pooled expectancy on the gated set.
+   indices / EU indices). EA capability exists since v1.22 (`InpMaxPerCluster`, **OFF by
+   default**) — do NOT enable it live before the study. *Accept:* lower drawdown at equal pooled
+   expectancy on the gated set.
 6. **NEW BOUNDARY (do not violate): no higher-timeframe ports.** The exact config has NO edge
    on daily bars — NDX 1D 1985–2026 frictionless PF 0.988; SPX 1D 1871–2026 PF 0.843 (TradingView,
    2026-07-01). The edge is intraday-M15-local. Treat any HTF proposal as out of scope.
@@ -93,7 +99,8 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 
 ## Repo map
 
-- `mql5/DerivScalperEA.mq5` — the live EA (v1.2). Multi-symbol; scans its whitelist.
+- `mql5/DerivScalperEA.mq5` — the EA (repo: v1.22 P4-hygiene; live: v1.21 until redeploy).
+  Multi-symbol; scans its whitelist.
 - `tradingview/DerivScalperPullback.pine` — single-symbol Pine port (visual/backtest).
 - `backtest/scalper_backtest.py` — faithful bar-level simulator (the source of truth).
 - `backtest/scalper_confluence.py` — confluence/geometry extensions (reproduces baseline).
@@ -101,6 +108,10 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 - `backtest/validate_diverse.py` — 29-instrument diverse validation.
 - `backtest/walkforward_dsr.py` — **backlog #1:** walk-forward + DSR on spread-gated 12 majors
 - `backtest/fetch_spreadgated.py` — pull spread-gated universe for walkforward_dsr
+- `backtest/live_trade_report.py` — live forensics + automated v1.21 acceptance check (backlog #0)
+- `backtest/fill_realism.py` — **backlog #3:** live-vs-harness fill reconciliation (weekly)
+- `backtest/session_gate_study.py` — **backlog #4:** pre-registered session windows, full gate
+- `backtest/atr_parity.py` — measure harness-Wilder vs MT5-iATR delta (P4 hygiene; measure only)
 - `backtest/RESULTS.md` — all numbers and the reasoning.
 
 ## Process notes
