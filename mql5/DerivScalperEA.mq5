@@ -664,21 +664,23 @@ void SweepStalePendingSigAtr()
       ulong ticket = g_pendingSigAtr[i].orderTicket;
       if(ordInfo.Select(ticket))
          continue;                          // still live
-      if(HistoryOrderSelect(ticket))
+      if(!HistoryOrderSelect(ticket))
+         continue;                          // resync window: neither live nor in history yet.
+                                            // KEEP the frozen ATR and retry next heartbeat —
+                                            // dropping here could hand a later fill the wrong
+                                            // (fill-time) ATR (review fix).
+      // Order is in history. If it produced a position (filled, or partial-then-
+      // canceled/expired), transfer the frozen ATR to that position's state.
+      long posId = HistoryOrderGetInteger(ticket, ORDER_POSITION_ID);
+      if(posId != 0)
         {
-         ENUM_ORDER_STATE st = (ENUM_ORDER_STATE)HistoryOrderGetInteger(ticket, ORDER_STATE);
-         if(st == ORDER_STATE_FILLED || st == ORDER_STATE_PARTIAL)
-           {
-            long posId = HistoryOrderGetInteger(ticket, ORDER_POSITION_ID);
-            string sym = HistoryOrderGetString(ticket, ORDER_SYMBOL);
-            double atr = TakePendingSigAtr(ticket);
-            if(posId != 0)
-               RegisterPositionState(posId, sym, atr,
-                                     (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_DONE));
-            continue;
-           }
+         string sym = HistoryOrderGetString(ticket, ORDER_SYMBOL);
+         double atr = TakePendingSigAtr(ticket);
+         RegisterPositionState(posId, sym, atr,
+                               (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_DONE));
+         continue;
         }
-      // canceled / expired / rejected / unknown: drop the entry
+      // Terminal state with no position (canceled / expired / rejected unfilled): drop.
       TakePendingSigAtr(ticket);
      }
   }

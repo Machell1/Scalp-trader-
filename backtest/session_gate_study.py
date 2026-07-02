@@ -133,7 +133,13 @@ def main():
     # DSR hurdle deflated for these cells + the prior research trials
     sr_arr = np.array([s for s in trial_sr if np.isfinite(s)])
     n_trials = N_RESEARCH_TRIALS + len(CANDIDATES)
-    var_sr = float(np.var(sr_arr, ddof=1)) if len(sr_arr) > 1 else 1.0 / max(2, bs["n"] - 1)
+    var_sr = float(np.var(sr_arr, ddof=1)) if len(sr_arr) > 1 else 0.0
+    # The candidate windows OVERLAP heavily, so their trial-SR variance can collapse toward 0
+    # and make the hurdle vacuous (a noise window could then clear DSR trivially). Floor the
+    # null at the sampling variance of a per-trade Sharpe under H0, 1/(N-1), using the SMALLEST
+    # candidate N (most conservative) — same principled floor as walkforward_dsr.dsr_hurdle.
+    min_n = min((r["so"]["n"] for r in rows if r["so"]["n"] > 1), default=max(2, bs["n"]))
+    var_sr = max(var_sr, 1.0 / max(2, min_n - 1))
     z1 = nppf(1 - 1.0 / n_trials)
     z2 = nppf(1 - 1.0 / n_trials * math.exp(-1))
     sr0 = math.sqrt(var_sr) * ((1 - EMC) * z1 + EMC * z2)

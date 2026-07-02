@@ -124,14 +124,17 @@ def bars_elapsed_m15(t_open, t_close):
     return int(t_close.timestamp()) // M15 - int(t_open.timestamp()) // M15
 
 def stop_was_moved(exit_reason, exit_px, entry, sl0, side):
-    """True if an SL exit happened at a level meaningfully away from the ORIGINAL stop
-    (i.e. the engine moved it: BE-lock or trail). Tolerance 10% of the risk distance."""
+    """True if an SL exit happened at a level the ENGINE must have MOVED (BE-lock/trail):
+    the exit sits meaningfully INSIDE the original stop, toward entry. Slippage BEYOND the
+    original stop (away from entry) is execution slippage on the initial SL, NOT a moved
+    stop — counting it as a violation was a false-positive path (review fix)."""
     if exit_reason != "SL" or not sl0:
         return None
     risk = abs(entry - sl0)
     if risk <= 0:
         return None
-    return bool(abs(exit_px - sl0) > 0.10 * risk)
+    inside = (exit_px - sl0) * side   # >0 = exit between sl0 and entry (moved); <0 = slipped past sl0
+    return bool(inside > 0.10 * risk)
 
 def fwd_move_atr(sym, t_from, side, a, nbars=8):
     r = mt5.copy_rates_range(sym, mt5.TIMEFRAME_M15, t_from, t_from + timedelta(minutes=15 * (nbars + 1)))
