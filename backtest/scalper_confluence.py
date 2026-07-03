@@ -71,6 +71,10 @@ class CParams:
     # --- #9 tick-volume confirmation (NEGATIVE CONTROL) ---
     vol_gate_k: float = 0.0          # >0 => require vol[i] >= k * SMA(vol,vol_sma)[i]
     vol_sma: int = 20
+    # --- pending invalidation (cancel a resting LIMIT when the setup is violated) ---
+    cancel_beyond_atr: float = 0.0   # >0: cancel the pending if price runs this many ATR BEYOND
+                                     # the signal close (away from the limit) before filling.
+                                     # Fill-first within a bar (a broker race resolves to the fill).
     # --- engine ---
     block_overlap: bool = True       # True = faithful one-trade-at-a-time; False = signal-level (for marginal analysis)
 
@@ -309,6 +313,9 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
         else:
             entry = (ref + offset if side > 0 else ref - offset) if p.entry_style == "stop" \
                 else (ref - offset if side > 0 else ref + offset)
+            viol = None
+            if p.cancel_beyond_atr > 0 and p.entry_style == "limit":
+                viol = ref + p.cancel_beyond_atr * a if side > 0 else ref - p.cancel_beyond_atr * a
             filled = False; entry_bar = -1
             for j in range(i + 1, min(i + 1 + p.pending_expiry_bars, n)):
                 if p.entry_style == "stop":
@@ -317,6 +324,11 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
                     hit = (l[j] <= entry) if side > 0 else (h[j] >= entry)
                 if hit:
                     filled = True; entry_bar = j; break
+                # setup-invalidation cancel: checked only after the fill test on the same bar
+                # (fill-first = how a live broker race resolves; conservative for the rule)
+                if viol is not None:
+                    if (side > 0 and h[j] >= viol) or (side < 0 and l[j] <= viol):
+                        break
             if not filled:
                 cnt["nonfill"] += 1
                 i += 1; continue
