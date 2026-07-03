@@ -79,6 +79,9 @@ class CParams:
     hold_ext_bars: int = 0           # >max_hold_bars: at the base time-exit bar, EXTEND the hold
     hold_ext_min_r: float = 0.0      # to this many bars if unrealized r >= this (close-based);
                                      # losers/flat trades still exit at max_hold_bars.
+    # --- partial scale-out extension (study-only; OFF by default) ---
+    partial_exit_r: float = 0.0      # >0: close partial_exit_frac at this many initial-risk R
+    partial_exit_frac: float = 0.0   # fraction closed at partial_exit_r; remainder keeps normal exits
     # --- engine ---
     block_overlap: bool = True       # True = faithful one-trade-at-a-time; False = signal-level (for marginal analysis)
 
@@ -358,6 +361,13 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
         lock_trigger = p.lock_trigger_atr * a
         trail_dist = p.trail_atr * a
         cost = p.cost_atr_frac * a
+        partial_on = p.partial_exit_r > 0 and 0.0 < p.partial_exit_frac < 1.0
+        partial_px = None
+        if partial_on:
+            partial_px = entry + side * p.partial_exit_r * risk
+        partial_done = False
+        realized_gross = 0.0
+        remaining = 1.0
 
         # Profit-conditional hold extension: at the base time-exit bar, a trade whose
         # CLOSE-based unrealized r >= hold_ext_min_r keeps running until hold_ext_bars;
@@ -370,9 +380,19 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
             if side > 0:
                 if l[k] <= sl: exit_price, exit_bar = sl, k; break
                 if tp is not None and h[k] >= tp: exit_price, exit_bar = tp, k; break
+                if partial_on and not partial_done and h[k] >= partial_px:
+                    f = p.partial_exit_frac
+                    realized_gross += f * (partial_px - entry) * side
+                    remaining -= f
+                    partial_done = True
             else:
                 if h[k] >= sl: exit_price, exit_bar = sl, k; break
                 if tp is not None and l[k] <= tp: exit_price, exit_bar = tp, k; break
+                if partial_on and not partial_done and l[k] <= partial_px:
+                    f = p.partial_exit_frac
+                    realized_gross += f * (partial_px - entry) * side
+                    remaining -= f
+                    partial_done = True
             price = c[k]
             if side > 0:
                 if (price - entry) >= lock_trigger:
@@ -391,9 +411,10 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
             exit_bar = min(entry_bar + hold - 1, n - 1)
             exit_price = c[exit_bar]
 
-        gross = (exit_price - entry) * side
+        gross = realized_gross + remaining * (exit_price - entry) * side
         r = (gross - 2 * cost) / risk
-        trades.append(dict(i=i, side=side, r=r, fill_lag=entry_bar - i, exit_i=exit_bar))
+        trades.append(dict(i=i, side=side, r=r, fill_lag=entry_bar - i, exit_i=exit_bar,
+                           partial_hit=partial_done))
 
         i = max(exit_bar + 1, i + 1) if p.block_overlap else (i + 1)
 
