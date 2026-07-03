@@ -61,9 +61,21 @@
 //|   avg win 1.02->1.72R, trades>=+2R 7.5->16.6%, and 5x the 2x-cost |
 //|   margin. Trade-off accepted: win rate ~39%, longer loss streaks. |
 //|   InpUseLockTrail=true re-enables the old ladder for comparison.  |
+//|                                                                  |
+//|   v1.24 (2026-07-03): RAW-POINTS SPREAD CAP OFF BY DEFAULT        |
+//|   (InpMaxSpreadPoints 200 -> 0). SYMBOL_SPREAD is quoted in       |
+//|   POINTS, which scale with nominal price, so the 200-pt cap       |
+//|   silently blocked 3 of the 12 validated symbols on EVERY scan:   |
+//|   BTCUSD (median 2,424 pts yet the CHEAPEST cost/side at 0.0048   |
+//|   ATR and the best backtest performer), ETHUSD (58,000 pts,       |
+//|   0.0239) and Japan 225 (500 pts, 0.0348) — all of which PASS     |
+//|   the validated gate. The backtest never modeled a points cap;    |
+//|   InpMaxSpreadAtr (0.05 ATR/side) is the validated, price-scale-  |
+//|   invariant cost filter and remains the load-bearing gate. Same   |
+//|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.23"
+#property version   "1.24"
 #property strict
 #property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (spread-gated crypto + indices)."
 
@@ -125,7 +137,7 @@ input int    InpMaxTradesPerDay  = 20;    // Max new trades opened per day (all 
 input double InpDailyLossLimitPct= 3.0;   // Halt for the day after this daily loss (% of day-start balance)
 input double InpMaxDrawdownPct   = 15.0;  // Halt if equity drawdown from peak exceeds this
 input int    InpMaxConsecLosses  = 4;     // Pause for the day after this many losses in a row
-input int    InpMaxSpreadPoints  = 200;   // Skip a symbol if spread (points) exceeds this
+input int    InpMaxSpreadPtsRaw  = 0;     // Raw POINTS spread cap — OFF (v1.24). Points scale with nominal price, so the old 200 cap structurally blocked BTCUSD/ETHUSD/Japan 225 (validated symbols that PASS the ATR gate). Use InpMaxSpreadAtr below; >0 re-enables at your own risk. (Renamed from InpMaxSpreadPoints so the new default supersedes chart-saved values on upgrade.)
 input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spread > this many ATR PER SIDE (0.05 = validated ceiling; the edge dies above it, e.g. LTC/BCH/Mid Cap). 0 = off.
 // P3 (brief §4): correlation-aware concurrency. OFF (0) by default - adoption requires the
 // acceptance study (lower drawdown at equal pooled expectancy). Day-1 saw 4 same-direction
@@ -199,7 +211,7 @@ int OnInit()
    // Register any positions already open (e.g. after EA reload).
    SyncOpenPositionStates();
 
-   PrintFormat("DerivScalperEA v1.23 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("DerivScalperEA v1.24 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUseLockTrail ? "lock/trail ladder" : "PURE BRACKET (SL/TP/time)"),
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
@@ -1307,9 +1319,9 @@ bool DataReady(string symbol)
 
 bool SpreadTooWide(string symbol)
   {
-   if(InpMaxSpreadPoints <= 0)
+   if(InpMaxSpreadPtsRaw <= 0)
       return(false);
-   return(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > InpMaxSpreadPoints);
+   return(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > InpMaxSpreadPtsRaw);
   }
 
 bool HasExposure(string symbol)
