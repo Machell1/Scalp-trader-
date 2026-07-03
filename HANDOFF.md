@@ -80,16 +80,26 @@ a curve look good in-sample; pull/test on Yahoo (use real Deriv M15 via
    *Tool:* `backtest/fill_realism.py` (live-vs-harness fill confusion matrix + improvement
    stats; run weekly with MT5 open). *Accept:* edge sign unchanged under pessimistic fill
    (non-fills counted as missed winners).
-4. **Session/liquidity gate on the PULLBACK config** (never tested on it; the old failure was
+   *Weekly entrypoint:* `backtest/weekly_backlog_report.py` runs `live_trade_report.py`
+   acceptance, `fill_realism.py`, and the hold16 trigger helper together; pass
+   `--include-atr-parity` when measuring the ATR definition delta.
+4. **Hold16 promotion trigger (validated but gated)** — unconditional hold 8→16 stays OFF
+   until live v1.23 pure-bracket trades track the backtest distribution. *Tool:*
+   `backtest/hold16_promotion_check.py --json live_trades.json --since "YYYY-MM-DD HH:MM"`.
+   *Accept:* at least 30 live pure-bracket trades for a WATCH read, preferably 50 for
+   Fable review; live expectancy positive and right-tail metrics directionally tracking
+   the v1.23 backtest. This helper never promotes automatically; Fable 5 still owns the
+   harness gate.
+5. **Session/liquidity gate on the PULLBACK config** (never tested on it; the old failure was
    the chase entry). Day-1 hint: thin-hours −1.97R vs +2.82R (N tiny). *Tool:*
    `backtest/session_gate_study.py` (5 pre-registered windows through the full gate: marginal +
    permutation + WFE + DSR + 2× cost; needs `fetch_spreadgated.py` data). *Accept:* SHIP verdict
    only; otherwise drop.
-5. **Sizing / portfolio heat** — correlation-aware concurrency (per-cluster caps: crypto / US
+6. **Sizing / portfolio heat** — correlation-aware concurrency (per-cluster caps: crypto / US
    indices / EU indices). EA capability exists since v1.22 (`InpMaxPerCluster`, **OFF by
    default**) — do NOT enable it live before the study. *Accept:* lower drawdown at equal pooled
    expectancy on the gated set.
-6. **NEW BOUNDARY (do not violate): no higher-timeframe ports.** The exact config has NO edge
+7. **NEW BOUNDARY (do not violate): no higher-timeframe ports.** The exact config has NO edge
    on daily bars — NDX 1D 1985–2026 frictionless PF 0.988; SPX 1D 1871–2026 PF 0.843 (TradingView,
    2026-07-01). The edge is intraday-M15-local. Treat any HTF proposal as out of scope.
 
@@ -110,8 +120,10 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 - `backtest/fetch_spreadgated.py` — pull spread-gated universe for walkforward_dsr
 - `backtest/live_trade_report.py` — live forensics + automated v1.21 acceptance check (backlog #0)
 - `backtest/fill_realism.py` — **backlog #3:** live-vs-harness fill reconciliation (weekly)
-- `backtest/session_gate_study.py` — **backlog #4:** pre-registered session windows, full gate
-- `backtest/atr_parity.py` — measure harness-Wilder vs MT5-iATR delta (P4 hygiene; measure only)
+- `backtest/weekly_backlog_report.py` — weekly live acceptance + fill realism + hold16 entrypoint
+- `backtest/hold16_promotion_check.py` — gated hold16 live-distribution trigger helper
+- `backtest/session_gate_study.py` — **backlog #5:** pre-registered session windows, full gate
+- `backtest/atr_parity.py` — measure/report harness-Wilder vs MT5-iATR delta (P4 hygiene; measure only)
 - `backtest/RESULTS.md` — all numbers and the reasoning.
 
 ## Process notes
