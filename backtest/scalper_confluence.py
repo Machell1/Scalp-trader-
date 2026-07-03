@@ -79,6 +79,18 @@ class CParams:
     hold_ext_bars: int = 0           # >max_hold_bars: at the base time-exit bar, EXTEND the hold
     hold_ext_min_r: float = 0.0      # to this many bars if unrealized r >= this (close-based);
                                      # losers/flat trades still exit at max_hold_bars.
+    # --- partial scale-out (study harness; OFF by default) ---
+    scale_out_r: float = 0.0         # >0: scale out scale_out_frac at this unrealized R (bar extreme)
+    scale_out_frac: float = 0.5      # fraction closed at the scale-out trigger; runner keeps remainder
+    # --- single pyramiding add (study harness; OFF by default) ---
+    pyramid_add_r: float = 0.0       # >0: add pyramid_add_frac size at this unrealized R
+    pyramid_add_frac: float = 0.5    # additive size as a fraction of the initial fill
+    # --- ATR-adaptive TP from vol-regime percentile (study harness; OFF by default) ---
+    adaptive_tp: bool = False
+    tp_atr_low_vol: float = 2.5      # TP multiple when rv_pct < adaptive_tp_lo
+    tp_atr_high_vol: float = 3.5     # TP multiple when rv_pct > adaptive_tp_hi
+    adaptive_tp_lo: float = 0.33
+    adaptive_tp_hi: float = 0.67
     # --- engine ---
     block_overlap: bool = True       # True = faithful one-trade-at-a-time; False = signal-level (for marginal analysis)
 
@@ -180,7 +192,7 @@ def precompute(df, p: CParams):
         rng = (h - l)
         out["body_frac"] = np.where(rng > 0, np.abs(c - o) / rng, 0.0)
     # volatility-regime percentile (rolling rank of rolling std of returns)
-    if p.rv_pct_lo > 0.0 or p.rv_pct_hi < 1.0:
+    if p.rv_pct_lo > 0.0 or p.rv_pct_hi < 1.0 or p.adaptive_tp:
         ret = pd.Series(c).pct_change()
         rv = ret.rolling(p.rv_win).std()
         out["rv_pct"] = rv.rolling(p.rv_rank_win, min_periods=200).rank(pct=True).to_numpy()
@@ -348,16 +360,99 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
         if risk <= 0:
             i += 1; continue
 
+        tp_mult = p.tp_atr
+        if p.adaptive_tp and "rv_pct" in ind:
+            rp = ind["rv_pct"][i]
+            if np.isfinite(rp):
+                if rp < p.adaptive_tp_lo:
+                    tp_mult = p.tp_atr_low_vol
+                elif rp > p.adaptive_tp_hi:
+                    tp_mult = p.tp_atr_high_vol
+
         if side > 0:
             sl = entry - risk
-            tp = entry + p.tp_atr * a if p.tp_atr > 0 else None
+            tp = entry + tp_mult * a if tp_mult > 0 else None
         else:
             sl = entry + risk
-            tp = entry - p.tp_atr * a if p.tp_atr > 0 else None
+            tp = entry - tp_mult * a if tp_mult > 0 else None
 
         lock_trigger = p.lock_trigger_atr * a
         trail_dist = p.trail_atr * a
         cost = p.cost_atr_frac * a
+
+        if p.scale_out_r > 0 or p.pyramid_add_r > 0:
+            pos_frac = 1.0
+            avg_entry = entry
+            initial_risk = risk
+            scaled_out = False
+            pyramided = False
+            realized_gross = 0.0
+            hold = p.max_hold_bars
+            base_exit_k = entry_bar + p.max_hold_bars - 1
+            exit_price = None
+            exit_bar = entry_bar
+            k = entry_bar
+            while k < min(entry_bar + hold, n):
+                if p.pyramid_add_r > 0 and not pyramided:
+                    trig = entry + side * p.pyramid_add_r * initial_risk
+                    hit = (h[k] >= trig) if side > 0 else (l[k] <= trig)
+                    if hit:
+                        af = p.pyramid_add_frac
+                        avg_entry = (pos_frac * avg_entry + af * trig) / (pos_frac + af)
+                        pos_frac += af
+                        pyramided = True
+                        sl = entry
+                if p.scale_out_r > 0 and not scaled_out:
+                    trig = entry + side * p.scale_out_r * initial_risk
+                    hit = (h[k] >= trig) if side > 0 else (l[k] <= trig)
+                    if hit:
+                        realized_gross += p.scale_out_frac * (trig - avg_entry) * side
+                        pos_frac -= p.scale_out_frac
+                        scaled_out = True
+                        sl = entry
+                if side > 0:
+                    if l[k] <= sl:
+                        exit_price, exit_bar = sl, k
+                        break
+                    if tp is not None and h[k] >= tp:
+                        exit_price, exit_bar = tp, k
+                        break
+                else:
+                    if h[k] >= sl:
+                        exit_price, exit_bar = sl, k
+                        break
+                    if tp is not None and l[k] <= tp:
+                        exit_price, exit_bar = tp, k
+                        break
+                price = c[k]
+                if lock_trigger < 50 * a:
+                    if side > 0:
+                        if (price - avg_entry) >= lock_trigger:
+                            sl = max(sl, entry)
+                            sl = max(sl, price - trail_dist)
+                    else:
+                        if (avg_entry - price) >= lock_trigger:
+                            sl = min(sl, entry)
+                            sl = min(sl, price + trail_dist)
+                if (p.hold_ext_bars > p.max_hold_bars and hold == p.max_hold_bars
+                        and k == base_exit_k):
+                    unreal = ((price - avg_entry) if side > 0 else (avg_entry - price)) / initial_risk
+                    if unreal >= p.hold_ext_min_r:
+                        hold = p.hold_ext_bars
+                k += 1
+            if exit_price is None:
+                exit_bar = min(entry_bar + hold - 1, n - 1)
+                exit_price = c[exit_bar]
+            total_gross = realized_gross + pos_frac * (exit_price - avg_entry) * side
+            n_cost = 2.0
+            if scaled_out:
+                n_cost += p.scale_out_frac
+            if pyramided:
+                n_cost += p.pyramid_add_frac
+            r = (total_gross - n_cost * cost) / initial_risk
+            trades.append(dict(i=i, side=side, r=r, fill_lag=entry_bar - i, exit_i=exit_bar))
+            i = max(exit_bar + 1, i + 1) if p.block_overlap else (i + 1)
+            continue
 
         # Profit-conditional hold extension: at the base time-exit bar, a trade whose
         # CLOSE-based unrealized r >= hold_ext_min_r keeps running until hold_ext_bars;
