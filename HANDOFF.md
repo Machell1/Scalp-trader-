@@ -50,6 +50,14 @@ harness. Specifically, a new filter/parameter must:
   `backtest/experiment.py`.)
 - Hold up on a **walk-forward / Deflated-Sharpe** check (DSR ≥ 0.95 deflated for the
   number of things tried).
+- **Clear a CORRELATION-ROBUST significance test, NOT the raw pooled paired t.** The 12
+  majors are only ~2.6 independent bets (N_eff, mean pairwise r≈0.53), so a raw pooled t on
+  ~17k trades overstates significance ~2×. Use `experiment.cluster_robust_paired()` —
+  the day-clustered block-bootstrap CI on the mean delta must **exclude zero** (equivalently
+  N_eff-haircut t ≥ 1.96). *(2026-07-02: the study SHIP gate had this bug and passed a
+  correlation-inflated scale-out false positive; see `docs/BACKTEST_OBSERVATIONS_2026-07-02.md`.
+  Marginal exit-variant edges of ±0.02R are currently BELOW this dataset's resolution — the
+  live strategy's overall expectancy IS cluster-robust, the exit tweaks are not.)*
 - Survive **2× cost stress** and keep a **powered** sample (don't decimate N).
 - Not flip sign across instruments or sub-periods.
 
