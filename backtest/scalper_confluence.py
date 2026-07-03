@@ -75,6 +75,10 @@ class CParams:
     cancel_beyond_atr: float = 0.0   # >0: cancel the pending if price runs this many ATR BEYOND
                                      # the signal close (away from the limit) before filling.
                                      # Fill-first within a bar (a broker race resolves to the fill).
+    # --- profit-conditional time-exit extension ---
+    hold_ext_bars: int = 0           # >max_hold_bars: at the base time-exit bar, EXTEND the hold
+    hold_ext_min_r: float = 0.0      # to this many bars if unrealized r >= this (close-based);
+                                     # losers/flat trades still exit at max_hold_bars.
     # --- engine ---
     block_overlap: bool = True       # True = faithful one-trade-at-a-time; False = signal-level (for marginal analysis)
 
@@ -355,8 +359,14 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
         trail_dist = p.trail_atr * a
         cost = p.cost_atr_frac * a
 
+        # Profit-conditional hold extension: at the base time-exit bar, a trade whose
+        # CLOSE-based unrealized r >= hold_ext_min_r keeps running until hold_ext_bars;
+        # losers/flat trades still time-exit at max_hold_bars (0 = feature off).
+        hold = p.max_hold_bars
+        base_exit_k = entry_bar + p.max_hold_bars - 1
         exit_price = None; exit_bar = entry_bar
-        for k in range(entry_bar, min(entry_bar + p.max_hold_bars, n)):
+        k = entry_bar
+        while k < min(entry_bar + hold, n):      # while-loop: `hold` may grow mid-trade
             if side > 0:
                 if l[k] <= sl: exit_price, exit_bar = sl, k; break
                 if tp is not None and h[k] >= tp: exit_price, exit_bar = tp, k; break
@@ -370,9 +380,15 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
             else:
                 if (entry - price) >= lock_trigger:
                     sl = min(sl, entry); sl = min(sl, price + trail_dist)
+            if (p.hold_ext_bars > p.max_hold_bars and hold == p.max_hold_bars
+                    and k == base_exit_k):
+                unreal = ((price - entry) if side > 0 else (entry - price)) / risk
+                if unreal >= p.hold_ext_min_r:
+                    hold = p.hold_ext_bars       # winner earns more time
+            k += 1
 
         if exit_price is None:
-            exit_bar = min(entry_bar + p.max_hold_bars - 1, n - 1)
+            exit_bar = min(entry_bar + hold - 1, n - 1)
             exit_price = c[exit_bar]
 
         gross = (exit_price - entry) * side
