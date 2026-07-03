@@ -52,8 +52,18 @@
 //|   a transient ATR handle, explicit datetime casts. NO change to    |
 //|   the validated entry/exit semantics or the review-fix engine.     |
 //+------------------------------------------------------------------+
+//|                                                                  |
+//|   v1.23 (2026-07-02): PURE BRACKET exits by default. The exit-    |
+//|   ladder study (backtest/exit_ladder_study.py, 13 pre-registered  |
+//|   variants, real Deriv cost, exact independent replication)       |
+//|   showed the BE-lock+trail ladder TRUNCATED winners: bracket      |
+//|   SL1/TP3/8-bar-time-exit lifts OOS expectancy +0.050->+0.078R,   |
+//|   avg win 1.02->1.72R, trades>=+2R 7.5->16.6%, and 5x the 2x-cost |
+//|   margin. Trade-off accepted: win rate ~39%, longer loss streaks. |
+//|   InpUseLockTrail=true re-enables the old ladder for comparison.  |
+//+------------------------------------------------------------------+
 #property copyright "Deriv momentum scalper"
-#property version   "1.22"
+#property version   "1.23"
 #property strict
 #property description "Multi-symbol M15 momentum PULLBACK scalper for Deriv (spread-gated crypto + indices)."
 
@@ -101,9 +111,10 @@ input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.5;   // Risk per trade (% of balance)
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
 input double InpTakeProfitAtrMult= 3.0;   // Take-profit distance (ATR). 3.0 = let winners run (backtest-validated); 0 = trail only
-input double InpLockTriggerAtr   = 0.25;  // Once price is this many ATR in profit, lock the trade
-input int    InpLockBufferPoints = 0;     // Extra points locked above break-even (0 = auto: spread+2)
-input double InpTrailAtrMult      = 0.5;  // Trailing distance after lock (ATR)
+input bool   InpUseLockTrail     = false; // v1.23 PURE BRACKET default: BE-lock+trail OFF (exit-ladder study 2026-07-02: the ladder truncated winners; bracket OOS +0.078R vs +0.050R, avg win 1.72R vs 1.02R, 5x better 2x-cost margin). true = re-enable the ladder below.
+input double InpLockTriggerAtr   = 0.25;  // (only if InpUseLockTrail) once price is this many ATR in profit, lock the trade
+input int    InpLockBufferPoints = 0;     // (only if InpUseLockTrail) extra points locked above break-even (0 = auto: spread+2)
+input double InpTrailAtrMult      = 0.5;  // (only if InpUseLockTrail) trailing distance after lock (ATR)
 input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N closed bars (0 = off)
 input bool   InpManageOnBarClose = true;  // P0: lock/trail on M15 bar close (validated engine; false = legacy per-tick)
 
@@ -188,8 +199,9 @@ int OnInit()
    // Register any positions already open (e.g. after EA reload).
    SyncOpenPositionStates();
 
-   PrintFormat("DerivScalperEA v1.22 ready. Entry=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("DerivScalperEA v1.23 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
+               (InpUseLockTrail ? "lock/trail ladder" : "PURE BRACKET (SL/TP/time)"),
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
    return(INIT_SUCCEEDED);
@@ -832,6 +844,13 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
       return;
      }
 
+   // v1.23 PURE BRACKET: with the lock/trail ladder disabled there is nothing to manage
+   // between fill and exit — the broker-side SL/TP set at placement ARE the exit engine,
+   // plus the bar-count time exit above. (Exit-ladder study: the ladder cut avg win from
+   // 1.72R to 1.02R and cost ~0.027R/trade of OOS expectancy.)
+   if(!InpUseLockTrail)
+      return;
+
    double signalAtr = g_posState[stateIdx].signalAtr;
    if(signalAtr <= 0.0)
      {
@@ -997,6 +1016,9 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
          return;
         }
      }
+
+   if(!InpUseLockTrail)                 // v1.23 pure bracket: SL/TP are broker-side, nothing to trail
+      return;
 
    double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
    int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);

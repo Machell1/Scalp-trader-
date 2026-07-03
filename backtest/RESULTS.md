@@ -148,3 +148,30 @@ spread-gated majors with the live spread gate enabled).
 +0.005R (break-even). The entire margin is spread/cost, so live execution discipline and
 the spread gate are essential; this is "small-size live trial," not "scale up." Also only
 ~3 OOS quarters (one broad 2025–26 regime).
+
+## 7. Exit-ladder study — pure bracket exits (drives v1.23)
+
+`exit_ladder_study.py` (2026-07-02): 13 pre-registered lock/trail/TP/hold variants vs the
+live ladder (lock 0.25 → BE, trail 0.5, TP 3, hold 8) on the 12 spread-gated majors at real
+per-instrument cost; stitched-OOS quarters; paired per-signal t-stats (identical entries);
+DSR deflated for 62 cumulative trials; 2× cost stress; win-size metrics.
+
+**Every loosening of the ladder improved OOS expectancy — 8/13 passed all gates.** The
+ladder was truncating the right tail (corroborating the day-1 live MFE/shakeout forensics).
+
+| Config | OOS exp | avg win | ≥+2R | 2×-cost exp |
+|---|---|---|---|---|
+| Ladder (was live) | +0.0504 R | 1.02 R | 7.5% | +0.0067 |
+| **Pure bracket (v1.23 default)** | **+0.0778 R** | **1.72 R** | **16.6%** | **+0.0341** |
+| Bracket + hold16 (pre-registered follow-on) | +0.0774 R | 2.24 R | 22.4% | +0.0337 |
+
+Adversarially verified: independent from-scratch replication reproduced every number
+exactly (0 mismatches over 34k trades); no leakage; quarters identical across variants.
+Honest caveats: paired t optimistic (autocorrelation); effectively 3 full OOS quarters,
+one regime; drawdown is worse in absolute R (win rate 43.7→38.7%, max loss streak 22→37)
+but return/maxDD improves 5.0→6.1. Ship choice = pure bracket (minimal expression of the
+hypothesis, best 2×-cost margin, simplest live engine — SL/TP set once at fill + bar-count
+time exit; the lock/trail code remains behind `InpUseLockTrail=true`). `bracket tp4 h16`
+(best headline) rejected as selection-exposed (3/4 quarters, two stacked changes, paired t
+vs pure bracket 0.5–0.8 = noise). Follow-on: promote hold 8→16 only after ~30–50 live
+bracket trades track the backtest distribution.
