@@ -19,10 +19,13 @@ the relative delta distribution over the recent window the EA actually trades on
 MEASURE ONLY — do not change either definition unless the delta is material
 (>0.1% would still be 40x smaller than the 2x cost-stress margin).
 
-Run with the MT5 terminal open:  python atr_parity.py [--bars 5000]
+Run with the MT5 terminal open:
+  python atr_parity.py [--bars 5000]
+  python atr_parity.py --report atr_parity_report.json
 """
 from __future__ import annotations
 import argparse
+import json
 from datetime import datetime
 
 import numpy as np
@@ -60,6 +63,7 @@ def mt5_atr(high, low, close, period):
 def main():
     ap = argparse.ArgumentParser(description="Wilder-vs-iATR parity measurement")
     ap.add_argument("--bars", type=int, default=5000, help="M15 bars per symbol")
+    ap.add_argument("--report", default=None, help="write JSON report to this path")
     args = ap.parse_args()
 
     if not mt5.initialize():
@@ -68,10 +72,12 @@ def main():
     print(f"{'symbol':22s}{'bars':>7s}{'median|d|%':>12s}{'p99|d|%':>10s}{'max|d|%':>10s}  verdict")
     print("-" * 75)
     worst = 0.0
+    rows = []
     for sym in SYMBOLS:
         r = mt5.copy_rates_from(sym, mt5.TIMEFRAME_M15, datetime.now(), args.bars)
         if r is None or len(r) < PERIOD * 20:
             print(f"{sym:22s}   insufficient data")
+            rows.append(dict(symbol=sym, status="insufficient_data"))
             continue
         df = pd.DataFrame(r)
         h = df.high.to_numpy(float)
@@ -79,26 +85,47 @@ def main():
         c = df.close.to_numpy(float)
         a_harness = wilder_atr(h, l, c, PERIOD)
         a_mt5 = mt5_atr(h, l, c, PERIOD)
-        # skip the seed-transient region: 10 periods is >4 decay time-constants
         skip = PERIOD * 10
         mask = np.isfinite(a_harness[skip:]) & np.isfinite(a_mt5[skip:]) & (a_mt5[skip:] > 0)
         d = np.abs(a_harness[skip:][mask] - a_mt5[skip:][mask]) / a_mt5[skip:][mask] * 100
         if d.size == 0:
             print(f"{sym:22s}   no overlapping values")
+            rows.append(dict(symbol=sym, status="no_overlap"))
             continue
-        med, p99, mx = np.median(d), np.percentile(d, 99), d.max()
+        med, p99, mx = float(np.median(d)), float(np.percentile(d, 99)), float(d.max())
         worst = max(worst, mx)
         verdict = "OK" if mx < 0.1 else "INVESTIGATE"
         print(f"{sym:22s}{d.size:7d}{med:12.5f}{p99:10.5f}{mx:10.5f}  {verdict}")
+        rows.append(dict(symbol=sym, bars=int(d.size), median_pct=med, p99_pct=p99,
+                         max_pct=mx, verdict=verdict))
     mt5.shutdown()
 
-    print(f"\nworst relative delta across universe: {worst:.5f}%")
     if worst < 0.1:
-        print("PARITY OK: the seed difference has fully decayed on the horizon the EA "
-              "trades; no ATR-scaled quantity is materially affected. No action.")
+        recommendation = (
+            "PARITY OK: seed difference has decayed on the trading horizon; no ATR-scaled "
+            "quantity is materially affected. No harness or EA change required."
+        )
     else:
-        print("PARITY BROKEN: deltas exceed 0.1% - diff the two series bar-by-bar before "
-              "trusting any ATR-scaled result (do NOT silently change either definition).")
+        recommendation = (
+            "PARITY BROKEN: max delta exceeds 0.1% — diff series bar-by-bar before trusting "
+            "ATR-scaled results. Do NOT silently change either definition."
+        )
+
+    print(f"\nworst relative delta across universe: {worst:.5f}%")
+    print(recommendation)
+
+    if args.report:
+        payload = dict(
+            generated=datetime.now().isoformat(timespec="seconds"),
+            bars_per_symbol=args.bars,
+            worst_max_pct=worst,
+            threshold_pct=0.1,
+            recommendation=recommendation,
+            symbols=rows,
+        )
+        with open(args.report, "w") as f:
+            json.dump(payload, f, indent=2)
+        print(f"\nWrote {args.report}")
 
 
 if __name__ == "__main__":
