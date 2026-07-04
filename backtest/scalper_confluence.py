@@ -98,6 +98,20 @@ class CParams:
                                      # tp_atr while the percentile is not yet defined (warm-up).
     tp_atr_lo_rv: float = 3.0
     tp_atr_hi_rv: float = 3.0
+    # --- TP ratchet (2026-07-03 user idea: "when the TP is about to get hit, move it
+    #     further out and trail the SL to where the TP was") ---
+    rat_gap_r: float = 0.0           # >0 enables: at bar CLOSE, when unrealized r is within
+                                     # this many R of the CURRENT TP, extend the TP by rat_ext_r
+                                     # and raise the SL to (old TP - rat_buf_r). Repeats at each
+                                     # new rung (the trigger is relative to the current TP).
+                                     # Close-based; updates effective from the NEXT bar, same
+                                     # convention as the lock/trail engine. A touch of the old
+                                     # TP on the trigger bar itself still exits at the old TP
+                                     # (exit checks run first - pessimistic).
+    rat_ext_r: float = 1.0           # TP extension per ratchet, in R (risk units)
+    rat_buf_r: float = 0.5           # SL floor sits this many R below the OLD TP. Legality
+                                     # clamp (broker: SL must stay below price for a long):
+                                     # floor <= close - 0.05R, mirroring MT5 stops-distance.
     # --- engine ---
     block_overlap: bool = True       # True = faithful one-trade-at-a-time; False = signal-level (for marginal analysis)
 
@@ -451,6 +465,22 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
                 unreal = ((price - entry) if side > 0 else (entry - price)) / risk
                 if unreal >= p.hold_ext_min_r:
                     hold = p.hold_ext_bars       # winner earns more time
+            # TP ratchet on bar close: within rat_gap_r of the CURRENT TP -> extend the TP
+            # by rat_ext_r and raise the SL toward the old TP (old TP - rat_buf_r, clamped
+            # to 0.05R below this close so the stop stays broker-legal). The intrabar exit
+            # checks above ran FIRST, so a same-bar touch of the old TP exits at the old TP
+            # (pessimistic); the ratchet earns from the NEXT bar. SL only ever moves up.
+            if p.rat_gap_r > 0 and tp is not None:
+                unreal_rat = ((price - entry) if side > 0 else (entry - price)) / risk
+                cur_tp_r = ((tp - entry) if side > 0 else (entry - tp)) / risk
+                if unreal_rat >= cur_tp_r - p.rat_gap_r:
+                    floor_r = min(cur_tp_r - p.rat_buf_r, unreal_rat - 0.05)
+                    if side > 0:
+                        sl = max(sl, entry + floor_r * risk)
+                        tp = entry + (cur_tp_r + p.rat_ext_r) * risk
+                    else:
+                        sl = min(sl, entry - floor_r * risk)
+                        tp = entry - (cur_tp_r + p.rat_ext_r) * risk
             k += 1
 
         if exit_price is None:
