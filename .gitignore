@@ -7,6 +7,9 @@ venv/
 
 # Market data — regenerate with backtest/fetch_diverse.py (broker data, large)
 backtest/data/
+backtest/model_candidates.json
+backtest/model_tournament_report.md
+backtest/champion_strategy.json
 *.log
 
 # OS / editor

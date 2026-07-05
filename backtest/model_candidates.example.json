@@ -1,0 +1,42 @@
+{
+  "notes": [
+    "Copy this file to backtest/model_candidates.json.",
+    "Each model should add one or more independent candidates without seeing other models' results.",
+    "Replacement decisions require real Deriv M15 spread-gated CSVs from fetch_spreadgated.py."
+  ],
+  "candidates": [
+    {
+      "model": "model-alpha",
+      "name": "pullback-expiry-4",
+      "rationale": "Give the validated pullback limit one extra M15 bar to fill while preserving TP=3 and pure-bracket exits.",
+      "params": {
+        "pending_expiry_bars": 4
+      }
+    },
+    {
+      "model": "model-beta",
+      "name": "stronger-impulse",
+      "rationale": "Require a slightly cleaner impulse to reduce marginal low-quality fills without changing entry geometry.",
+      "params": {
+        "momentum_atr": 2.25
+      }
+    },
+    {
+      "model": "model-gamma",
+      "name": "hold-12-bracket",
+      "rationale": "Keep the current pure bracket but allow more time for slow winners to reach the 3 ATR target.",
+      "params": {
+        "max_hold_bars": 12
+      }
+    },
+    {
+      "model": "research-only-delta",
+      "name": "us-open-session-gate",
+      "rationale": "Example of a simulator-supported but EA-unsupported filter. It can rank as research, but cannot replace the EA until implemented in MQL5.",
+      "params": {
+        "sess_start_hm": 930,
+        "sess_end_hm": 1600
+      }
+    }
+  ]
+}

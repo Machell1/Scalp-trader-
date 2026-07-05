@@ -77,6 +77,7 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 | `walkforward_dsr.py` | **Backlog #1:** walk-forward + DSR on 12 spread-gated majors |
 | `fetch_spreadgated.py` | Pull spread-gated universe CSVs (MT5 required) |
 | `deriv_recheck.py` | Re-checks shipped configs on real Deriv M15 indices |
+| `model_tournament.py` | Multi-model candidate tournament; replaces main only after full ship gate |
 | `chart_*.py` | Result charts (see `docs/`) |
 
 ```bash
@@ -121,6 +122,22 @@ python edge_loop.py --tf derivM15_diverse      # hypothesis grid on real data
 ```
 
 See `docs/EDGE_PLAN.md` for hypotheses, ship gates, and latest iteration results.
+
+## Model tournament loop
+
+Independent models can submit candidate improvements in `backtest/model_candidates.json`
+and compete against the current main strategy:
+
+```bash
+cd backtest
+cp model_candidates.example.json model_candidates.json
+python model_tournament.py --candidates model_candidates.json --list
+python model_tournament.py --candidates model_candidates.json
+```
+
+The runner requires real Deriv M15 spread-gated data and only writes
+`backtest/champion_strategy.json` when a candidate clears every replacement gate.
+See [`docs/MODEL_TOURNAMENT.md`](docs/MODEL_TOURNAMENT.md).
 
 
 ## License / disclaimer

@@ -108,6 +108,8 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 - `backtest/validate_diverse.py` — 29-instrument diverse validation.
 - `backtest/walkforward_dsr.py` — **backlog #1:** walk-forward + DSR on spread-gated 12 majors
 - `backtest/fetch_spreadgated.py` — pull spread-gated universe for walkforward_dsr
+- `backtest/model_tournament.py` — independent model-candidate tournament; replaces main
+  only after the full real-cost ship gate
 - `backtest/live_trade_report.py` — live forensics + automated v1.21 acceptance check (backlog #0)
 - `backtest/fill_realism.py` — **backlog #3:** live-vs-harness fill reconciliation (weekly)
 - `backtest/session_gate_study.py` — **backlog #4:** pre-registered session windows, full gate
