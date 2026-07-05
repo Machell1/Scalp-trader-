@@ -1,0 +1,17 @@
+{
+  "name": "v1.23 pure bracket (live config)",
+  "model": "human+validated (repo baseline)",
+  "since": "2026-07-02",
+  "description": "Momentum-continuation pullback scalper: >=2 ATR / 6-bar impulse, LIMIT entry 0.6 ATR back toward price, 1.0 ATR stop, 3.0 ATR take-profit, 8-bar time exit, no lock/trail (pure bracket per exit-ladder study).",
+  "overrides": {
+    "entry_style": "limit",
+    "entry_offset_atr": 0.6,
+    "pending_expiry_bars": 3,
+    "stop_atr": 1.0,
+    "tp_atr": 3.0,
+    "max_hold_bars": 8,
+    "lock_trigger_atr": 1000000.0,
+    "trail_atr": 0.0
+  },
+  "history": []
+}
