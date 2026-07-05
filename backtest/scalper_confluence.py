@@ -79,6 +79,25 @@ class CParams:
     hold_ext_bars: int = 0           # >max_hold_bars: at the base time-exit bar, EXTEND the hold
     hold_ext_min_r: float = 0.0      # to this many bars if unrealized r >= this (close-based);
                                      # losers/flat trades still exit at max_hold_bars.
+    # --- partial scale-out (bank a fraction at a fixed R; runner continues to TP) ---
+    scaleout_r: float = 0.0          # >0 enables: close scaleout_frac of the position when price
+                                     # touches entry + scaleout_r*risk (intrabar, like a limit TP;
+                                     # pessimistic: the SL check on the same bar comes first).
+    scaleout_frac: float = 0.5       # fraction banked at the scale-out level
+    scaleout_be: bool = False        # move the runner's stop to entry when the scale-out fills
+                                     # (close-based convention: effective from the NEXT bar,
+                                     # same as the lock/trail engine).
+    # --- single pyramiding add (additive scale-in) ---
+    pyr_add_r: float = 0.0           # >0 enables: when CLOSE-based unrealized r >= this, add
+                                     # pyr_add_frac units at the NEXT bar's open and move the
+                                     # whole position's stop to entry (BE). One add per trade.
+    pyr_add_frac: float = 1.0        # add size as a fraction of the initial unit
+    # --- vol-regime-adaptive TP ---
+    tp_rv_split: float = 0.0         # >0 enables: TP multiple = tp_atr_lo_rv if the signal bar's
+                                     # rv percentile < split else tp_atr_hi_rv; falls back to
+                                     # tp_atr while the percentile is not yet defined (warm-up).
+    tp_atr_lo_rv: float = 3.0
+    tp_atr_hi_rv: float = 3.0
     # --- engine ---
     block_overlap: bool = True       # True = faithful one-trade-at-a-time; False = signal-level (for marginal analysis)
 
@@ -180,7 +199,7 @@ def precompute(df, p: CParams):
         rng = (h - l)
         out["body_frac"] = np.where(rng > 0, np.abs(c - o) / rng, 0.0)
     # volatility-regime percentile (rolling rank of rolling std of returns)
-    if p.rv_pct_lo > 0.0 or p.rv_pct_hi < 1.0:
+    if p.rv_pct_lo > 0.0 or p.rv_pct_hi < 1.0 or p.tp_rv_split > 0.0:
         ret = pd.Series(c).pct_change()
         rv = ret.rolling(p.rv_win).std()
         out["rv_pct"] = rv.rolling(p.rv_rank_win, min_periods=200).rank(pct=True).to_numpy()
@@ -213,7 +232,8 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
     n = len(c); mb = p.momentum_bars
     trades = []
     cnt = dict(signals=0, passed=0, nonfill=0)
-    start = max(lo, mb + p.atr_period + 1, p.rv_win + 2 if "rv_pct" in ind else 0)
+    rv_band_on = (p.rv_pct_lo > 0.0 or p.rv_pct_hi < 1.0)   # tp_rv_split alone must NOT gate entries
+    start = max(lo, mb + p.atr_period + 1, p.rv_win + 2 if rv_band_on else 0)
     end = min(hi, n - 1)
 
     i = start
@@ -285,7 +305,7 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
             if wdir.sum() < p.persist_min: i += 1; continue
 
         # --- #6 vol-regime band ---
-        if "rv_pct" in ind:
+        if rv_band_on and "rv_pct" in ind:
             rp = ind["rv_pct"][i]
             if not np.isfinite(rp) or rp < p.rv_pct_lo or rp > p.rv_pct_hi: i += 1; continue
 
@@ -348,16 +368,38 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
         if risk <= 0:
             i += 1; continue
 
+        # Vol-regime-adaptive TP: pick the TP multiple from the SIGNAL bar's realized-vol
+        # percentile (causal, precomputed). With tp_rv_split=0 this is exactly p.tp_atr.
+        # NOTE: tp_rv_split alone never gates entries — the signal set stays identical
+        # to the baseline so the paired per-signal test is sharp.
+        tp_mult = p.tp_atr
+        if p.tp_rv_split > 0 and "rv_pct" in ind:
+            rp_tp = ind["rv_pct"][i]
+            if np.isfinite(rp_tp):
+                tp_mult = p.tp_atr_lo_rv if rp_tp < p.tp_rv_split else p.tp_atr_hi_rv
+
         if side > 0:
             sl = entry - risk
-            tp = entry + p.tp_atr * a if p.tp_atr > 0 else None
+            tp = entry + tp_mult * a if tp_mult > 0 else None
         else:
             sl = entry + risk
-            tp = entry - p.tp_atr * a if p.tp_atr > 0 else None
+            tp = entry - tp_mult * a if tp_mult > 0 else None
 
         lock_trigger = p.lock_trigger_atr * a
         trail_dist = p.trail_atr * a
         cost = p.cost_atr_frac * a
+
+        # Partial scale-out state (level in R = multiples of the initial risk).
+        so_price = None
+        if p.scaleout_r > 0:
+            so_price = entry + p.scaleout_r * risk if side > 0 else entry - p.scaleout_r * risk
+        so_filled = False
+        so_exit = None
+        # Single pyramiding add state: trigger evaluated on bar CLOSE, add executes at the
+        # NEXT bar's open (causal); stop-to-BE is applied with the trigger (end-of-bar SL
+        # update, same convention as the lock/trail engine). One add per trade.
+        pyr_armed = False
+        add_price = None
 
         # Profit-conditional hold extension: at the base time-exit bar, a trade whose
         # CLOSE-based unrealized r >= hold_ext_min_r keeps running until hold_ext_bars;
@@ -367,11 +409,26 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
         exit_price = None; exit_bar = entry_bar
         k = entry_bar
         while k < min(entry_bar + hold, n):      # while-loop: `hold` may grow mid-trade
+            # armed pyramid add fills at this bar's OPEN (before the SL/TP scan; the SL
+            # already sits at BE from the trigger bar's close, so a same-bar reversal
+            # stops the WHOLE position including the fresh add — no free option).
+            # Gap races: no add if the bar already opens through the stop (position is
+            # dead at the open) or through the TP (position closes at the open) — a live
+            # market-order add loses both races.
+            if pyr_armed and add_price is None:
+                gap_sl = (o[k] <= sl) if side > 0 else (o[k] >= sl)
+                gap_tp = tp is not None and ((o[k] >= tp) if side > 0 else (o[k] <= tp))
+                if not (gap_sl or gap_tp):
+                    add_price = o[k]
             if side > 0:
                 if l[k] <= sl: exit_price, exit_bar = sl, k; break
+                if so_price is not None and not so_filled and h[k] >= so_price:
+                    so_filled = True; so_exit = so_price     # partial banks; runner continues
                 if tp is not None and h[k] >= tp: exit_price, exit_bar = tp, k; break
             else:
                 if h[k] >= sl: exit_price, exit_bar = sl, k; break
+                if so_price is not None and not so_filled and l[k] <= so_price:
+                    so_filled = True; so_exit = so_price
                 if tp is not None and l[k] <= tp: exit_price, exit_bar = tp, k; break
             price = c[k]
             if side > 0:
@@ -380,6 +437,15 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
             else:
                 if (entry - price) >= lock_trigger:
                     sl = min(sl, entry); sl = min(sl, price + trail_dist)
+            # scale-out BE: runner's stop to entry, effective from the next bar
+            if so_filled and p.scaleout_be:
+                sl = max(sl, entry) if side > 0 else min(sl, entry)
+            # pyramid trigger on bar close: arm the add + move the stop to BE
+            if p.pyr_add_r > 0 and not pyr_armed:
+                unreal_pyr = ((price - entry) if side > 0 else (entry - price)) / risk
+                if unreal_pyr >= p.pyr_add_r:
+                    pyr_armed = True
+                    sl = max(sl, entry) if side > 0 else min(sl, entry)
             if (p.hold_ext_bars > p.max_hold_bars and hold == p.max_hold_bars
                     and k == base_exit_k):
                 unreal = ((price - entry) if side > 0 else (entry - price)) / risk
@@ -392,7 +458,19 @@ def simulate_symbol_c(df, p: CParams, lo, hi, ind=None):
             exit_price = c[exit_bar]
 
         gross = (exit_price - entry) * side
-        r = (gross - 2 * cost) / risk
+        if so_filled or add_price is not None:
+            # Per-signal R in units of the INITIAL 1-unit risk (paired-comparable with
+            # the baseline). Total notional in/out matches, so cost = 2*cost per unit.
+            if so_filled:
+                num = (p.scaleout_frac * (so_exit - entry) * side
+                       + (1.0 - p.scaleout_frac) * gross - 2 * cost)
+            else:
+                num = gross - 2 * cost
+            if add_price is not None:
+                num += p.pyr_add_frac * ((exit_price - add_price) * side - 2 * cost)
+            r = num / risk
+        else:
+            r = (gross - 2 * cost) / risk
         trades.append(dict(i=i, side=side, r=r, fill_lag=entry_bar - i, exit_i=exit_bar))
 
         i = max(exit_bar + 1, i + 1) if p.block_overlap else (i + 1)
