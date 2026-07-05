@@ -77,7 +77,8 @@ agnostic); costs are modelled as a fraction of ATR and always swept.
 | `walkforward_dsr.py` | **Backlog #1:** walk-forward + DSR on 12 spread-gated majors |
 | `fetch_spreadgated.py` | Pull spread-gated universe CSVs (MT5 required) |
 | `deriv_recheck.py` | Re-checks shipped configs on real Deriv M15 indices |
-| `chart_*.py` | Result charts (see `docs/`) |
+| `model_arena.py` | **Model Arena:** competitive tournament — models submit candidates, best faces champion |
+| `arena/` | Arena config: champion.json, submissions/, results/ (see arena/README.md) |
 
 ```bash
 cd backtest
@@ -121,6 +122,25 @@ python edge_loop.py --tf derivM15_diverse      # hypothesis grid on real data
 ```
 
 See `docs/EDGE_PLAN.md` for hypotheses, ship gates, and latest iteration results.
+
+## Model Arena — competitive strategy improvement
+
+Multiple AI models can develop EA improvements **independently**, submit them as JSON
+candidates, and **compete** in a tournament. The top qualifier faces the **champion**
+(main strategy). If it clears all SHIP gates and beats the champion on marginal OOS
+expectancy, it **replaces** the champion config (manual EA sync still required).
+
+```bash
+cd backtest
+python3 fetch_spreadgated.py          # real Deriv data (MT5 required)
+python3 model_arena.py status         # champion + pending submissions
+python3 model_arena.py template       # submission JSON template
+python3 model_arena.py run            # tournament + champion challenge
+python3 model_arena.py run --promote  # promote winner if it beats champion
+```
+
+Full rules, submission schema, and multi-model workflow:
+[`backtest/arena/README.md`](backtest/arena/README.md)
 
 
 ## License / disclaimer

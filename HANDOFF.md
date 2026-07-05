@@ -111,7 +111,8 @@ confirmation — all failed the bar. See `backtest/RESULTS.md` §2.
 - `backtest/live_trade_report.py` — live forensics + automated v1.21 acceptance check (backlog #0)
 - `backtest/fill_realism.py` — **backlog #3:** live-vs-harness fill reconciliation (weekly)
 - `backtest/session_gate_study.py` — **backlog #4:** pre-registered session windows, full gate
-- `backtest/atr_parity.py` — measure harness-Wilder vs MT5-iATR delta (P4 hygiene; measure only)
+- `backtest/model_arena.py` — **Model Arena:** competitive strategy tournament (models compete, winner challenges champion)
+- `backtest/arena/` — champion config, model submissions, tournament results
 - `backtest/RESULTS.md` — all numbers and the reasoning.
 
 ## Process notes

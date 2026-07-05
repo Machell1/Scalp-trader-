@@ -1,0 +1,13 @@
+{
+  "model_id": "gpt-5.5",
+  "candidate_id": "pullback-0.5",
+  "label": "Tighter pullback 0.5 ATR",
+  "kind": "geom",
+  "hypothesis": "A slightly shallower pullback (0.5 vs 0.6 ATR) may improve fill rate while staying inside the validated geometry family. Must beat champion OOS at real cost.",
+  "params": {
+    "entry_offset_atr": 0.5,
+    "pending_expiry_bars": 3
+  },
+  "created_at": "2026-07-05T00:00:00Z",
+  "note": "EXAMPLE ONLY — replace with your model's own hypothesis before competing"
+}

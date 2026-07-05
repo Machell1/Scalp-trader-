@@ -1,0 +1,14 @@
+{
+  "model_id": "claude-opus",
+  "candidate_id": "tp35-bracket",
+  "label": "Wider TP 3.5 ATR pure bracket",
+  "kind": "geom",
+  "hypothesis": "With pure bracket exits, a modest TP extension (3.5 ATR) may capture more of continuation moves without the ladder truncation that hurt wider-TP ladder configs.",
+  "params": {
+    "tp_atr": 3.5,
+    "lock_trigger_atr": 99.0,
+    "trail_atr": 99.0
+  },
+  "created_at": "2026-07-05T00:00:00Z",
+  "note": "EXAMPLE ONLY — replace with your model's own hypothesis before competing"
+}

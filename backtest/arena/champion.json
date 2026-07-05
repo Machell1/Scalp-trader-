@@ -1,0 +1,21 @@
+{
+  "version": "1.23",
+  "label": "Pure bracket pullback 0.6 / TP 3 / hold 8",
+  "model_id": "baseline",
+  "promoted_at": null,
+  "n_cumulative_trials": 68,
+  "params": {
+    "direction": "cont",
+    "entry_style": "limit",
+    "entry_offset_atr": 0.6,
+    "pending_expiry_bars": 3,
+    "stop_atr": 1.0,
+    "tp_atr": 3.0,
+    "lock_trigger_atr": 99.0,
+    "trail_atr": 99.0,
+    "max_hold_bars": 8,
+    "momentum_bars": 6,
+    "momentum_atr": 2.0,
+    "atr_period": 14
+  }
+}

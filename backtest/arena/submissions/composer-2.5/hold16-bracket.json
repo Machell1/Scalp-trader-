@@ -1,0 +1,14 @@
+{
+  "model_id": "composer-2.5",
+  "candidate_id": "hold16-bracket",
+  "label": "Pure bracket + hold 16 bars",
+  "kind": "exit",
+  "hypothesis": "Exit-ladder study showed hold16 validated (+0.077R) with larger winners. Pure bracket avoids ladder truncation. Gated for live promotion after 30-50 trades.",
+  "params": {
+    "max_hold_bars": 16,
+    "lock_trigger_atr": 99.0,
+    "trail_atr": 99.0
+  },
+  "created_at": "2026-07-05T00:00:00Z",
+  "note": "EXAMPLE ONLY — replace with your model's own hypothesis before competing"
+}
