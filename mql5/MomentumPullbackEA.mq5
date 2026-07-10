@@ -75,7 +75,7 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.26"
+#property version   "1.27"
 #property strict
 #property description "Multi-symbol M15 momentum-continuation EA. Pullback-limit entry, fixed bracket exits (SL/TP/time). Cost-gated universe."
 
@@ -206,6 +206,11 @@ bool     g_haltedHard  = false;   // v1.26: max-DD / static-floor halt - NEVER a
 double   g_initialBalance = 0.0;  // v1.26: static-floor anchor
 datetime g_initTime       = 0;    // v1.26.1: for the one-shot ledger re-sync below
 bool     g_ledgerResynced = false;// v1.26.1: deal history syncs AFTER a cold start; re-read once
+// v1.27 parity: Wilder ATR cache (one compute per symbol per closed bar) and the
+// per-symbol exit-bar cooldown (engine never signals on the bar a trade exited).
+double   g_wAtrCache[];
+datetime g_wAtrCacheBar[];
+datetime g_noSignalUpTo[];
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -235,7 +240,16 @@ int OnInit()
    // Register any positions already open (e.g. after EA reload).
    SyncOpenPositionStates();
 
-   PrintFormat("MomentumPullbackEA v1.26.2 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   // v1.27: print the Wilder ATR per symbol at init (cross-checkable against the
+   // Python engine on the same bars; also proves the estimator is alive).
+   for(int i = 0; i < ArraySize(g_symbols); i++)
+     {
+      double wa;
+      if(WilderAtrForSymbol(g_symbols[i], wa))
+         PrintFormat("Wilder ATR(%d) %s = %.5f", InpAtrPeriod, g_symbols[i], wa);
+     }
+
+   PrintFormat("MomentumPullbackEA v1.27 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUseLockTrail ? "lock/trail ladder" : "PURE BRACKET (SL/TP/time)"),
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
@@ -314,8 +328,14 @@ void AddSymbol(string symbol)
    int idx = ArraySize(g_symbols);
    ArrayResize(g_symbols, idx + 1);
    ArrayResize(g_atrHandle, idx + 1);
+   ArrayResize(g_wAtrCache, idx + 1);      // v1.27
+   ArrayResize(g_wAtrCacheBar, idx + 1);
+   ArrayResize(g_noSignalUpTo, idx + 1);
    g_symbols[idx]   = symbol;
-   g_atrHandle[idx] = h;
+   g_atrHandle[idx] = h;   // retained for startup data-sync tracking only; ATR VALUES come from WilderAtrForSymbol (v1.27)
+   g_wAtrCache[idx] = 0.0;
+   g_wAtrCacheBar[idx] = 0;
+   g_noSignalUpTo[idx] = 0;
   }
 
 //+------------------------------------------------------------------+
@@ -464,6 +484,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 
    if(dealEntry == DEAL_ENTRY_IN)
      {
+      g_tradesToday++;   // v1.27 B3: the daily cap counts FILLS (engine parity; placements were miscounting)
       ulong orderTicket = (ulong)HistoryDealGetInteger(trans.deal, DEAL_ORDER);
       datetime dealTime = (datetime)HistoryDealGetInteger(trans.deal, DEAL_TIME);
       double sigAtr = TakePendingSigAtr(orderTicket);
@@ -484,9 +505,24 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
       return;
      }
 
-   // full close (pure-bracket EA never partials): log it
-   if(dealEntry == DEAL_ENTRY_OUT && InpTradeLog)
-      LogClosedTrade(trans.deal, posId, symbol);
+   if(dealEntry == DEAL_ENTRY_OUT)
+     {
+      // v1.27 B5: forbid signals on the engine-equivalent exit bar. Broker SL/TP
+      // fire INTRABAR (exit bar = current bar, shift 0); the EA time exit fires at
+      // the OPEN of the bar after the engine exit bar (shift 1).
+      int xidx = SymbolIndex(symbol);
+      if(xidx >= 0)
+        {
+         long xreason = HistoryDealGetInteger(trans.deal, DEAL_REASON);
+         int sh = (xreason == DEAL_REASON_EXPERT) ? 1 : 0;
+         datetime xb = (datetime)iTime(symbol, InpTimeframe, sh);
+         if(xb > g_noSignalUpTo[xidx])
+            g_noSignalUpTo[xidx] = xb;
+        }
+      // full close (pure-bracket EA never partials): log it
+      if(InpTradeLog)
+         LogClosedTrade(trans.deal, posId, symbol);
+     }
   }
 
 //+------------------------------------------------------------------+
@@ -625,6 +661,15 @@ void ScanSymbol(string symbol, int atrHandle)
       LogSkip(symbol, "data not ready");
       return;
      }
+   // v1.27 B5: the validated engine resumes at exit_bar+1, so the bar a trade
+   // exited on can never be a signal bar; live we evaluated it one bar early.
+   int sidx = SymbolIndex(symbol);
+   if(sidx >= 0 && g_noSignalUpTo[sidx] > 0
+      && (datetime)iTime(symbol, InpTimeframe, 1) <= g_noSignalUpTo[sidx])
+     {
+      LogSkip(symbol, "exit-bar cooldown (engine parity)");
+      return;
+     }
    if(SpreadTooWide(symbol))
      {
       LogSkip(symbol, "spread points gate");
@@ -647,7 +692,7 @@ void ScanSymbol(string symbol, int atrHandle)
      }
 
    double atr;
-   if(!ReadAtr(atrHandle, atr) || atr <= 0.0)
+   if(!WilderAtrForSymbol(symbol, atr) || atr <= 0.0)   // v1.27: validated-engine estimator
      {
       LogSkip(symbol, "ATR unavailable");
       return;
@@ -759,21 +804,37 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
      }
 
    double entry, sl, tp;
+   bool sendMarket = false;
    if(isBuy)
      {
       // BUY_STOP sits above the ask; BUY_LIMIT sits below signal-bar close (pullback).
-      entry = isLimit ? NormalizeDouble(signalClose - offset, digits)
-                      : NormalizeDouble(ask + offset, digits);
-      sl    = NormalizeDouble(entry - stopDist, digits);
-      tp    = (tpDist > 0.0) ? NormalizeDouble(entry + tpDist, digits) : 0.0;
+      entry = isLimit ? (signalClose - offset) : (ask + offset);
+      // v1.27 B4: price already retraced through the limit level (gap / fast move).
+      // The validated engine fills these at the limit on touch; a live BUY_LIMIT
+      // above the ask is rejected 10015 (observed live 08:29 today) and the trade
+      // is silently lost. Market entry at the ask is equal-or-BETTER than the
+      // engine's assumed limit fill (ask < limit here by construction).
+      if(isLimit && entry >= ask - stopsLevel)
+        {
+         entry = ask;
+         sendMarket = true;
+        }
+      entry = SnapPrice(symbol, entry);
+      sl    = SnapPrice(symbol, entry - stopDist);
+      tp    = (tpDist > 0.0) ? SnapPrice(symbol, entry + tpDist) : 0.0;
      }
    else
      {
       // SELL_STOP sits below the bid; SELL_LIMIT sits above signal-bar close (pullback).
-      entry = isLimit ? NormalizeDouble(signalClose + offset, digits)
-                      : NormalizeDouble(bid - offset, digits);
-      sl    = NormalizeDouble(entry + stopDist, digits);
-      tp    = (tpDist > 0.0) ? NormalizeDouble(entry - tpDist, digits) : 0.0;
+      entry = isLimit ? (signalClose + offset) : (bid - offset);
+      if(isLimit && entry <= bid + stopsLevel)
+        {
+         entry = bid;   // v1.27 B4: see BUY branch
+         sendMarket = true;
+        }
+      entry = SnapPrice(symbol, entry);
+      sl    = SnapPrice(symbol, entry + stopDist);
+      tp    = (tpDist > 0.0) ? SnapPrice(symbol, entry - tpDist) : 0.0;
      }
 
    double lots = CalculateLotSize(symbol, stopDist);
@@ -784,13 +845,24 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    ENUM_ORDER_TYPE_TIME ttype = ORDER_TIME_GTC;
    if(InpPendingExpiryBars > 0)
      {
-      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe));
+      // v1.27 B2: the engine's 3-bar fill window is counted on the SYMBOL'S OWN
+      // clock (session breaks produce no bars). Precise expiry = the bar-counted
+      // check in ManagePendingOrders; the broker wall-clock expiry stays only as
+      // a +3-day backstop for when the EA itself is dead.
+      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe) + 259200);
       ttype  = ORDER_TIME_SPECIFIED;
      }
 
    trade.SetTypeFillingBySymbol(symbol);
    bool ok = false;
    string tag = "";
+   if(sendMarket)
+     {
+      ok = isBuy ? trade.Buy (lots, symbol, 0.0, sl, tp, InpTradeComment)
+                 : trade.Sell(lots, symbol, 0.0, sl, tp, InpTradeComment);
+      tag = isBuy ? "BUY MARKET(retrace-done)" : "SELL MARKET(retrace-done)";
+     }
+   else
    switch(type)
      {
       case ORDER_TYPE_BUY_STOP:   ok = trade.BuyStop  (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY STOP";   break;
@@ -803,8 +875,7 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    uint rc = trade.ResultRetcode();
    if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))   // v1.26: bool alone only means "request passed basic checks"
      {
-      g_tradesToday++;
-      StorePendingSigAtr(trade.ResultOrder(), atr);
+      StorePendingSigAtr(trade.ResultOrder(), atr);   // v1.27 B3: fills are counted in OnTradeTransaction
       PrintFormat("SIGNAL %s %s %.2f lots entry=%.5f (anchor=%.5f) SL=%.5f TP=%.5f | ATR=%.5f impulse=%.2f spread/ATR/side=%.4f",
                   symbol, tag, lots, entry, signalClose, sl, tp, atr, impulseAtr, spreadAtrSide);
      }
@@ -936,8 +1007,11 @@ void ManagePendingOrders()
       // ORDER_TIME_SPECIFIED). Applies to both stop and limit orders.
       if(InpPendingExpiryBars > 0)
         {
-         datetime maxAge = (datetime)(ordInfo.TimeSetup() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe));
-         if(TimeCurrent() >= maxAge)
+         // v1.27 B2: engine parity - the fill window is InpPendingExpiryBars BARS on
+         // the symbol's own clock (placement bar = 1). Wall-clock aging expired
+         // pendings mid-session-break after fewer tradable bars than validated.
+         int ageBars = Bars(symbol, InpTimeframe, ordInfo.TimeSetup(), TimeCurrent());
+         if(ageBars > InpPendingExpiryBars)
            {
             bool delOk = trade.OrderDelete(ticket);
             uint drc = trade.ResultRetcode();
@@ -952,8 +1026,7 @@ void ManagePendingOrders()
          continue;
 
       double atr;
-      int idx = SymbolIndex(symbol);
-      if(idx < 0 || !ReadAtr(g_atrHandle[idx], atr) || atr <= 0.0)
+      if(!WilderAtrForSymbol(symbol, atr) || atr <= 0.0)   // v1.27
          continue;
 
       double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
@@ -971,26 +1044,26 @@ void ManagePendingOrders()
       if(type == ORDER_TYPE_BUY_STOP)
         {
          double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
-         double newEntry = NormalizeDouble(ask + offset, digits);
+         double newEntry = SnapPrice(symbol, ask + offset);   // v1.27 B6
          // Only ratchet the entry DOWN toward price (price rising stays "in front").
          if(newEntry < curPrice - point)
            {
-            double sl = NormalizeDouble(newEntry - stopDist, digits);
+            double sl = SnapPrice(symbol, newEntry - stopDist);
             double tp = (InpTakeProfitAtrMult > 0.0)
-                        ? NormalizeDouble(newEntry + atr * InpTakeProfitAtrMult, digits) : 0.0;
+                        ? SnapPrice(symbol, newEntry + atr * InpTakeProfitAtrMult) : 0.0;
             trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
            }
         }
       else // SELL_STOP
         {
          double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
-         double newEntry = NormalizeDouble(bid - offset, digits);
+         double newEntry = SnapPrice(symbol, bid - offset);   // v1.27 B6
          // Only ratchet the entry UP toward price (price falling stays "in front").
          if(newEntry > curPrice + point)
            {
-            double sl = NormalizeDouble(newEntry + stopDist, digits);
+            double sl = SnapPrice(symbol, newEntry + stopDist);
             double tp = (InpTakeProfitAtrMult > 0.0)
-                        ? NormalizeDouble(newEntry - atr * InpTakeProfitAtrMult, digits) : 0.0;
+                        ? SnapPrice(symbol, newEntry - atr * InpTakeProfitAtrMult) : 0.0;
             trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
            }
         }
@@ -1374,13 +1447,7 @@ void UpdateBarsClosed(int stateIdx, string symbol)
 //+------------------------------------------------------------------+
 bool ReadAtrForSymbol(string symbol, double &value)
   {
-   int idx = SymbolIndex(symbol);
-   if(idx >= 0 && ReadAtr(g_atrHandle[idx], value))
-      return(true);
-   int h = iATR(symbol, InpTimeframe, InpAtrPeriod);
-   if(h == INVALID_HANDLE)
-      return(false);
-   return(ReadAtr(h, value));
+   return(WilderAtrForSymbol(symbol, value));   // v1.27: single estimator everywhere
   }
 
 void RegisterPositionState(long positionId, string symbol, double signalAtr, datetime openTime)
@@ -1505,6 +1572,67 @@ int SymbolIndex(string symbol)
       if(g_symbols[i] == symbol)
          return(i);
    return(-1);
+  }
+
+// v1.27 B1: Wilder ATR (RMA, alpha=1/period) computed from closed bars - the
+// exact estimator of the validated engine (scalper_backtest.py::wilder_atr).
+// MT5 built-in iATR is a sliding SIMPLE mean of TR (Examples/ATR.mq5 line 92)
+// and diverges 12-14% median; the impulse gate disagreed on ~1/5 of signals.
+// Seeded with SMA(period) then RMA over ~400 bars: seed influence (13/14)^386 ~ 0.
+bool WilderAtrForSymbol(string symbol, double &value)
+  {
+   value = 0.0;
+   int idx = SymbolIndex(symbol);
+   datetime bar1 = (datetime)iTime(symbol, InpTimeframe, 1);
+   if(idx >= 0 && bar1 > 0 && g_wAtrCacheBar[idx] == bar1 && g_wAtrCache[idx] > 0.0)
+     {
+      value = g_wAtrCache[idx];
+      return(true);
+     }
+   MqlRates rates[];
+   int need = 400;
+   int got = CopyRates(symbol, InpTimeframe, 1, need, rates);   // shift 1 = closed bars only
+   if(got < InpAtrPeriod * 3)
+      return(false);
+   double atr = 0.0;
+   // seed: SMA of TR over bars 1..period (index 0 has no prev close -> excluded)
+   for(int k = 1; k <= InpAtrPeriod; k++)
+     {
+      double tr = MathMax(rates[k].high - rates[k].low,
+                  MathMax(MathAbs(rates[k].high - rates[k - 1].close),
+                          MathAbs(rates[k].low  - rates[k - 1].close)));
+      atr += tr;
+     }
+   atr /= InpAtrPeriod;
+   for(int k = InpAtrPeriod + 1; k < got; k++)
+     {
+      double tr = MathMax(rates[k].high - rates[k].low,
+                  MathMax(MathAbs(rates[k].high - rates[k - 1].close),
+                          MathAbs(rates[k].low  - rates[k - 1].close)));
+      atr += (tr - atr) / InpAtrPeriod;
+     }
+   if(atr <= 0.0)
+      return(false);
+   value = atr;
+   if(idx >= 0 && bar1 > 0)
+     {
+      g_wAtrCache[idx] = atr;
+      g_wAtrCacheBar[idx] = bar1;
+     }
+   return(true);
+  }
+
+// v1.27 B6: snap a price to the symbol's trade tick grid (servers reject off-grid
+// prices with 10015/10016). No-op where tick size == point (current universe).
+double SnapPrice(string symbol, double price)
+  {
+   double tick = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE);
+   if(tick <= 0.0)
+      tick = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   if(tick <= 0.0)
+      return(price);
+   int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
+   return(NormalizeDouble(MathRound(price / tick) * tick, digits));
   }
 
 bool ReadAtr(int handle, double &value)
@@ -1767,34 +1895,18 @@ void RestoreRiskLedger()
          dayPnl += HistoryDealGetDouble(d, DEAL_PROFIT)
                  + HistoryDealGetDouble(d, DEAL_SWAP)
                  + HistoryDealGetDouble(d, DEAL_COMMISSION);   // account-wide, matches the FTMO day
-        }
-      int no = HistoryOrdersTotal();          // today's placements with our magic (matches live counter semantics)
-      for(int i = 0; i < no; i++)
-        {
-         ulong o = HistoryOrderGetTicket(i);
-         if(o == 0 || HistoryOrderGetInteger(o, ORDER_MAGIC) != InpMagicNumber)
-            continue;
-         // v1.26.2: count ENTRY placements only - SL/TP/time-exit closes are market
-         // orders that also carry our magic and inflated the reconstructed count.
-         long ot = HistoryOrderGetInteger(o, ORDER_TYPE);
-         if(ot == ORDER_TYPE_BUY_LIMIT || ot == ORDER_TYPE_SELL_LIMIT ||
-            ot == ORDER_TYPE_BUY_STOP  || ot == ORDER_TYPE_SELL_STOP)
+         // v1.27 B3: the daily cap counts FILLS now - reconstruct the same way.
+         if(HistoryDealGetInteger(d, DEAL_MAGIC) == InpMagicNumber &&
+            HistoryDealGetInteger(d, DEAL_ENTRY) == DEAL_ENTRY_IN)
             placements++;
         }
-     }
-   for(int i = OrdersTotal() - 1; i >= 0; i--)    // live pendings placed today count too
-     {
-      ulong o = OrderGetTicket(i);
-      if(o != 0 && ordInfo.Select(o) && ordInfo.Magic() == InpMagicNumber
-         && ordInfo.TimeSetup() >= g_currentDay)
-         placements++;
      }
 
    g_dayStartBalance = bal - dayPnl;
    g_tradesToday     = placements;
    g_halted          = DailyLossExceeded();
    g_haltedHard      = (DrawdownExceeded() || StaticFloorBreached());
-   PrintFormat("Risk ledger restored: dayStartBal=%.2f dayPnL=%.2f placementsToday=%d peakEq=%.2f initBal=%.2f halted=%s hard=%s",
+   PrintFormat("Risk ledger restored: dayStartBal=%.2f dayPnL=%.2f fillsToday=%d peakEq=%.2f initBal=%.2f halted=%s hard=%s",
                g_dayStartBalance, dayPnl, g_tradesToday, g_peakEquity, g_initialBalance,
                g_halted ? "yes" : "no", g_haltedHard ? "yes" : "no");
   }
