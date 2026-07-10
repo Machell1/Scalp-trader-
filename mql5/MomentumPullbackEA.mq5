@@ -75,7 +75,7 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.27"
+#property version   "1.28"
 #property strict
 #property description "Multi-symbol M15 momentum-continuation EA. Pullback-limit entry, fixed bracket exits (SL/TP/time). Cost-gated universe."
 
@@ -163,7 +163,11 @@ input bool   InpTradeLog          = true;  // Write a per-trade CSV (MFE/MAE in 
 input string InpTradeLogFile      = "MomentumPullback_trades.csv";
 // Protective but they DO alter the validated trade distribution -> OFF by default; flip on deliberately.
 input int    InpNewsBlockMins     = 3;     // Block NEW entries within N min of a HIGH-impact calendar event (0=off). PROTECTIVE, NOT in the validated backtest; self-disables if the broker has no calendar (Deriv usually lacks one).
-input string InpBlockHours        = "";    // Server hours to block NEW entries, comma-sep e.g. "20,21,22" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically for this crypto/index universe.
+input string InpBlockHours        = "";
+
+input group "=== v1.28 Thought-Process Panel (observability only) ==="
+input bool   InpShowPanel         = true;  // On-chart panel: per-symbol scan verdicts, trade state, risk ledger
+input int    InpPanelRefreshSec   = 10;    // Panel refresh throttle (never per-tick)    // Server hours to block NEW entries, comma-sep e.g. "20,21,22" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically for this crypto/index universe.
 
 //--- Globals ---------------------------------------------------------
 CTrade        trade;
@@ -211,6 +215,9 @@ bool     g_ledgerResynced = false;// v1.26.1: deal history syncs AFTER a cold st
 double   g_wAtrCache[];
 datetime g_wAtrCacheBar[];
 datetime g_noSignalUpTo[];
+// v1.28 panel: last scan verdict per symbol (display only)
+string   g_lastVerdict[];
+datetime g_lastVerdictT[];
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -237,6 +244,8 @@ int OnInit()
    if(InpHeartbeatSeconds > 0)
       EventSetTimer(InpHeartbeatSeconds);
 
+   PanelInit();   // v1.28 (no-op when InpShowPanel=false)
+
    // Register any positions already open (e.g. after EA reload).
    SyncOpenPositionStates();
 
@@ -249,7 +258,7 @@ int OnInit()
          PrintFormat("Wilder ATR(%d) %s = %.5f", InpAtrPeriod, g_symbols[i], wa);
      }
 
-   PrintFormat("MomentumPullbackEA v1.27 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.28 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUseLockTrail ? "lock/trail ladder" : "PURE BRACKET (SL/TP/time)"),
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
@@ -260,6 +269,7 @@ int OnInit()
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
+   PanelDestroy();   // v1.28
    if(InpHeartbeatSeconds > 0)
       EventKillTimer();
    for(int i = 0; i < ArraySize(g_atrHandle); i++)
@@ -331,11 +341,15 @@ void AddSymbol(string symbol)
    ArrayResize(g_wAtrCache, idx + 1);      // v1.27
    ArrayResize(g_wAtrCacheBar, idx + 1);
    ArrayResize(g_noSignalUpTo, idx + 1);
+   ArrayResize(g_lastVerdict, idx + 1);    // v1.28 panel
+   ArrayResize(g_lastVerdictT, idx + 1);
    g_symbols[idx]   = symbol;
    g_atrHandle[idx] = h;   // retained for startup data-sync tracking only; ATR VALUES come from WilderAtrForSymbol (v1.27)
    g_wAtrCache[idx] = 0.0;
    g_wAtrCacheBar[idx] = 0;
    g_noSignalUpTo[idx] = 0;
+   g_lastVerdict[idx] = "";     // v1.28 panel
+   g_lastVerdictT[idx] = 0;
   }
 
 //+------------------------------------------------------------------+
@@ -426,6 +440,7 @@ void Heartbeat()
      }
    ManageAll();
    ScanAllOnNewBars();
+   PanelUpdate();   // v1.28: display only, throttled, fails soft
   }
 
 //+------------------------------------------------------------------+
@@ -755,6 +770,8 @@ void ScanSymbol(string symbol, int atrHandle)
      {
       if(InpLogNoImpulse)
          LogSkip(symbol, StringFormat("no impulse (impulse=%.2f ATR)", impulseAtr), atr, spreadAtrSide, impulseAtr);
+      else
+         SetVerdict(symbol, StringFormat("no impulse (%.2f ATR, need %.1f)", impulseAtr, InpMomentumAtrMult));   // v1.28
       return;
      }
 
@@ -876,6 +893,7 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))   // v1.26: bool alone only means "request passed basic checks"
      {
       StorePendingSigAtr(trade.ResultOrder(), atr);   // v1.27 B3: fills are counted in OnTradeTransaction
+      SetVerdict(symbol, StringFormat("SIGNAL %s %.2f lots @ %.2f (imp %.2f ATR)", tag, lots, entry, impulseAtr));   // v1.28
       PrintFormat("SIGNAL %s %s %.2f lots entry=%.5f (anchor=%.5f) SL=%.5f TP=%.5f | ATR=%.5f impulse=%.2f spread/ATR/side=%.4f",
                   symbol, tag, lots, entry, signalClose, sl, tp, atr, impulseAtr, spreadAtrSide);
      }
@@ -1373,6 +1391,7 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
 //+------------------------------------------------------------------+
 void LogSkip(string symbol, string reason, double atr=0.0, double spreadAtrSide=0.0, double impulseAtr=0.0)
   {
+   SetVerdict(symbol, "SKIP " + reason);   // v1.28 panel
    if(atr > 0.0)
       PrintFormat("SKIP %s: %s | ATR=%.5f spread/ATR/side=%.4f impulse=%.2f",
                   symbol, reason, atr, spreadAtrSide, impulseAtr);
@@ -1935,5 +1954,176 @@ int ConsecutiveLossesToday()
          break;
      }
    return(streak);
+  }
+
+//+------------------------------------------------------------------+
+//| v1.28 THOUGHT-PROCESS PANEL - observability only, fails soft.     |
+//| No function below touches orders, positions, or risk state.       |
+//+------------------------------------------------------------------+
+#define MPB_PANEL_LINES 10
+
+void SetVerdict(string symbol, string text)
+  {
+   int i = SymbolIndex(symbol);
+   if(i < 0 || i >= ArraySize(g_lastVerdict))
+      return;
+   g_lastVerdict[i]  = text;
+   g_lastVerdictT[i] = TimeCurrent();
+  }
+
+void PanelInit()
+  {
+   if(!InpShowPanel)
+      return;
+   string bg = "MPBPANEL_BG";
+   if(ObjectFind(0, bg) < 0)
+      ObjectCreate(0, bg, OBJ_RECTANGLE_LABEL, 0, 0, 0);
+   ObjectSetInteger(0, bg, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, bg, OBJPROP_XDISTANCE, 8);
+   ObjectSetInteger(0, bg, OBJPROP_YDISTANCE, 118);
+   ObjectSetInteger(0, bg, OBJPROP_XSIZE, 590);
+   ObjectSetInteger(0, bg, OBJPROP_YSIZE, 16 * MPB_PANEL_LINES + 14);
+   ObjectSetInteger(0, bg, OBJPROP_BGCOLOR, C'14,14,22');
+   ObjectSetInteger(0, bg, OBJPROP_COLOR, clrDimGray);
+   ObjectSetInteger(0, bg, OBJPROP_BORDER_TYPE, BORDER_FLAT);
+   ObjectSetInteger(0, bg, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, bg, OBJPROP_HIDDEN, true);
+   for(int i = 0; i < MPB_PANEL_LINES; i++)
+     {
+      string nm = "MPBPANEL_L" + (string)i;
+      if(ObjectFind(0, nm) < 0)
+         ObjectCreate(0, nm, OBJ_LABEL, 0, 0, 0);
+      ObjectSetInteger(0, nm, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+      ObjectSetInteger(0, nm, OBJPROP_XDISTANCE, 14);
+      ObjectSetInteger(0, nm, OBJPROP_YDISTANCE, 124 + 16 * i);
+      ObjectSetString (0, nm, OBJPROP_FONT, "Consolas");
+      ObjectSetInteger(0, nm, OBJPROP_FONTSIZE, 8);
+      ObjectSetInteger(0, nm, OBJPROP_COLOR, clrSilver);
+      ObjectSetInteger(0, nm, OBJPROP_SELECTABLE, false);
+      ObjectSetInteger(0, nm, OBJPROP_HIDDEN, true);
+      ObjectSetString (0, nm, OBJPROP_TEXT, " ");
+     }
+  }
+
+void PanelDestroy()
+  {
+   ObjectsDeleteAll(0, "MPBPANEL_");
+  }
+
+void PanelSet(int line, string text, color clr = clrSilver)
+  {
+   string nm = "MPBPANEL_L" + (string)line;
+   ObjectSetString (0, nm, OBJPROP_TEXT, StringLen(text) > 0 ? text : " ");
+   ObjectSetInteger(0, nm, OBJPROP_COLOR, clr);
+  }
+
+void PanelUpdate()
+  {
+   if(!InpShowPanel)
+      return;
+   static datetime s_last = 0;
+   datetime now = TimeCurrent();
+   if(now - s_last < InpPanelRefreshSec)
+      return;
+   s_last = now;
+
+   double eq = AccountInfoDouble(ACCOUNT_EQUITY);
+   double dayPnl = eq - g_dayStartBalance;
+   int ln = 0;
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.28  THOUGHT PROCESS   %s srv",
+            TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
+
+   for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
+     {
+      string v = (i < ArraySize(g_lastVerdict) && StringLen(g_lastVerdict[i]) > 0)
+                 ? g_lastVerdict[i] : "(no scan event yet this session)";
+      string ts = (i < ArraySize(g_lastVerdictT) && g_lastVerdictT[i] > 0)
+                  ? TimeToString(g_lastVerdictT[i], TIME_MINUTES) : "--:--";
+      color cc = (StringFind(v, "SIGNAL") == 0) ? clrLimeGreen
+               : (StringFind(v, "no impulse") >= 0) ? clrGray : clrTomato;
+      PanelSet(ln++, StringFormat("%-11s [%s] %s", g_symbols[i], ts, StringSubstr(v, 0, 60)), cc);
+     }
+
+   int shown = 0;
+   for(int p = PositionsTotal() - 1; p >= 0 && ln < MPB_PANEL_LINES - 2; p--)
+     {
+      ulong tk = PositionGetTicket(p);
+      if(tk == 0 || !posInfo.SelectByTicket(tk) || posInfo.Magic() != InpMagicNumber)
+         continue;
+      int si = FindPositionState((long)posInfo.Identifier());
+      double mfe = (si >= 0) ? g_posState[si].mfeR : 0.0;
+      double mae = (si >= 0) ? g_posState[si].maeR : 0.0;
+      int bars = (si >= 0) ? g_posState[si].barsClosed : 0;
+      PanelSet(ln++, StringFormat("POS  %s %s %.2f @ %.2f | bar %d/%d | MFE %+.2fR MAE %+.2fR",
+               posInfo.Symbol(), posInfo.PositionType() == POSITION_TYPE_BUY ? "BUY " : "SELL",
+               posInfo.Volume(), posInfo.PriceOpen(), bars, InpMaxHoldingBars, mfe, mae),
+               clrDeepSkyBlue);
+      shown++;
+     }
+   int pend = 0;
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong t2 = OrderGetTicket(i);
+      if(t2 != 0 && ordInfo.Select(t2) && ordInfo.Magic() == InpMagicNumber)
+         pend++;
+     }
+   if(shown == 0 && ln < MPB_PANEL_LINES - 2)
+      PanelSet(ln++, StringFormat("positions: none | resting pendings: %d", pend), clrSilver);
+
+   PanelSet(ln++, StringFormat("fills %d/%d | dayPnL %+.2f (day-halt at %+.0f) | eq %.2f",
+            g_tradesToday, InpMaxTradesPerDay, dayPnl,
+            -g_dayStartBalance * InpDailyLossLimitPct / 100.0, eq),
+            (dayPnl >= 0) ? clrLimeGreen : clrOrange);
+   PanelSet(ln++, StringFormat("peak %.2f (dd-halt %.0f) | static floor %.0f | halted %s / %s",
+            g_peakEquity, g_peakEquity * (1.0 - InpMaxDrawdownPct / 100.0),
+            g_initialBalance * (1.0 - InpStaticFloorPct / 100.0),
+            g_halted ? "DAY" : "no", g_haltedHard ? "HARD" : "no"),
+            (g_halted || g_haltedHard) ? clrRed : clrSilver);
+   while(ln < MPB_PANEL_LINES)
+      PanelSet(ln++, " ");
+   ChartRedraw(0);
+   DecisionCsvMaybe();
+  }
+
+// One row per closed M15 bar -> monthly CSV (bounded growth; S3 shadow substrate).
+void DecisionCsvMaybe()
+  {
+   static datetime s_lastBar = 0;
+   if(ArraySize(g_symbols) == 0)
+      return;
+   datetime b = (datetime)iTime(g_symbols[0], InpTimeframe, 0);
+   if(b == 0 || b == s_lastBar)
+      return;
+   s_lastBar = b;
+   MqlDateTime st;
+   TimeToStruct(TimeCurrent(), st);
+   string fn = StringFormat("MomentumPullback_decisions_%04d%02d.csv", st.year, st.mon);
+   int h = FileOpen(fn, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(h == INVALID_HANDLE)
+      return;
+   if(FileSize(h) == 0)
+      FileWriteString(h, "time,verdicts,fills,day_pnl,halted,hard,positions,pendings\r\n");
+   FileSeek(h, 0, SEEK_END);
+   string vs = "";
+   for(int i = 0; i < ArraySize(g_symbols); i++)
+      vs += (i ? " ; " : "") + g_symbols[i] + ": " +
+            ((i < ArraySize(g_lastVerdict) && StringLen(g_lastVerdict[i]) > 0) ? g_lastVerdict[i] : "-");
+   StringReplace(vs, ",", "|");
+   int pend = 0, poss = 0;
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong t2 = OrderGetTicket(i);
+      if(t2 != 0 && ordInfo.Select(t2) && ordInfo.Magic() == InpMagicNumber) pend++;
+     }
+   for(int p = PositionsTotal() - 1; p >= 0; p--)
+     {
+      ulong tk = PositionGetTicket(p);
+      if(tk != 0 && posInfo.SelectByTicket(tk) && posInfo.Magic() == InpMagicNumber) poss++;
+     }
+   FileWriteString(h, StringFormat("%s,%s,%d,%.2f,%s,%s,%d,%d\r\n",
+                   TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS), vs,
+                   g_tradesToday, AccountInfoDouble(ACCOUNT_EQUITY) - g_dayStartBalance,
+                   g_halted ? "y" : "n", g_haltedHard ? "y" : "n", poss, pend));
+   FileClose(h);
   }
 //+------------------------------------------------------------------+
