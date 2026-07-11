@@ -1,16 +1,56 @@
-# Scalp-trader — DerivScalperEA
+# Scalp-trader — MomentumPullbackEA (FTMO build)
 
-A multi-symbol momentum **pullback** scalper for Deriv MT5, plus the Python research
-harness used to design and (honestly) stress-test it.
+Multi-symbol M15 momentum **pullback** EA + the Python research harness that designed,
+gated, and continuously audits it. Formerly DerivScalperEA; the live deployment is now
+the FTMO $100k evaluation track.
 
-> 🛠️ **Modifying the bot (human or AI agent)? Read [`HANDOFF.md`](HANDOFF.md) first.**
-> It states the validated facts you must not undo (pullback entry, no AVWAP, the spread
-> gate) and the out-of-sample-at-real-cost bar every change must clear.
+> 🛠️ **Modifying anything (human or AI agent — including Cursor)? The rules below are
+> binding.** Every claim in this repo carries a pre-registered, SHA256-hashed spec in
+> `docs/` with results appended under the hash. Read `HANDOFF.md` + the dated
+> `docs/*_SPEC_*.md` files before proposing changes.
 
-> ⚠️ **Status: SHIP @ SMALL SIZE on Deriv spread-gated majors** — cleared walk-forward + DSR
-> on real Deriv M15 (see `backtest/RESULTS.md` §6). OOS **+0.049 R/trade** at real spread
-> cost, but **thin** (+0.005 R at 2× cost). Demo forward-test live spread/ATR before real
-> capital. Not for Binance/high-fee venues. Read [`HANDOFF.md`](HANDOFF.md) before changing anything.
+## LIVE STATE (2026-07-11) — do not regress
+
+- **EA:** `mql5/MomentumPullbackEA.mq5` **v1.29.1**, live on FTMO demo (login 1513946641),
+  magic **771025**, hosted on the BTCUSD,H1 chart (host chart is irrelevant — 5s timer).
+- **Universe (earned per-symbol through gates):** `US30.cash, US100.cash, JP225.cash`,
+  clusters `US30.cash|US100.cash;JP225.cash`. Crypto is COST-DEAD on FTMO (measured
+  commission ≈3.25 bps/side); gold failed six independent methods — do not re-add.
+- **Entry engine (FROZEN — this is the strategy):** momentum 6 bars ≥ 2.0 ATR (Wilder 14,
+  self-computed, Python-parity 0.00000), pullback LIMIT 0.6 ATR, expiry 3 bars
+  (bar-counted), **W2 candle filter: signal bar must carry an adverse-side wick ≥ 0.30 ATR**
+  (contested impulses continue; clean climax bars are the WORST trades — 58k-trade result).
+- **Exits (FROZEN):** pure bracket SL 1.0 ATR / TP 3.0 ATR / 8-bar time exit. A 576-cell
+  walk-forward optimization CONFIRMED these parameters optimal (process −14.4% trying to
+  beat them; the +18%-per-trade alternative collapsed challenge odds 75→56%).
+- **Risk: 0.3%/trade** (sized to the W2 edge: 88.7% modeled both-phase odds, 6.0% bust).
+  Guards: daily −3% pause/−4% halt (cancels pendings), trailing 8% + static 91% floor
+  (restart-proof ledger), max 8 fills/day, 1/cluster, freshness + news guards, panel.
+
+## Rules for changes (Cursor: these are hard constraints)
+
+1. **The entry/exit engine and W2 filter are frozen.** Adaptation lives in research,
+   not live logic. Performance-chasing is 0-for-5 here (entry AND sizing forms).
+2. **Nothing ships without the gate:** pre-registered hashed spec → stitched-quarter OOS
+   at real per-instrument cost → beats matched random/placebo controls → ≥8/12 symbol
+   stability → DSR ≥ 0.95 at the CURRENT trial ledger (129) → 2× cost stress → challenge
+   MC not worse → flag-gated input, default OFF → user sign-off.
+3. **Dead ends (do not re-propose without new data):** VP-shielded stops & order-flow
+   cuts (killed at gate), weighted confluence scoring (0-for-4; the ≥85 rule = −0.31R),
+   wick-rejection/pin-bar/sweep/wick-pressure standalone entries, EMA/ADX/session/volume
+   filters, BE-lock/trail/scale-out/conditional holds, graded DD throttles, per-symbol
+   performance allocators, crypto-on-FTMO, gold anywhere.
+4. **FTMO compliance is load-bearing:** order comment stays `MomPullback` (broker-visible;
+   never "scalper"/other-broker names); risk fixed per trade; one-sided-betting guarded by
+   clusters; never trade during the forward test from external tools (a Codex close already
+   contaminated one datapoint).
+5. **Canonical workspace = this repo.** The live terminal copy is deployed FROM here
+   (patch script → compile 0/0 → graceful restart → verify init line + panel). Chart-saved
+   inputs persist BY NAME across recompiles — renaming an input is the only way a new
+   default applies. Hard kills lose chart-input edits; always close the terminal gracefully.
+6. **Data honesty:** FTMO history ≈ 9 months (directional only — never gate-grade);
+   gate-grade = 2.5y real Deriv M15 in `backtest/data/`. Epoch conversions must use
+   `(dt - Timestamp(0)) // Timedelta(seconds=1)` (two datetime bugs shipped otherwise).
 
 ## What changed in v1.1 (the validated improvement)
 
