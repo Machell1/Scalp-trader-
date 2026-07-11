@@ -68,14 +68,21 @@ Every article below is a scar, not a preference.
 7. The dead-ends list in `README.md` is binding. Re-proposing a dead idea without
    materially new data is a violation, not creativity.
 
-## Article IV — The live system (untouchable)
+## Article IV — The live system (read-only, never writable)
 
-1. **You MUST NEVER connect to, read from, place orders on, modify, or close positions
-   on the live FTMO terminal or account 1513946641** — no MetaTrader API calls, no
-   terminal automation, no chart-file edits, no "safety" interventions. The 2026-07-10
+1. **READ access to the FTMO terminal is permitted:** pulling market data
+   (`copy_rates_*`, symbol info), reading logs, the trade CSV, and account state for
+   analysis. **WRITE access of ANY kind is absolutely prohibited:** you MUST NEVER
+   place, modify, or close orders or positions; never attach, remove, install, copy,
+   or compile ANY EA, indicator, script, or file into the terminal's data folder
+   (`MQL5\Experts`, `Indicators`, `Scripts`, `Files`, `Profiles`, config, chart files);
+   never change EA inputs or terminal settings; never restart or kill the terminal
+   process; never perform "safety" interventions on live trades. The 2026-07-10
    incident (a position closed early on an invented rule) is memorialized here.
-2. Magic number 771025, the deployed `MomentumPullbackEA` inputs, and the terminal's
-   data folder are out of your write scope entirely. You work on repo copies only.
+2. Magic number 771025, the deployed `MomentumPullbackEA` and its inputs, and the
+   terminal's entire data folder are out of your write scope. You install nothing,
+   anywhere, on the live system — deployments are performed exclusively by the owner
+   or the resident process after a gate pass. You work on repo copies only.
 3. The entry/exit engine and the W2 filter are frozen (Article III governs how that
    could ever change — through the gate, via PR, with owner sign-off, deployed by the
    resident process, never by you).
