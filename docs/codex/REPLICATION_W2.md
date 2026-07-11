@@ -10,7 +10,8 @@ recomputed the pooled baseline and W2 expectancies within the assigned tolerance
 No discrepancy was found.
 
 - Replication base: 0ddd90875de86425aacf3bd7adf802e3ae734a65
-- Independent-runner commit: 655f9065f69210021d2166b5ae7d928778d25692
+- Initial clean-room runner commit: 655f9065f69210021d2166b5ae7d928778d25692
+- Signal-bar timestamp correction commit: 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e
 - Governing spec: docs/CANDLE_INVERSE_SPEC_2026-07-10.md
 - Recorded spec SHA256: 5c7763300ee04bf00e7224a25ff2b9e774fdab6ca962c4fb988153ce85902b47
 - FTMO corroboration: not replicated (terminal access not required for this task).
@@ -49,7 +50,9 @@ Date: 2026-07-10T22:02:21-05:00
 Subject: Inverse candle filter: FIRST full-gate PASS in project history (W2,W3,K2,K3)
 ~~~
 
-The relevant verbatim commit-message evidence from git log --follow -p is:
+The relevant verbatim commit-message evidence is:
+
+[MEASURED: git log --follow -p -- docs/CANDLE_INVERSE_SPEC_2026-07-10.md @ 0ddd90875de86425aacf3bd7adf802e3ae734a65]
 
 ~~~text
 commit e808d14b6384645a934d8ac16f11c25519c5ed14
@@ -71,7 +74,7 @@ The commit created the spec as a new file. The exact historical blob and its
 SHA256 were measured directly from Git rather than from the current working
 tree:
 
-[MEASURED: git rev-parse e808d14b6384645a934d8ac16f11c25519c5ed14:docs/CANDLE_INVERSE_SPEC_2026-07-10.md; Python SHA256 over git cat-file blob @ 0ddd90875de86425aacf3bd7adf802e3ae734a65]
+[MEASURED: python -c "import hashlib,subprocess; spec='e808d14b6384645a934d8ac16f11c25519c5ed14:docs/CANDLE_INVERSE_SPEC_2026-07-10.md'; blob_id=subprocess.check_output(['git','rev-parse',spec],text=True).strip(); blob=subprocess.check_output(['git','cat-file','blob',blob_id]); print(f'SPEC_BLOB={blob_id}'); print(f'BLOB_BYTES={len(blob)}'); print(f'BLOB_SHA256={hashlib.sha256(blob).hexdigest()}')" @ 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e]
 
 ~~~text
 SPEC_BLOB=a4a0221e4e332f576578d1a850a8df19f9953b72
@@ -83,7 +86,7 @@ The assigned SHA256 matches the exact Git blob. The following comparison proves
 that HEAD still references the introducing blob and that no later commit
 changed this path:
 
-[MEASURED: git rev-parse introduction and HEAD blobs; git log introduction..HEAD -- spec path @ 0ddd90875de86425aacf3bd7adf802e3ae734a65]
+[MEASURED: python -c "import subprocess; intro='e808d14b6384645a934d8ac16f11c25519c5ed14'; path='docs/CANDLE_INVERSE_SPEC_2026-07-10.md'; run=lambda *a: subprocess.check_output(a,text=True).strip(); ib=run('git','rev-parse',f'{intro}:{path}'); hb=run('git','rev-parse',f'HEAD:{path}'); later=run('git','rev-list','--count',f'{intro}..HEAD','--',path); print(f'INTRO_SPEC_BLOB={ib}'); print(f'HEAD_SPEC_BLOB={hb}'); print(f'BLOBS_IDENTICAL={ib == hb}'); print(f'LATER_PATH_COMMITS={later}')" @ 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e]
 
 ~~~text
 INTRO_SPEC_BLOB=a4a0221e4e332f576578d1a850a8df19f9953b72
@@ -183,7 +186,7 @@ baseline/W2 core values. It does not contain a historical line-by-line stdout
 artifact for the other cell metrics, so untracked historical numbers are not
 invented below.
 
-[MEASURED: Phase A command above and git log --follow evidence @ 0ddd90875de86425aacf3bd7adf802e3ae734a65]
+[MEASURED: python -u -c "import sys; sys.path.insert(0, r'backtest'); import inverse_candle_gate as study; study.ftmo_corroboration = lambda: None; study.main()"; git log --follow -p -- docs/CANDLE_INVERSE_SPEC_2026-07-10.md @ 0ddd90875de86425aacf3bd7adf802e3ae734a65]
 
 | Cell | Recorded verdict | Reproduced verdict | Gate score | Reproduced filtered OOS | Result |
 |---|---:|---:|---:|---:|---|
@@ -226,12 +229,20 @@ committed as backtest/replicate_w2_independent.py at
 655f9065f69210021d2166b5ae7d928778d25692. Neither study implementation nor
 its history was inspected or imported before the numbers below existed.
 
+The initial runner assigned quarter membership from the fill bar. Independent
+PR review identified that the tracked study assigns it from the signal bar.
+The one-line timestamp correction and an explicit assigned-value comparison
+were committed at 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e before the corrected
+runner was executed. The corrected run below changed none of the original
+trade counts or expectancy values.
+
 The runner used:
 
 - scalper_backtest.simulate_symbol with signals_out;
 - the pure-bracket parameters specified by the protocol;
 - walkforward_dsr.real_cost_per_side;
 - signal-bar Wilder ATR;
+- signal-bar timestamp for stitched-quarter membership;
 - buy adverse wick = high - max(open, close);
 - sell adverse wick = min(open, close) - low;
 - W2 keep rule adv_wick_atr >= 0.30;
@@ -240,7 +251,7 @@ The runner used:
 
 ### Verbatim independent output
 
-[MEASURED: python -u backtest/replicate_w2_independent.py @ 655f9065f69210021d2166b5ae7d928778d25692]
+[MEASURED: python -u backtest/replicate_w2_independent.py @ 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e]
 
 Exit status: 0. Stdout follows verbatim:
 
@@ -263,11 +274,16 @@ UK 100,838,0.0105947716,281,-0.0010260903,-0.0116208619
 Japan 225,837,0.0666607245,303,0.0966108403,0.0299501157
 France 40,835,-0.0026626990,281,0.0183301629,0.0209928618
 POOLED,11272,0.0778149824,4583,0.1201923849,0.0423774025
+ASSIGNED_COMPARISON
+baseline_abs_delta=0.0000149824
+w2_abs_delta=0.0000076151
+tolerance=0.0005000000
+within_tolerance=True
 ~~~
 
 ### Per-symbol independent results
 
-[MEASURED: python -u backtest/replicate_w2_independent.py @ 655f9065f69210021d2166b5ae7d928778d25692]
+[MEASURED: python -u backtest/replicate_w2_independent.py @ 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e]
 
 | Symbol | Baseline n | Baseline exp R | W2 n | W2 exp R | Delta R |
 |---|---:|---:|---:|---:|---:|
@@ -287,7 +303,7 @@ POOLED,11272,0.0778149824,4583,0.1201923849,0.0423774025
 
 ### Phase A versus independent Phase B
 
-[MEASURED: python comparison command @ 655f9065f69210021d2166b5ae7d928778d25692]
+[MEASURED: python -u backtest/replicate_w2_independent.py @ 7cb94cf31b1c45ca2560e1c086db2ce55b7ac53e]
 
 ~~~text
 baseline_abs_delta=0.0000149824
@@ -303,10 +319,11 @@ within_tolerance=True
 | Baseline pooled OOS n | 11272 | 11272 | 0 | exact |
 | W2 pooled OOS n | 4583 | 4583 | 0 | exact |
 
-After Phase B numbers were fixed, the study code was inspected. Its buy-side
-upper-wick and sell-side lower-wick formulas and its W2 >= 0.30 rule are
-identical to the independent derivation. No computation was rerun after this
-inspection.
+After the original Phase B numbers were fixed, the study code was inspected.
+Its buy-side upper-wick and sell-side lower-wick formulas and its W2 >= 0.30
+rule are identical to the independent derivation. The later review-driven
+signal-bar timestamp correction was committed before the single corrected
+run. That run reproduced every original count and expectancy value exactly.
 
 ## Scope, ledger, and compliance
 
