@@ -99,7 +99,7 @@ def main():
         sym_del = j.assign(dd=d.values).groupby(level=0).dd.mean()
         g4b = (sym_del >= -0.02).all()
         ok = g1 and g2 and g3 and g4a and g4b
-        print(f"T={T}: pairedΔexp={d.mean():+.4f} (95%lo {lo95:+.4f}) | MC both={both:.1%} bust={bust:.1%} "
+        print(f"T={T}: pairedDexp={d.mean():+.4f} (95%lo {lo95:+.4f}) | MC both={both:.1%} bust={bust:.1%} "
               f"| fullStop {fs_base:.1%}->{fs_cell:.1%} | qtrs+ {(qtab>=0).sum()}/{len(qtab)} "
               f"| G1{'Y' if g1 else 'N'} G2{'Y' if g2 else 'N'} G3{'Y' if g3 else 'N'} G4{'Y' if (g4a and g4b) else 'N'} -> {'PASS' if ok else 'no'}")
         print(f"   {stats(coos.reset_index(), 'cell OOS')}")

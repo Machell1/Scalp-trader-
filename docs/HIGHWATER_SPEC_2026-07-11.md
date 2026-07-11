@@ -34,3 +34,28 @@ last untested corner of the exit space and the exit book CLOSES.
 **Ship rule:** a passing cell → v1.30 `InpUseLockTrail` variant (the ladder inputs
 already exist in the EA: lock trigger + buffer, trail off), flag-gated, shadow-first,
 owner sign-off. Otherwise: documented null, exits remain pure bracket.
+
+---
+## RESULTS (appended post-run 2026-07-11; protocol hashed pre-run)
+
+| T (lock arm) | paired Δexp (95% lo) | MC both | full-stop rate | quarters+ | verdict |
+|---|---|---|---|---|---|
+| 1.0R | −0.0378 (−0.0714) | 84.6% | 55.7→50.2% | 0/4 | no |
+| 1.5R | −0.0227 (−0.0464) | 86.3% | 55.7→53.5% | 1/4 | no |
+| 2.0R | −0.0107 (−0.0267) | 86.2% | 55.7→54.8% | 1/4 | no |
+| 2.5R | −0.0041 (−0.0107) | 87.3% | unchanged | 2/4 | no (converges to baseline) |
+
+Baseline: exp +0.1010, MC 87.4%/6.8%. **Monotone verdict: the more the lock can act,
+the more it costs.** The full-stop rate DOES fall (the mechanism works — stops become
+scratches) but expectancy pays more than the insurance is worth: trades that reach
++1..+2.5R and pull back to entry RECOVER often enough that protecting them destroys
+value. Even 0.5R from target the lock is a hair negative. The resident's geometric
+intuition ("little left to win, everything to give back") is empirically wrong on this
+engine — the give-back risk is the price of the 3R tail, and the market pays for
+enduring it.
+
+**THE EXIT BOOK IS CLOSED.** Pure bracket SL1/TP3/hold8 is now undefeated across the
+entire tested exit space: low-trigger locks, ladders, trails, partial scale-outs,
+conditional holds, TP ratchets/variants, the 576-cell WFO sweep, and the high-water
+corner (0-for-11 lifetime for exit modifications). Do not reopen without fundamentally
+new evidence. Ledger 136.
