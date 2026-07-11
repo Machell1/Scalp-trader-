@@ -48,3 +48,11 @@ composition. Cluster caps stay 1 per cluster.
   89.9% both / 5.1% bust.** Forced-5 (best possible fifth = EURUSD): **84.2% / 8.3%
   — the fifth seat costs 5.7 points of funding odds and +3.2 bust.**
 - Owner decision pending: evidence-optimal 4 vs five-asset floor at quantified cost.
+
+**OWNER DECISION (2026-07-12): stay W2 × 3 for the forward test.** Timeline MC:
+W2×3 = 88.0% funded / median 76 days; W3×4 = 90.6% / 93 days; W3×3 = 89.6% / 118 days.
+Owner priced 2.6 pts of odds against ~17 days and chose speed. **W3×4 (wick 0.50 +
+GER40.cash in an EU cluster) is the documented, fully-gated alternative — an
+input-only switch pre-committed as the option to re-evaluate at challenge purchase**
+with forward-test slippage evidence in hand. Live config unchanged: v1.29.1,
+US30/US100/JP225, W2 (0.30), 0.3% risk.
