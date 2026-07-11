@@ -1,0 +1,4 @@
+trading days=666, avg trades/day=5.7, cost=candleK32, maxtrades/day=uncapped
+ 0.5%    30d |   60.2%   12.2%      14d  |   82.6% | 49.7%
+ 0.5%    60d |   77.6%   16.2%      18d  |   86.3% | 67.0%
+ 0.5%  unlim |   83.2%   16.8%      20d  |   87.1% | 72.4%

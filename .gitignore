@@ -13,3 +13,4 @@ backtest/data/
 .DS_Store
 Thumbs.db
 *.swp
+backtest/wfo_tapes.pkl

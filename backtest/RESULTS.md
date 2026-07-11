@@ -175,3 +175,36 @@ time exit; the lock/trail code remains behind `InpUseLockTrail=true`). `bracket 
 (best headline) rejected as selection-exposed (3/4 quarters, two stacked changes, paired t
 vs pure bracket 0.5–0.8 = noise). Follow-on: promote hold 8→16 only after ~30–50 live
 bracket trades track the backtest distribution.
+
+## 8. Cursor "win-size" candidate studies + correlation-robust re-check (2026-07-02)
+
+Six Cursor-helper candidate studies (win-size / expectancy), all gated by Fable 5 on real data.
+Full write-up: `../docs/BACKTEST_OBSERVATIONS_2026-07-02.md`.
+
+**Verdicts — 5 REJECT, 1 WATCH, nothing ships.** `pyramid_add` (BE-truncation, paired t −4),
+`asymmetric_tp` (falsification control improves equally → generic TP noise), `stop_buffer` (wider
+stops monotonically hurt), `bracket_tp` (TP-widening paired t ≈ 0), `adaptive_tp` (beats flat-TP4
+control by +0.0005 = noise) → all REJECT. `partial_scaleout` 50%/33%@+1.5R passed the *raw* gate
+but is **WATCH** after a 7-agent adversarial pass: independent from-scratch replication confirmed the
+math (105,190 trades, maxdiff 0.00e+00, no look-ahead) but the edge fails correlation adjustment and
+shrinks wins (avgWin 1.72→1.26R).
+
+**Methodology bug found + fixed.** The study SHIP gate tested the **raw pooled paired t** on ~17k
+*correlated* per-signal deltas (N_eff≈2.6) — overstating significance ~2×. Fixed with
+`experiment.cluster_robust_paired()` (N_eff-haircut t + day-clustered block-bootstrap CI); driver
+`cluster_robust_gatecheck.py`. Future study gates must use `["excludes_zero"]`, not raw `pair_t>1.96`.
+
+**Re-check under the corrected standard (N_eff=2.64, day-clustered 95% CI on mean delta):**
+
+| Comparison | dExp | raw t | haircut t | day-clustered CI | robust? |
+|---|---|---|---|---|---|
+| LIVE pure-bracket vs v1.2 ladder | +0.0227 | +3.19 | +1.50 | [−0.0004, +0.0456] | ✗ includes 0 |
+| scale-out 50%@+1.5R vs bracket | +0.0101 | +2.89 | +1.36 | [−0.00002, +0.0198] | ✗ includes 0 |
+| **LIVE v1.23 expectancy vs 0** | **+0.0778** | **+5.58** | **+2.62** | **[+0.0357, +0.1189]** | **✓ EXCLUDES 0** |
+
+**Interpretation.** The strategy's *expectancy is real and correlation-robust* — the live EA earns
+money OOS net of real cost (CI excludes zero). But the difference *between exit variants* (ladder vs
+bracket vs scale-out) is below this dataset's resolution (~2.6 effective bets, one ~9-month OOS
+window). So: keep pure-bracket on **parsimony** (simpler, no worse), not as a proven improvement; do
+not add scale-out; the live EA stands. The binding constraint is data breadth, not exit design — the
+next round should widen the (less-correlated) instrument universe, not tweak exits further.

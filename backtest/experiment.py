@@ -92,6 +92,38 @@ def n_eff_symbols(data):
     mean_r = (C.sum() - len(C)) / (len(C) * (len(C) - 1))
     return pr, mean_r
 
+def cluster_robust_paired(deltas, times, n_eff, n_sym, seed=20260702, n_boot=5000):
+    """Honest significance for a PAIRED per-signal delta series over CORRELATED instruments.
+
+    The naive SHIP gate tests the raw pooled paired t as if every trade were independent —
+    with 12 instruments at N_eff~2.6 that overstates significance ~2x. This returns both the
+    N_eff-haircut t (raw_t * sqrt(N_eff/N_sym)) and a DAY-clustered block-bootstrap 95% CI on
+    the mean delta (whole calendar days resampled together, so intraday cross-symbol correlation
+    is respected). `excludes_zero` on the day-clustered CI is the decision-grade significance
+    test — use it, not the raw pooled t, to gate a marginal edge.
+    """
+    d = np.asarray(deltas, float)
+    t = pd.to_datetime(np.asarray(times))
+    n = d.size
+    if n < 10:
+        return dict(n=n, raw_t=0.0, haircut_t=0.0, ci_lo=0.0, ci_hi=0.0, excludes_zero=False)
+    sd = d.std(ddof=1)
+    raw_t = d.mean() / (sd / math.sqrt(n)) if sd > 0 else 0.0
+    haircut_t = raw_t * math.sqrt(max(1e-9, n_eff) / n_sym)
+    day = t.floor("D").to_numpy()
+    days, inv = np.unique(day, return_inverse=True)
+    groups = [d[inv == k] for k in range(len(days))]
+    rng = np.random.default_rng(seed)
+    nd = len(days)
+    boots = np.empty(n_boot)
+    for it in range(n_boot):
+        pick = rng.integers(0, nd, nd)
+        boots[it] = np.concatenate([groups[p] for p in pick]).mean()
+    lo, hi = np.percentile(boots, [2.5, 97.5])
+    return dict(n=n, raw_t=float(raw_t), haircut_t=float(haircut_t),
+                ci_lo=float(lo), ci_hi=float(hi), excludes_zero=bool(lo > 0 or hi < 0))
+
+
 def quarter_signs(data, p, cost):
     """Per-quarter OOS expectancy sign on the pooled trades (sign-stability)."""
     p2 = CParams(**{**p.__dict__, "cost_atr_frac": cost, "block_overlap": True})

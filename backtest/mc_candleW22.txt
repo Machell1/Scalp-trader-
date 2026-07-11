@@ -1,0 +1,4 @@
+trading days=624, avg trades/day=3.3, cost=candleW22, maxtrades/day=uncapped
+ 0.5%    30d |   39.5%    6.7%      18d  |   71.0% | 28.0%
+ 0.5%    60d |   67.4%   11.2%      26d  |   86.6% | 58.3%
+ 0.5%  unlim |   84.7%   15.3%      32d  |   89.6% | 75.9%
