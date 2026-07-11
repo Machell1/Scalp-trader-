@@ -35,3 +35,30 @@ and XAUAUD/XAUEUR as a family rider (tested only if XAUUSD passes; no separate c
 **Ship rule.** Passers → whitelist/cluster input edit only (no recompile; cluster
 assignment: EU/JP indices get their own cluster; gold its own), user sign-off, panel
 verifies. No passer → the universe stays US30+US100 and the null is documented.
+
+---
+### Decision-analysis addendum (2026-07-12, pre-registered before running): near-miss recombination
+No new edge claims; both analyses recombine ALREADY-GATED components with different
+decision metrics (no ledger charge — decision analysis, not hypothesis testing).
+- **D1 W3-vs-W2 challenge MC:** W3 (wick ≥0.50, full-gate passer, never MC'd) vs the
+  live W2 on the trio tape, 0.3%, no-time-limit both-phases + bust + median days.
+- **D2 funded-account objective:** day-block MC with FUNDED rules (no target; bust at
+  −5% day or −10% static from initial; 252-day horizon; 0.3% risk): P(survive 1y),
+  median annual P&L, median monthly P&L (×80% = withdrawal estimate) for (a) live trio,
+  (b) trio+GER40 (its gated W2 config at real cost), (c) trio+GER40+EURUSD.
+  Motivation: GER40/EURUSD failed the CHALLENGE-portfolio criterion specifically;
+  the funded objective differs (income/survival vs pass-sprint). Decision rule: an
+  addition must raise median monthly P&L WITHOUT raising 1-year breach probability.
+  Any adoption would apply ONLY to the post-funding config, with owner sign-off.
+
+**D1/D2 RESULTS (2026-07-12):**
+- **D1: W3 beats W2 on challenge odds — a real, gated option.** W3 (wick≥0.50): both-phases
+  89.5% / bust 5.1% / median 82 days vs W2's 87.4% / 6.8% / 52 days. Half the trades,
+  +2.1 pts odds, −1.7 pts bust, +30 days patience. Both cells passed the identical full
+  gate on 2026-07-10; this is a config choice (input-only), owner's call.
+- **D2: trio+GER40 FAILS the pre-registered funded rule.** Median monthly +3.32% vs
+  +2.73% (≈$2,657 vs $2,184/mo withdrawal @$100k, 80% split) and annual +40.3% vs
+  +33.6% — but 1-year survival drops 93.2%→90.6%, violating "without raising breach
+  probability." NOT adopted. Legitimate future cell (post-funding, new pre-registration):
+  GER40 at REDUCED allocation — not run tonight per the no-post-hoc-flip rule.
+  EURUSD: skipped honestly (no spread-gated CSV; diverse file lacks real spread).
