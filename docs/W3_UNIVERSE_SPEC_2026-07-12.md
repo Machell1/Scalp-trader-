@@ -32,3 +32,19 @@ the owner chooses between "evidence-optimal" and "five-asset floor" with numbers
 whitelist, clusters — indices grouped by session: US | EU | Asia | metals | FX), flat
 account, graceful restart, init-line + panel verification, owner sign-off on the final
 composition. Cluster caps stay 1 per cluster.
+
+---
+## RESULTS (appended post-run 2026-07-12; protocol hashed pre-run)
+
+- **W3 trio baseline: 89.5% both / 5.1% bust (n=1,536).**
+- Candidate verdicts: **GER40 PASS** (Deriv W3-OOS +0.106, 2× +0.085; FTMO 0.0240/side,
+  +0.101 own-data) — the W2-era portfolio drag INVERTS under W3 (thinner streams stop
+  the correlation stacking); **EURUSD passes per-symbol gates** (+0.118/+0.058; FTMO
+  +0.090 at 0.0550/side) but DRAGS every portfolio it joins; US2000's monster Deriv
+  edge (+0.255) is FTMO-cost-dead (0.1125/side); **XAUUSD is NEGATIVE under W3**
+  (−0.109 — gold's wicky subset is actively bad); UK100/FRA40 fail 2×-cost or FTMO
+  direction; AUS200/HK50 fail FTMO direction; XAGUSD negative.
+- **Greedy construction: evidence-optimal = W3 × 4 (US30, US100, JP225, GER40) at
+  89.9% both / 5.1% bust.** Forced-5 (best possible fifth = EURUSD): **84.2% / 8.3%
+  — the fifth seat costs 5.7 points of funding odds and +3.2 bust.**
+- Owner decision pending: evidence-optimal 4 vs five-asset floor at quantified cost.
