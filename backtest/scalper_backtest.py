@@ -123,9 +123,11 @@ def ema(values, period):
 # ---------------------------------------------------------------------------
 
 
-def simulate_symbol(df: pd.DataFrame, p: Params, lo: int, hi: int, trades_out=None):
+def simulate_symbol(df: pd.DataFrame, p: Params, lo: int, hi: int, trades_out=None, signals_out=None):
     """Return a list of per-trade R-multiples for bars in [lo, hi).
-    If trades_out is a list, also append (entry_epoch, r) records for MC use."""
+    If trades_out is a list, also append (entry_epoch, r) records for MC use.
+    If signals_out is a list, also append (signal_bar, entry_bar, side, r) —
+    integer bar indexes, for signal-level feature studies (candle anatomy)."""
     tarr = df["time"].to_numpy()
     o = df["open"].to_numpy(float)
     h = df["high"].to_numpy(float)
@@ -288,6 +290,8 @@ def simulate_symbol(df: pd.DataFrame, p: Params, lo: int, hi: int, trades_out=No
         results.append(r)
         if trades_out is not None:
             trades_out.append((tarr[entry_bar], r))
+        if signals_out is not None:
+            signals_out.append((i, entry_bar, side, r))
 
         i = max(exit_bar + 1, i + 1)  # one trade per symbol at a time
 
