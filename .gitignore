@@ -14,3 +14,4 @@ backtest/data/
 Thumbs.db
 *.swp
 backtest/wfo_tapes.pkl
+backtest/data/*.csv
