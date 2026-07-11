@@ -40,3 +40,20 @@ Entry: score ≥ threshold → market at open of i+1, direction D; validated bra
 (100 draws) [arm C: beats the W2 baseline instead], ≥7/12 symbols (gold reported
 separately, never pooled-hidden). Survivors → full battery (placebo, DSR@125, 2× cost,
 quarters, n≥250). Ship only via the standard rule (flag-gated, sign-off).
+
+---
+## RESULTS (appended post-run 2026-07-11; the protocol above was hashed pre-run)
+
+- **Arm A standalone H1**: thr≥85 → 13 OOS trades across 13 symbols (~1/symbol —
+  untradeable by construction); thr≥80 → 25 (same); thr≥70 → n=232, +0.0929R but
+  random-entry control 95th pct = +0.1084 → FAILS the control (trend beta, not signal);
+  7/13 symbols; **GOLD, the stack's home asset: −0.1125R (n=21)**. Dead.
+- **Arm B standalone M15** thr≥85: n=55 — too thin. Dead.
+- **Arm C filter on the live engine**: W2 baseline +0.1117 (n=3852).
+  **score≥85 → n=62, −0.3141R — the worst subset ever measured in this project**
+  (maximum confluence selects exhausted moves; third independent replication of the
+  clean-climax finding). score≥70 → +0.1108 on n=1586 — identical expectancy to W2
+  on 60% fewer trades = strictly dominated. Dead.
+- **VERDICT: no arm survives its screen. Nothing ships. The W2 trio stands.**
+  Meta-finding (3×-replicated): on this engine, "more confirmation" selects WORSE
+  trades — contested impulses beat confirmed ones.
