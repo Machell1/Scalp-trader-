@@ -75,7 +75,7 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.28"
+#property version   "1.29"
 #property strict
 #property description "Multi-symbol M15 momentum-continuation EA. Pullback-limit entry, fixed bracket exits (SL/TP/time). Cost-gated universe."
 
@@ -97,6 +97,10 @@ input string InpSymbolWhitelist  = "US30.cash,US100.cash";  // FTMO forward test
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
+input group "=== v1.29 Candle Filter (full-gate PASS 2026-07-10; spec SHA256 5c776330) ==="
+input bool   InpCandleFilter    = true;  // W2: trade ONLY signals whose signal bar has an adverse-side wick >= threshold. Contested impulses continue (+0.120R OOS vs +0.078R); clean climax bars are exhausted. Removes trades only - cannot add risk.
+input double InpMinAdvWickAtr   = 0.30;  // Adverse-wick threshold in ATR (0.30 = gated W2 cell; 0.50 = W3, fewer/better trades; 0 = off)
+
 input group "=== Momentum Strategy ==="
 input ENUM_TIMEFRAMES InpTimeframe   = PERIOD_M15; // Working timeframe
 input int    InpMomentumBars     = 6;     // Lookback bars for the move
@@ -210,6 +214,7 @@ bool     g_haltedHard  = false;   // v1.26: max-DD / static-floor halt - NEVER a
 double   g_initialBalance = 0.0;  // v1.26: static-floor anchor
 datetime g_initTime       = 0;    // v1.26.1: for the one-shot ledger re-sync below
 bool     g_ledgerResynced = false;// v1.26.1: deal history syncs AFTER a cold start; re-read once
+bool     g_ledgerValid    = false;// v1.29.1: false until a restore ran on SYNCED account data
 // v1.27 parity: Wilder ATR cache (one compute per symbol per closed bar) and the
 // per-symbol exit-bar cooldown (engine never signals on the bar a trade exited).
 double   g_wAtrCache[];
@@ -256,9 +261,21 @@ int OnInit()
       double wa;
       if(WilderAtrForSymbol(g_symbols[i], wa))
          PrintFormat("Wilder ATR(%d) %s = %.5f", InpAtrPeriod, g_symbols[i], wa);
+      // v1.29: wick-parity line (verify vs Python candle_features on same bars)
+      string ps = "";
+      for(int sh = 1; sh <= 3; sh++)
+        {
+         double o1 = iOpen(g_symbols[i], InpTimeframe, sh), c1 = iClose(g_symbols[i], InpTimeframe, sh);
+         double h1 = iHigh(g_symbols[i], InpTimeframe, sh), l1 = iLow(g_symbols[i], InpTimeframe, sh);
+         if(h1 <= 0.0)
+            continue;
+         ps += StringFormat("sh%d up=%.5f dn=%.5f | ", sh,
+                            (h1 - MathMax(o1, c1)) / wa, (MathMin(o1, c1) - l1) / wa);
+        }
+      PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.28 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.29.1 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUseLockTrail ? "lock/trail ladder" : "PURE BRACKET (SL/TP/time)"),
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
@@ -430,6 +447,15 @@ void Heartbeat()
       ResetDailyState();
 
    RetryFailedAtrHandles();   // recover symbols whose ATR failed at startup (no-op when healthy)
+   // v1.29.1: no trading decisions (incl. halt-driven pending cancels) until the
+   // ledger has been restored from SYNCED account data. Broker-side brackets
+   // protect any open position during the seconds this can last.
+   if(!g_ledgerValid)
+     {
+      RestoreRiskLedger();
+      if(!g_ledgerValid)
+         return;
+     }
    // v1.26.1: cold-start deal history arrives seconds AFTER OnInit; the first ledger
    // reconstruction can miss late-synced deals (observed: $495 short 5s after launch).
    // Re-run ONCE after the feed has settled; idempotent full recount.
@@ -762,6 +788,31 @@ void ScanSymbol(string symbol, int atrHandle)
          risingFast = false;
       if(fallingFast && close1 <= vwap)       // not a premium -> no sell
          fallingFast = false;
+     }
+
+   // v1.29 W2 candle filter: the signal bar must be CONTESTED (adverse-side wick
+   // >= InpMinAdvWickAtr ATR). Gate evidence: quarter-stitched WF at real cost
+   // +0.120R vs +0.078R baseline, beats random-drop placebo, 9/12 symbols,
+   // 2x cost OK; direction confirmed on never-used FTMO M15 both symbols and on
+   // 24k never-analyzed IS trades. A SELL continuation needs a LOWER wick
+   // (buyers fought = still fuel); a BUY needs an UPPER wick. Skips only.
+   if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))
+     {
+      double high1 = iHigh(symbol, InpTimeframe, 1);
+      double low1  = iLow(symbol, InpTimeframe, 1);
+      if(high1 > 0.0 && low1 > 0.0)
+        {
+         double bodyTop  = MathMax(open1, close1);
+         double bodyBot  = MathMin(open1, close1);
+         double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
+         double advWickAtr = advWick / atr;
+         if(advWickAtr < InpMinAdvWickAtr)
+           {
+            LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
+                    advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
+            return;
+           }
+        }
      }
 
    // Impulse sign convention matches SIGNAL lines: negative = falling (close1 - closePast).
@@ -1883,6 +1934,15 @@ void RestoreRiskLedger()
   {
    double eq  = AccountInfoDouble(ACCOUNT_EQUITY);
    double bal = AccountInfoDouble(ACCOUNT_BALANCE);
+   // v1.29.1: a cold start can run this BEFORE the account syncs (observed 16:50:
+   // bal/eq=0 -> dayStartBal=799, both halts latched on garbage). Defer instead.
+   if(bal <= 0.0 || eq <= 0.0)
+     {
+      g_ledgerValid = false;
+      Print("Risk ledger: account not synced yet (bal/eq<=0) - restore deferred");
+      return;
+     }
+   g_ledgerValid = true;
 
    g_peakEquity = eq;
    if(GlobalVariableCheck("MPB_peak_equity"))
