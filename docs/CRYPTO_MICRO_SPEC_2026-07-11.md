@@ -50,3 +50,24 @@ confirmatory charges begin only at S2. Noted at ledger 129 + screen.
 reason to spend ~$125 on CME depth for the index pair, never a transfer guarantee;
 crypto microstructure ≠ futures microstructure. Nothing in this probe touches the live
 EA, the FTMO terminal, or the trio configuration.
+
+---
+## RESULTS (appended post-run 2026-07-11; protocol hashed pre-run)
+
+- **Alignment: PASSED cleanly** — lag 0 bars, corr 0.9998 (runner-up 0.0165). Venues
+  are bar-synchronized; no lookahead pathway existed. Pipeline bug (heterogeneous
+  depth-band columns) reported verbatim, fixed, rerun.
+- **Gate: ALL 10 FEATURES FAIL.** n=361 OOS W2 trades. OOS ICs −0.065..+0.023, every
+  one inside its 200-permutation null envelope (thresholds 0.10–0.14); none passes
+  freshness-vs-stale. Real aggressor-signed flow, real open interest, real top-trader
+  positioning, and real book-depth imbalance carry NO measurable information about
+  the engine's per-trade outcomes at the M15 horizon.
+- **Interpretation:** the horizon-mismatch warning proved out empirically — the VPOF
+  kill was not (only) a proxy-data problem; even genuine microstructure state at bar
+  resolution is uninformative for a 15-minute/2-hour-hold momentum system. Detection
+  limits stated honestly: at n=361 only |IC| ≳ 0.10 could clear — but an edge smaller
+  than that is not actionable for this engine anyway.
+- **VERDICT: the "cleaner data" thesis is dead at $0 for this tier.** Do NOT spend on
+  CME depth for the index pair on the strength of microstructure-context hopes; the
+  remaining untested tier (true tick-level L3 at sub-minute horizons) would require a
+  different STRATEGY, not a better-fed version of this one. Program closed.
