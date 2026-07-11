@@ -41,3 +41,28 @@ documented null; the monotonicity finding remains observational.
 **Prior stated:** baseline 88.4% both-phases is a high ceiling; sizing down positive-EV
 low-vol trades trades total R for variance — net effect genuinely uncertain. The honest
 outcome may be "the EA is already optimally vol-synced through its geometry."
+
+---
+## RESULTS (appended post-run 2026-07-11; protocol hashed pre-run)
+
+- **Gate 1 (OOS monotonicity): technical PASS (3/3 quarters rank-positive) but the
+  ladder is fragile OOS:** low +0.0985 / mid +0.0758 / high +0.1834 — high-vol is
+  clearly best, but low-vol is NOT the worst out-of-sample. T4's clean full-tape
+  ladder partially degrades.
+- **All three arms beat the flat baseline on the MC — and ALL THREE FAIL the placebo:**
+  | arm | both-phases | bust | placebo95 (shuffled labels, same multiplier mix) |
+  | V1a {0.5/0.75/1.0} | 94.2% | 3.0% | **95.4%** |
+  | V1b {0.6/0.9/1.2} | 90.5% | 5.2% | **91.7%** |
+  | V2 drop lowVol | 92.0% | 4.3% | **94.6%** |
+  Random volatility labels with the identical multiplier distribution score HIGHER
+  than the real labels in every arm. The entire MC improvement is the mechanical
+  effect of LOWER AVERAGE RISK (V1a mean mult ≈0.77 → ~0.23% effective risk), which
+  the risk curve already explains; the volatility information itself contributes
+  nothing — if anything, slightly negative (real < placebo everywhere).
+- **VERDICT: no arm ships. The engine's ATR-scaled geometry already IS its volatility
+  sync; regime labels add no exploitable information on top.** Third independent
+  confirmation of the sizing law: variation without information loses to flat sizing
+  at the same mean (entropy → performance-labels → volatility-labels). The honest
+  lever for more safety remains a FLAT risk reduction (the 0.3% curve), not
+  conditioning. Placebo control (the WFO-corrected design) worked exactly as intended
+  — without G3 this would have shipped as "volatility intelligence."
