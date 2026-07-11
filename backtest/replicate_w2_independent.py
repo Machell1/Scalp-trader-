@@ -18,6 +18,9 @@ import walkforward_dsr as W
 
 W2_MIN_ADVERSE_WICK_ATR = 0.30
 IS_FRACTION = 0.70
+ASSIGNED_BASELINE_OOS_EXPECTANCY = 0.0778
+ASSIGNED_W2_OOS_EXPECTANCY = 0.1202
+ASSIGNED_TOLERANCE_R = 0.0005
 
 
 def deployed_params(cost_atr_frac: float) -> B.Params:
@@ -99,7 +102,9 @@ def symbol_trade_tape(sym: str, df: pd.DataFrame, cost: float) -> pd.DataFrame:
         )
         records.append(
             {
-                "time": time_values[entry_bar],
+                # The replicated study assigns the stitched-quarter frame from
+                # the signal candle (t["i"]), not from the later fill candle.
+                "time": time_values[signal_bar],
                 "sym": sym,
                 "signal_bar": int(signal_bar),
                 "entry_bar": int(entry_bar),
@@ -197,6 +202,16 @@ def main() -> None:
         f"POOLED,{len(baseline_oos)},{format_number(pooled_base_exp)},"
         f"{len(w2_oos)},{format_number(pooled_w2_exp)},"
         f"{format_number(pooled_w2_exp - pooled_base_exp)}"
+    )
+    baseline_gap = abs(pooled_base_exp - ASSIGNED_BASELINE_OOS_EXPECTANCY)
+    w2_gap = abs(pooled_w2_exp - ASSIGNED_W2_OOS_EXPECTANCY)
+    print("ASSIGNED_COMPARISON")
+    print(f"baseline_abs_delta={baseline_gap:.10f}")
+    print(f"w2_abs_delta={w2_gap:.10f}")
+    print(f"tolerance={ASSIGNED_TOLERANCE_R:.10f}")
+    print(
+        "within_tolerance="
+        f"{baseline_gap <= ASSIGNED_TOLERANCE_R and w2_gap <= ASSIGNED_TOLERANCE_R}"
     )
 
 
