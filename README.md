@@ -4,6 +4,9 @@ Multi-symbol M15 momentum **pullback** EA + the Python research harness that des
 gated, and continuously audits it. Formerly DerivScalperEA; the live deployment is now
 the FTMO $100k evaluation track.
 
+> ⚖️ **AI contributors (Codex, Cursor, all others): [`CODEX_CONSTITUTION.md`](CODEX_CONSTITUTION.md)
+> is binding — branch law, data integrity, anti-overfit law, live-system prohibition.**
+>
 > 🛠️ **Modifying anything (human or AI agent — including Cursor)? The rules below are
 > binding.** Every claim in this repo carries a pre-registered, SHA256-hashed spec in
 > `docs/` with results appended under the hash. Read `HANDOFF.md` + the dated
