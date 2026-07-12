@@ -12,3 +12,12 @@ Registered command: `python -u backtest/run_v130_pass_policy.py --development`.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `f234a41c64ff9ac49668a97bc7718b8ba9e5291e39d05ff6c45601f8cc15c2a3`
+
+## Execution record
+
+The registered command reached `MC_START mode=E1_MEASURED paths=100000` but
+produced no 500-path checkpoint or MC outcome during a ten-minute observation
+window. The parent was then stopped. This is an execution failure, not a tested
+cell and not evidence for or against any policy. Inspection found that all 200
+queued jobs each carried the full compiled tape and metadata through the Windows
+process-pool serialization boundary. No result artifact or checkpoint exists.
