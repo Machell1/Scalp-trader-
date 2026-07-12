@@ -27,14 +27,32 @@ CELLS = [
 ]
 
 
-def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8, offset=0.6):
+def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8,
+        offset=0.6, entry_mode="limit", return_diag=False):
+    """Enumerate the realistic resting-limit control or immediate reclaim arm.
+
+    ``entry_mode='limit'`` is the historical default.  ``'reclaim'`` waits for
+    the first realistic trade-through, requires the same bar to close back on
+    the momentum side of the limit, and enters at the next bar open.
+    """
+    if entry_mode not in ("limit", "reclaim"):
+        raise ValueError(f"unsupported entry_mode: {entry_mode}")
     out = []
+    diag = {
+        "signals": 0,
+        "trade_through": 0,
+        "reclaim_pass": 0,
+        "reclaim_reject": 0,
+        "unfilled": 0,
+        "trades": 0,
+    }
     n = len(s.c)
     i = START
     while i < n - 1:
         if not (s.side[i] != 0 and np.isfinite(s.watr[i]) and s.watr[i] >= thr):
             i += 1
             continue
+        diag["signals"] += 1
         sd = int(s.side[i])
         a = s.atr[i]
         buf = buf_frac * a
@@ -45,8 +63,19 @@ def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8, offset=0
                 j = b
                 break
         if j < 0:
+            diag["unfilled"] += 1
             i = i + W
             continue
+        diag["trade_through"] += 1
+        if entry_mode == "reclaim":
+            reclaimed = (sd > 0 and s.c[j] > entry) or (sd < 0 and s.c[j] < entry)
+            if not reclaimed or j + 1 >= n:
+                diag["reclaim_reject"] += 1
+                i = j + 1
+                continue
+            diag["reclaim_pass"] += 1
+            j += 1
+            entry = s.o[j]
         risk = sl_mult * a
         sl = entry - risk * sd
         tp_px = entry + tp * a * sd if tp > 0 else None
@@ -83,8 +112,9 @@ def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8, offset=0
             xp = s.c[xb]
         r = r_banked + frac * (xp - entry) * sd / risk - cost_r
         out.append((int(s.ep[i]), r))
+        diag["trades"] += 1
         i = xb + 1
-    return out
+    return (out, diag) if return_diag else out
 
 
 def main():
