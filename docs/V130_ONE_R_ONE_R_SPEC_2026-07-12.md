@@ -50,9 +50,9 @@ The candidate advances only if every condition holds:
 3. pooled stitched-OOS expectancy is not below `CONTROL_V130`;
 4. every symbol has positive stitched-OOS expectancy;
 5. every complete stitched-OOS quarter has positive expectancy;
-6. candidate trade keys/counts equal the control, proving exits did not alter
-   later opportunity enumeration; if counts differ, report the live-parity
-   opportunity effect and fail the strict unchanged-opportunity gate;
+6. candidate trade-count and frequency deltas are reported. Earlier exits may
+   causally re-arm the symbol sooner under live-parity enumeration; those added
+   opportunities remain part of the frozen candidate and are not post-filtered;
 7. no source, engine, or manifest discrepancy occurs.
 
 Any failed gate means the 1R:1R idea is disposed of without EA changes. If all
@@ -65,4 +65,3 @@ Command: `python backtest/run_v130_one_r_one_r.py`
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `PENDING`
-
