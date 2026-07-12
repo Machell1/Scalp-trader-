@@ -55,5 +55,4 @@ One new cell; proposed working ledger `215 -> 216`. Terminal/EA/order writes: 0.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `3c0635497fcbee2211ea43c170524458f3b9ffd1b296a9772af5a915db84e664`
