@@ -300,6 +300,10 @@ int OnInit()
       EventSetTimer(InpHeartbeatSeconds);
 
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
+   bool panelReady = !InpShowPanel ||
+                     (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
+   PrintFormat("Panel v1.30 initialized: requested=%s ready=%s",
+               InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
    SyncOpenPositionStates();
