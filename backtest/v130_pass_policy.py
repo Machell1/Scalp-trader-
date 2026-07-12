@@ -24,12 +24,13 @@ Only :func:`self_test` creates data, and all of its fixtures are synthetic.
 from __future__ import annotations
 
 import hashlib
+from functools import lru_cache
 import json
 import math
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date, datetime, time, timedelta, timezone
 from enum import Enum, IntEnum
-from typing import Iterable, Mapping, Sequence
+from typing import ClassVar, Iterable, Mapping, Sequence
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -118,6 +119,7 @@ _KIND_ALIASES = {
 }
 
 
+@lru_cache(maxsize=32)
 def _kind(value: AccountEventKind | str) -> AccountEventKind:
     if isinstance(value, AccountEventKind):
         return value
@@ -317,6 +319,8 @@ class PassTape:
     days: tuple[DayTemplate, ...]
     trades: tuple[TradeTemplate, ...]
 
+    _eligible_cache: ClassVar[dict[tuple[int, int], tuple[int, ...]]] = {}
+
     @classmethod
     def from_events(
         cls,
@@ -393,15 +397,21 @@ class PassTape:
     def eligible_flat_block_starts(self, block_length: int) -> tuple[int, ...]:
         if block_length <= 0 or block_length > self.n_days:
             raise InputInvariantError("invalid block length")
-        return tuple(
+        cache_key = (id(self), int(block_length))
+        cached = self._eligible_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        result = tuple(
             start
             for start in range(self.n_days - block_length + 1)
             if self.flat_boundary_at_index(start)
             and self.flat_boundary_at_index(start + block_length)
         )
+        self._eligible_cache[cache_key] = result
+        return result
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ReplayEvent:
     replay_day: int
     ea_day: int
@@ -422,21 +432,25 @@ class ReplayEvent:
 
 
 class ReplayCursor:
-    def __init__(self, tape: PassTape) -> None:
+    def __init__(self, tape: PassTape, row_cache: dict[tuple[int, int], tuple[ReplayEvent, ...]] | None = None) -> None:
         self.tape = tape
         self.pending: dict[int, list[ReplayEvent]] = {}
+        self.row_cache = row_cache
 
     def events_for_day(self, replay_day: int, source_index: int) -> list[ReplayEvent]:
         if not 0 <= source_index < self.tape.n_days:
             raise InputInvariantError(f"source day out of range: {source_index}")
         template = self.tape.days[source_index]
-        for trade in template.trades:
-            replay_trade_id = f"d{replay_day}:s{source_index}:{trade.trade_id}"
-            for item in trade.events:
-                target_day = replay_day + item.day_offset
-                replay_event_id = f"{replay_trade_id}:{item.event.event_id}"
-                self.pending.setdefault(target_day, []).append(
-                    ReplayEvent(
+        cache_key = (int(replay_day), int(source_index))
+        rows_for_source = self.row_cache.get(cache_key) if self.row_cache is not None else None
+        if rows_for_source is None:
+            built: list[ReplayEvent] = []
+            for trade in template.trades:
+                replay_trade_id = f"d{replay_day}:s{source_index}:{trade.trade_id}"
+                for item in trade.events:
+                    target_day = replay_day + item.day_offset
+                    replay_event_id = f"{replay_trade_id}:{item.event.event_id}"
+                    built.append(ReplayEvent(
                         target_day,
                         replay_day + item.ea_day_offset,
                         item.second_of_day,
@@ -445,8 +459,12 @@ class ReplayCursor:
                         replay_trade_id,
                         replay_event_id,
                         item.event,
-                    )
-                )
+                    ))
+            rows_for_source = tuple(built)
+            if self.row_cache is not None:
+                self.row_cache[cache_key] = rows_for_source
+        for row in rows_for_source:
+            self.pending.setdefault(row.replay_day, []).append(row)
         rows = self.pending.pop(replay_day, [])
         seen: set[tuple[int, int]] = set()
         for row in rows:
@@ -789,6 +807,15 @@ class PhaseAccount:
         self.target_freeze_time: tuple[int, int] | None = None
         self.last_event_role = "neutral"
         self.counters = AccountCounters()
+        # Equity is queried several times without a state change around each
+        # replay event (rail check, target check, and result capture).  Keep a
+        # versioned cache; process() is the only operation that mutates marked
+        # positions or balance.
+        self._state_version = 0
+        self._equity_cache_version = -1
+        self._equity_cache = float(config.initial_balance)
+        self._marked_equity_cache_version = -1
+        self._marked_equity_cache = float(config.initial_balance)
 
     @property
     def target_pct(self) -> float:
@@ -895,12 +922,22 @@ class PhaseAccount:
         return stressed + runtime.accrued_swap_cash
 
     def marked_equity(self) -> float:
-        return self.balance + sum(self._marked_position_cash(x) for x in self.positions.values())
+        if self._marked_equity_cache_version == self._state_version:
+            return self._marked_equity_cache
+        value = self.balance + sum(self._marked_position_cash(x) for x in self.positions.values())
+        self._marked_equity_cache = value
+        self._marked_equity_cache_version = self._state_version
+        return value
 
     def equity(self) -> float:
-        return self.balance + sum(
+        if self._equity_cache_version == self._state_version:
+            return self._equity_cache
+        value = self.balance + sum(
             self._conservative_position_cash(x) for x in self.positions.values()
         )
+        self._equity_cache = value
+        self._equity_cache_version = self._state_version
+        return value
 
     def _suppress(self, trade_id: str) -> None:
         self.suppressed.add(trade_id)
@@ -908,6 +945,7 @@ class PhaseAccount:
     def process(self, row: ReplayEvent) -> None:
         if self.current_replay_day is None:
             raise InputInvariantError("event processed outside a calendar day")
+        self._state_version += 1
         event = row.event
         kind = event.normalized_kind()
         trade_id = row.replay_trade_id
@@ -1084,8 +1122,12 @@ class PhaseAccount:
         raise InputInvariantError(f"unsupported in-position event: {kind.value}")
 
     def check_rails(self) -> tuple[PhaseStatus, ResultReason] | None:
-        marked = self.marked_equity()
-        tested = marked if self.last_event_role == "favorable" else self.equity()
+        if self.positions:
+            marked = self.marked_equity()
+            tested = marked if self.last_event_role == "favorable" else self.equity()
+        else:
+            # The common pending-only/flat case has no mark arithmetic to do.
+            marked = tested = self.balance
         self.peak_equity = max(self.peak_equity, marked)
         self.min_equity = min(self.min_equity, tested)
         self.max_equity = max(self.max_equity, marked)
@@ -1183,11 +1225,12 @@ def simulate_two_phase_path(
     *,
     config: SimulationConfig = SimulationConfig(),
     path_id: int = 0,
+    row_cache: dict[tuple[int, int], tuple[ReplayEvent, ...]] | None = None,
 ) -> PathOutcome:
     required = 2 * config.max_calendar_days_per_phase
     if len(source_indices) < required:
         raise InputInvariantError(f"source stream needs at least {required} days")
-    cursor = ReplayCursor(tape)
+    cursor = ReplayCursor(tape, row_cache)
     raw = RawCapacityTracker(config.global_cap, config.cluster_cap)
     account = PhaseAccount(1, policy, metas, config)
     phase1: PhaseResult | None = None
@@ -1241,13 +1284,19 @@ def simulate_two_phase_path(
         rows = cursor.events_for_day(replay_day, source_index)
         transitioned = False
         for pos, row in enumerate(rows):
+            # Rails were checked immediately after the preceding event.  A
+            # timestamp advance alone changes no equity; only an EA-day reset
+            # changes the daily floor before this event.  Avoid the redundant
+            # pre-event rail pass while retaining the first-event/day check.
+            needs_pre_event_rails = account.current_ea_day != row.ea_day
             account.ensure_ea_day(row.ea_day)
             account.advance_time(row.time_key)
-            terminal = account.check_rails()
-            if terminal is not None:
-                failed = account.result(*terminal)
-                account.end_day()
-                return terminal_outcome(failed)
+            if needs_pre_event_rails:
+                terminal = account.check_rails()
+                if terminal is not None:
+                    failed = account.result(*terminal)
+                    account.end_day()
+                    return terminal_outcome(failed)
             account.refresh_target_freeze(row.time_key)
             if account.can_pass():
                 discarded = len(rows) - pos + cursor.discard_pending()
@@ -1471,6 +1520,7 @@ def run_monte_carlo(
         path_id = path_start + local_id
         # One stream per path, shared verbatim across every policy (CRN).
         source_indices = compiled.source_indices(path_id, total_days)
+        row_cache: dict[tuple[int, int], tuple[ReplayEvent, ...]] = {}
         for policy in policies:
             outcome = simulate_two_phase_path(
                 tape,
@@ -1479,6 +1529,7 @@ def run_monte_carlo(
                 source_indices,
                 config=config,
                 path_id=path_id,
+                row_cache=row_cache,
             )
             _write_outcome(arrays[policy.name][local_id], outcome)
     return {policy.name: CompactRun(policy, arrays[policy.name]) for policy in policies}
