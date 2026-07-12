@@ -83,3 +83,10 @@ changes, and terminal-setting changes authorized: zero.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `f5d20adc0f9d3d8535a8c4b585f4ef2c6fa5a82261b66d5b3073299325d79ad4`
+
+## Result appended after registration
+
+Executed once at `f058de297064211225933bffbda395829db79e52`.
+Verdict: **DISPOSE**. Full results are in
+`docs/FIP_ENTRY_3R_RESULTS_2026-07-12.md`; lossless artifact:
+`backtest/fip_entry_3r_results.json`.
