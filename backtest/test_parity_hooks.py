@@ -97,8 +97,9 @@ class NeverFillExecution:
 
 
 class SequenceExecution:
-    def __init__(self, outcomes):
+    def __init__(self, outcomes, loss_classifications=None):
         self.outcomes = outcomes
+        self.loss_classifications = loss_classifications or {}
 
     @staticmethod
     def find_fill(s, side, entry, w_start, w_end):
@@ -112,6 +113,7 @@ class SequenceExecution:
             "SL" if total_r < 0 else "FLAT" if total_r == 0 else "TP",
             total_r,
             int(s.ep[entry_bar]) + BAR_SEC,
+            loss_classification_r=self.loss_classifications.get(sig_i),
         )
 
 
@@ -282,6 +284,59 @@ def assert_zero_result_does_not_reset_live_streak():
     assert census.day_consec == 1
 
 
+def assert_loss_classification_override_is_default_off():
+    signal_bars = [START, START + 2, START + 4]
+    caps = {"global": 2, "cluster": 1, "fills_day": 8, "consec": 2}
+
+    default = synthetic()
+    for bar in signal_bars:
+        default.side[bar] = 1
+        default.watr[bar] = 0.50
+    positive_outcomes = {bar: 1.0 for bar in signal_bars}
+    default_trades, default_census = run_live(
+        [default],
+        thr={default.name: 0.30},
+        caps=caps,
+        window=4,
+        execution=SequenceExecution(positive_outcomes),
+    )
+    assert [trade.r for trade in default_trades] == [1.0, 1.0, 1.0]
+    assert default_census.day_consec == 0
+
+    classified_losses = synthetic()
+    for bar in signal_bars:
+        classified_losses.side[bar] = 1
+        classified_losses.watr[bar] = 0.50
+    classified_trades, classified_census = run_live(
+        [classified_losses],
+        thr={classified_losses.name: 0.30},
+        caps=caps,
+        window=4,
+        execution=SequenceExecution(
+            positive_outcomes,
+            {signal_bars[0]: -0.25, signal_bars[1]: -0.25},
+        ),
+    )
+    assert [trade.r for trade in classified_trades] == [1.0, 1.0]
+    assert classified_census.day_consec == 1
+
+    classified_wins = synthetic()
+    for bar in signal_bars:
+        classified_wins.side[bar] = 1
+        classified_wins.watr[bar] = 0.50
+    negative_outcomes = {bar: -1.0 for bar in signal_bars}
+    win_classifications = {bar: 0.25 for bar in signal_bars}
+    classified_win_trades, classified_win_census = run_live(
+        [classified_wins],
+        thr={classified_wins.name: 0.30},
+        caps=caps,
+        window=4,
+        execution=SequenceExecution(negative_outcomes, win_classifications),
+    )
+    assert [trade.r for trade in classified_win_trades] == [-1.0, -1.0, -1.0]
+    assert classified_win_census.day_consec == 0
+
+
 def main():
     assert_default_and_sink_are_side_effect_free()
     assert_legacy_hook_matches_default()
@@ -292,7 +347,8 @@ def main():
     assert_custom_account_day_boundary()
     assert_intrabar_event_stays_on_fill_day()
     assert_zero_result_does_not_reset_live_streak()
-    print("parity hook synthetic checks: 8 passed")
+    assert_loss_classification_override_is_default_off()
+    print("parity hook synthetic checks: 9 passed")
 
 
 if __name__ == "__main__":
