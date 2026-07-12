@@ -337,8 +337,9 @@ The mandatory F2 strict-ask 2x-cost pooled expectancy was
 `-0.0461761448R`; and JP225.cash, US100.cash, and US30.cash were each
 negative. The registered edge gate therefore killed the risk-policy study
 before C0/R1/R2/R3 Monte Carlo. Paths run: 0 of 100,000. Ledger: 209 -> 209;
-charge 0. Confirmation and holdout were not opened. [MEASURED: development
-edge command @ `18b04c7`]
+charge 0. This runner did not access confirmation or holdout. [MEASURED:
+development edge command @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 The exhaustive symbol, quarter, deletion, coupling-census, fidelity, failure,
 and terminal-write tables are recorded in
@@ -347,3 +348,134 @@ and terminal-write tables are recorded in
 
 **V1.30 RISK-SIZING IDEA DISPOSED -- EDGE LOST UNDER MANDATORY F2 2X COST;
 >88% FTMO CHALLENGE PASS EXPECTANCY NOT DEMONSTRATED.**
+
+#### Exhaustive development measurements
+
+Unless a narrower tag is shown, every value in the following tables is
+[MEASURED: `python backtest/run_v130_risk_study.py --development-edge` @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`].
+
+| column | trades | expectancy R | win rate | last-4-complete-quarter R | events | cross-EA-midnight trades |
+|---|---:|---:|---:|---:|---:|---:|
+| D0_TOUCH | 1,544 | +0.0580007762 | 41.58031088% | +0.0628647986 | 25,366 | 40 |
+| F1_PER_BAR | 1,504 | +0.0175799036 | 40.29255319% | +0.0189162026 | 24,895 | 38 |
+| F2_STRICT_ASK | 1,497 | +0.0025410956 | 39.61255845% | +0.0009467120 | 24,565 | 38 |
+| F2_STRICT_ASK_2X | 1,497 | -0.0445521560 | 39.41215765% | -0.0461761448 | 24,565 | 38 |
+
+| column | symbol | n | expectancy R | win rate |
+|---|---|---:|---:|---:|
+| D0 | JP225.cash | 596 | +0.0804086257 | 43.95973154% |
+| D0 | US100.cash | 380 | +0.0993865499 | 42.63157895% |
+| D0 | US30.cash | 568 | +0.0068006488 | 38.38028169% |
+| F1 | JP225.cash | 582 | +0.0417086051 | 42.61168385% |
+| F1 | US100.cash | 366 | +0.0309624880 | 40.16393443% |
+| F1 | US30.cash | 556 | -0.0164865175 | 37.94964029% |
+| F2 | JP225.cash | 581 | +0.0268069303 | 41.99655766% |
+| F2 | US100.cash | 363 | +0.0165379678 | 39.11845730% |
+| F2 | US30.cash | 553 | -0.0321412093 | 37.43218807% |
+| F2-2x | JP225.cash | 581 | -0.0229801996 | 41.82444062% |
+| F2-2x | US100.cash | 363 | -0.0280165664 | 38.84297521% |
+| F2-2x | US30.cash | 553 | -0.0780706474 | 37.25135624% |
+
+| column | quarter | n | expectancy R | win rate |
+|---|---|---:|---:|---:|
+| D0 | 2025Q2 | 288 | +0.0260030736 | 40.27777778% |
+| D0 | 2025Q3 | 309 | +0.0862631612 | 44.01294498% |
+| D0 | 2025Q4 | 308 | +0.0513681685 | 40.25974026% |
+| D0 | 2026Q1 | 299 | +0.0700242245 | 41.80602007% |
+| D0 | 2026Q2 | 301 | +0.0434966910 | 40.86378738% |
+| D0 | 2026Q3 partial | 39 | +0.1425090613 | 46.15384615% |
+| F1 | 2025Q2 | 279 | -0.0001923641 | 39.42652330% |
+| F1 | 2025Q3 | 299 | +0.0374882553 | 42.47491639% |
+| F1 | 2025Q4 | 303 | +0.0194357638 | 38.94389439% |
+| F1 | 2026Q1 | 294 | +0.0201065800 | 41.15646259% |
+| F1 | 2026Q2 | 290 | -0.0019818724 | 38.96551724% |
+| F1 | 2026Q3 partial | 39 | +0.1040827768 | 43.58974359% |
+| F2 | 2025Q2 | 277 | -0.0049576717 | 38.98916968% |
+| F2 | 2025Q3 | 299 | +0.0311990467 | 42.14046823% |
+| F2 | 2025Q4 | 297 | -0.0012402830 | 38.04713805% |
+| F2 | 2026Q1 | 297 | +0.0059325695 | 40.74074074% |
+| F2 | 2026Q2 | 288 | -0.0333474210 | 37.50000000% |
+| F2 | 2026Q3 partial | 39 | +0.1040827768 | 43.58974359% |
+| F2-2x | 2025Q2 | 277 | -0.0519680385 | 38.98916968% |
+| F2-2x | 2025Q3 | 299 | -0.0159208513 | 42.14046823% |
+| F2-2x | 2025Q4 | 297 | -0.0484173219 | 37.37373737% |
+| F2-2x | 2026Q1 | 297 | -0.0412537280 | 40.74074074% |
+| F2-2x | 2026Q2 | 288 | -0.0803520508 | 37.15277778% |
+| F2-2x | 2026Q3 partial | 39 | +0.0572973355 | 43.58974359% |
+
+The registered last four complete quarters were 2025Q3, 2025Q4, 2026Q1,
+and 2026Q2. [MEASURED: development-edge command @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
+
+| column | deleted symbol | pooled expectancy R |
+|---|---|---:|
+| D0 | JP225.cash | +0.0439131408 |
+| D0 | US100.cash | +0.0444899566 |
+| D0 | US30.cash | +0.0877975716 |
+| F1 | JP225.cash | +0.0023489879 |
+| F1 | US100.cash | +0.0132758387 |
+| F1 | US30.cash | +0.0375597877 |
+| F2 | JP225.cash | -0.0128502254 |
+| F2 | US100.cash | -0.0019393847 |
+| F2 | US30.cash | +0.0228581661 |
+| F2-2x | JP225.cash | -0.0582348052 |
+| F2-2x | US100.cash | -0.0498452945 |
+| F2-2x | US30.cash | -0.0249168534 |
+
+| column | W2 rejects | occupied rejects | cooldown | cluster cap | global cap | day-fill cap | day-loss-streak cap |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| D0 | 5,526 | 807 | 304 | 465 | 148 | 48 | 171 |
+| F1 | 5,520 | 823 | 294 | 470 | 151 | 33 | 176 |
+| F2 | 5,533 | 812 | 286 | 466 | 148 | 39 | 207 |
+| F2-2x | 5,533 | 812 | 286 | 466 | 148 | 39 | 207 |
+
+Queue fields were all zero because registered queue mode was off. [MEASURED:
+development-edge command @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
+
+| column | normalized event SHA256 |
+|---|---|
+| D0 | `aa7064cc2509cf1c7cdb158dae57feedc2e584098c72b5bf01b2b9a3bbda4a13` |
+| F1 | `6f0025dffec7011edf9a3a2701df7775a26b34b51cbae9d6efc3c557c24bd849` |
+| F2 | `6cd7b86866592927bd22475465feff138324c2487d8219a6a022e73b08b111a0` |
+| F2-2x | `c34e15c96c7c2413dae8c77809c6f7bdbcc14b43b1007487e52f81e526d6d79e` |
+
+The exact 15 failures were:
+
+1. `F1_PER_BAR/US30.cash: symbol expectancy < 0`
+2. `F1_PER_BAR: cross-server-midnight streak semantics differ from EA`
+3. `F2_STRICT_ASK/US30.cash: symbol expectancy < 0`
+4. `F2_STRICT_ASK/without-JP225.cash: pooled expectancy <= 0`
+5. `F2_STRICT_ASK/without-US100.cash: pooled expectancy <= 0`
+6. `F2_STRICT_ASK: cross-server-midnight streak semantics differ from EA`
+7. `F2_STRICT_ASK_2X: pooled expectancy <= 0`
+8. `F2_STRICT_ASK_2X: last-four-quarter expectancy <= 0`
+9. `F2_STRICT_ASK_2X/JP225.cash: symbol expectancy < 0`
+10. `F2_STRICT_ASK_2X/US100.cash: symbol expectancy < 0`
+11. `F2_STRICT_ASK_2X/US30.cash: symbol expectancy < 0`
+12. `F2_STRICT_ASK_2X/without-JP225.cash: pooled expectancy <= 0`
+13. `F2_STRICT_ASK_2X/without-US100.cash: pooled expectancy <= 0`
+14. `F2_STRICT_ASK_2X/without-US30.cash: pooled expectancy <= 0`
+15. `F2_STRICT_ASK_2X: cross-server-midnight streak semantics differ from EA`
+
+[MEASURED: JSON `edge_gate.failures` @
+`e777d5aead187ffdb94e886b287987385bd46d6b`]
+
+The fidelity control output was:
+
+```text
+V130_FIDELITY
+symbol=US30.cash D0_n=1318 D0_max_abs_r_delta=0.0000000000001597 F1_n=1304 F1_max_abs_r_delta=0.0000000000000001
+symbol=US100.cash D0_n=1267 D0_max_abs_r_delta=0.0000000000000998 F1_n=1243 F1_max_abs_r_delta=0.0000000000000002
+symbol=JP225.cash D0_n=1172 D0_max_abs_r_delta=0.0000000000000601 F1_n=1140 F1_max_abs_r_delta=0.0000000000000002
+fidelity_pass=True D0_total=3757 D0_max_abs_r_delta=0.0000000000001597 F1_total=3687 F1_max_abs_r_delta=0.0000000000000002
+```
+
+[MEASURED: `python backtest/v130_fidelity.py` @
+`e777d5aead187ffdb94e886b287987385bd46d6b`]
+
+This runner accessed only the mined frame; its code has no confirmation or
+holdout CLI. Global pristine/blind status remains conditional on owner
+attestation about any manual or untracked access. [MEASURED: runner source @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]

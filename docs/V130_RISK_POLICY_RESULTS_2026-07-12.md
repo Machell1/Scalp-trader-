@@ -5,7 +5,8 @@
 **KILLED AT THE EDGE GATE.** The unchanged v1.30 tape is positive under the
 primary observed-spread column but loses its edge under the mandatory strict-ask
 2x-cost stress. No Monte Carlo risk-policy cell ran, no ledger hypothesis was
-charged, and neither locked confirmation nor sealed holdout was opened.
+charged, and this runner did not access either locked confirmation or sealed
+holdout.
 
 The 90% trade-win objective is not supported: the eligible execution columns
 measured 39.41% to 40.29% winning trades. Risk sizing cannot change that trade
@@ -15,25 +16,47 @@ win rate. [MEASURED: `python backtest/run_v130_risk_study.py --development-edge`
 ## Provenance and fidelity
 
 - Protocol SHA256: `8f2043af550df082e493a3d295f305d014c4083115b96bfbdfe61855f860e30a`.
+  [MEASURED: `python backtest/freeze_ftmo_v130_blind.py --verify` @
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
+- Result artifact timestamp: `2026-07-12T06:14:47.522503+00:00`.
+  [MEASURED: JSON provenance @
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
 - Development frame: newest 30,000 frozen FTMO M15 bars/symbol; confirmation
-  and holdout remained unopened. [MEASURED: edge command @ `18b04c7`]
+  and holdout were not accessed by this runner. The loader path for this command
+  reaches only `load_ftmo_split("mined")`. Global pristine/blind status remains
+  conditional on the outstanding owner attestation about manual or untracked
+  access. [MEASURED: edge command and runner source @
+  `18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 - `verified FTMO blind freeze 9 OK, 0 missing, 0 mismatched, 0 extra`.
-  [MEASURED: `python backtest/freeze_ftmo_v130_blind.py --verify` @ `18b04c7`]
+  [MEASURED: `python backtest/freeze_ftmo_v130_blind.py --verify` @
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
 - `verified 46 OK, 0 missing, 0 mismatched`.
-  [MEASURED: `python backtest/verify_data.py` @ `18b04c7`]
+  [MEASURED: `python backtest/verify_data.py` @
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
 - Golden regression: 46 identical, 0 failed, 134,626 trades across 46 canonical
-  files. [MEASURED: `python backtest/parity_regression.py` @ `18b04c7`]
+  files. [MEASURED: `python backtest/parity_regression.py` @
+  `18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 - Independent D0 identity: 3,757 trades, maximum absolute R difference
   0.0000000000001597. Independent F1 identity: 3,687 trades, maximum absolute R
   difference 0.0000000000000002. Both are below the registered 1e-12 tolerance.
-  [MEASURED: `python backtest/v130_fidelity.py` @ `18b04c7`]
+  [MEASURED: `python backtest/v130_fidelity.py` @
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
+- Per-symbol fidelity: US30.cash D0 1,318 trades / max absolute R delta
+  0.0000000000001597 and F1 1,304 / 0.0000000000000001; US100.cash D0
+  1,267 / 0.0000000000000998 and F1 1,243 / 0.0000000000000002;
+  JP225.cash D0 1,172 / 0.0000000000000601 and F1 1,140 /
+  0.0000000000000002. [MEASURED: `python backtest/v130_fidelity.py` @
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
 - Synthetic gates: parity hooks 8/8, account/risk engine 16/16, coupled adapter
-  7/7. [MEASURED: synthetic commands @ `18b04c7`]
+  7/7. [MEASURED: `python backtest/test_parity_hooks.py`;
+  `python backtest/v130_risk_policy.py --self-test`;
+  `python backtest/v130_coupled.py` @
+  `18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ## Coupled execution results
 
 All values in the following tables are [MEASURED: development-edge command @
-`18b04c7`]. D0 is diagnostic only. F1, F2, and F2-2x are the registered
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]. D0 is diagnostic only. F1, F2, and F2-2x are the registered
 eligibility columns.
 
 | column | trades | expectancy R | win rate | last-4-complete-quarter R | events | cross-EA-midnight trades |
@@ -45,7 +68,8 @@ eligibility columns.
 
 F2 and F2-2x had identical trade IDs, bars, prices, reasons, occupancy, and
 lifecycle events; only registered transaction-cost cashflows differed.
-[MEASURED: runner identity assertion @ `18b04c7`]
+[MEASURED: runner identity assertion @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ### Per-symbol cells
 
@@ -94,7 +118,8 @@ lifecycle events; only registered transaction-cost cashflows differed.
 | F2-2x | 2026Q3 partial | 39 | +0.0572973355 | 43.58974359% |
 
 The registered last-four complete quarters were 2025Q3, 2025Q4, 2026Q1, and
-2026Q2. [MEASURED: edge command @ `18b04c7`]
+2026Q2. [MEASURED: edge command @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ### Delete-one-symbol cells
 
@@ -123,7 +148,8 @@ The registered last-four complete quarters were 2025Q3, 2025Q4, 2026Q1, and
 | F2-2x | 5,533 | 812 | 286 | 466 | 148 | 39 | 207 |
 
 Queue fields were all zero because the registered queue mode is off.
-[MEASURED: edge command @ `18b04c7`]
+[MEASURED: edge command @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ### Determinism hashes
 
@@ -135,7 +161,8 @@ Queue fields were all zero because the registered queue mode is off.
 | F2-2x | `c34e15c96c7c2413dae8c77809c6f7bdbcc14b43b1007487e52f81e526d6d79e` |
 
 Each hash matched an immediate second run byte-for-byte. [MEASURED:
-development-edge command @ `18b04c7`]
+development-edge command @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ## Gate failures and disposition
 
@@ -143,19 +170,45 @@ The edge gate failed 15 checks: F1 US30 expectancy; F2 US30 expectancy; two F2
 delete-one-symbol cells; F2-2x pooled expectancy; F2-2x last-four expectancy;
 all three F2-2x symbol cells; all three F2-2x delete-one-symbol cells; and the
 cross-server-midnight fidelity condition in F1, F2, and F2-2x. [MEASURED: edge
-command @ `18b04c7`]
+command @ `18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
+
+The exact registered failures were:
+
+1. `F1_PER_BAR/US30.cash: symbol expectancy < 0`
+2. `F1_PER_BAR: cross-server-midnight streak semantics differ from EA`
+3. `F2_STRICT_ASK/US30.cash: symbol expectancy < 0`
+4. `F2_STRICT_ASK/without-JP225.cash: pooled expectancy <= 0`
+5. `F2_STRICT_ASK/without-US100.cash: pooled expectancy <= 0`
+6. `F2_STRICT_ASK: cross-server-midnight streak semantics differ from EA`
+7. `F2_STRICT_ASK_2X: pooled expectancy <= 0`
+8. `F2_STRICT_ASK_2X: last-four-quarter expectancy <= 0`
+9. `F2_STRICT_ASK_2X/JP225.cash: symbol expectancy < 0`
+10. `F2_STRICT_ASK_2X/US100.cash: symbol expectancy < 0`
+11. `F2_STRICT_ASK_2X/US30.cash: symbol expectancy < 0`
+12. `F2_STRICT_ASK_2X/without-JP225.cash: pooled expectancy <= 0`
+13. `F2_STRICT_ASK_2X/without-US100.cash: pooled expectancy <= 0`
+14. `F2_STRICT_ASK_2X/without-US30.cash: pooled expectancy <= 0`
+15. `F2_STRICT_ASK_2X: cross-server-midnight streak semantics differ from EA`
+
+[MEASURED: JSON `edge_gate.failures` @
+`e777d5aead187ffdb94e886b287987385bd46d6b`]
 
 The risk-policy idea is disposed. C0, R1, R2, and R3 Monte Carlo were not run,
 because position sizing cannot restore a negative pre-account edge. Registered
 paths run: 0 of 100,000. Ledger: 209 -> 209; charge 0. [MEASURED: edge command @
-`18b04c7`]
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
-Confirmation and holdout status: **unopened**. [MEASURED: runner has no blind
-frame CLI @ `18b04c7`]
+Confirmation and holdout status for this runner: **not accessed**. The command
+has no blind-frame CLI, but global pristine status remains conditional on owner
+attestation about manual or untracked access. [MEASURED: runner source @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ## Failed-command journal
 
-The first blind-freeze attempt failed transactionally and published no frame:
+Command: `python backtest/freeze_ftmo_v130_blind.py`
+
+The first blind-freeze attempt failed transactionally and published no frame.
+Its complete retained output was:
 
 ```text
 Traceback (most recent call last):
@@ -170,32 +223,56 @@ Traceback (most recent call last):
 RuntimeError: US30.cash: copy_rates_range failed: (-2, 'Terminal: Invalid params')
 ```
 
+Command: `python backtest/parity_regression.py`
+
 The first manifest-safe parity run failed before opening any CSV because the
-historical manifest comment header was CP-1252:
+historical manifest comment header was CP-1252. Only the following final
+exception line was retained; the complete traceback was not preserved and is
+therefore not reconstructed:
 
 ```text
 UnicodeDecodeError: 'utf-8' codec can't decode byte 0x97 in position 29: invalid start byte
 ```
 
-The verifier correctly rejected both uncommitted below-hash appends (the
-implementation conventions and, later, this result append) before their
-respective commits:
+Command: `python backtest/freeze_ftmo_v130_blind.py --verify`
+
+The verifier correctly rejected the uncommitted result append before commit.
+Its complete retained output was:
 
 ```text
+warning: in the working copy of 'docs/V130_RISK_POLICY_SPEC_2026-07-11.md', LF will be replaced by CRLF the next time Git touches it
+Traceback (most recent call last):
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\freeze_ftmo_v130_blind.py", line 608, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\freeze_ftmo_v130_blind.py", line 599, in main
+    verify_manifest()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\freeze_ftmo_v130_blind.py", line 436, in verify_manifest
+    verify_protocol_hash()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\freeze_ftmo_v130_blind.py", line 171, in verify_protocol_hash
+    raise RuntimeError("working protocol differs from committed HEAD")
 RuntimeError: working protocol differs from committed HEAD
 ```
 
-Intermediate synthetic assertions also failed while timing and no-epsilon lot
-fixtures were being corrected; the final suites above passed. [MEASURED:
-development logs before `18b04c7`]
+The earlier conventions-append rejection retained only the same final
+`RuntimeError` line. Intermediate synthetic assertions also failed while timing
+and no-epsilon lot fixtures were being corrected. Their complete raw outputs
+were not preserved. That is a reporting defect; this report does not invent or
+backfill them. The final registered suites above passed. [MEASURED: retained
+development logs before
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 
 ## Terminal-write and operational journal
 
 - FTMO access for this study was read-only market-data retrieval. No order was
   placed, modified, or closed; no EA input, chart, terminal setting, or deployed
-  file was changed during this study. [MEASURED: study operations @ `18b04c7`]
+  file was changed during this study. [MEASURED: study operations @
+  `18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
 - Repo writes were the preregistration, exporter, frozen-data manifest, fidelity
-  engines, result JSON, and this report. [MEASURED: Git history]
+  engines, result JSON, and this report. [MEASURED: Git history through
+  `e777d5aead187ffdb94e886b287987385bd46d6b`]
 - A process-status diagnostic inadvertently exposed an unrelated resident Deriv
   bridge credential in the tool log. The Deriv terminal was not connected to or
   operated. That credential should be rotated. [MEASURED: operational incident]
