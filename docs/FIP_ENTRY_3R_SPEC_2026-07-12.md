@@ -82,5 +82,4 @@ changes, and terminal-setting changes authorized: zero.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `f5d20adc0f9d3d8535a8c4b585f4ef2c6fa5a82261b66d5b3073299325d79ad4`

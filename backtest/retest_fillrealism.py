@@ -27,14 +27,27 @@ CELLS = [
 ]
 
 
-def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8, offset=0.6):
+def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8,
+        offset=0.6, pre_entry=None, return_diag=False):
     out = []
+    diag = {
+        "frozen_signals": 0,
+        "predicate_eligible": 0,
+        "predicate_rejected": 0,
+        "trades": 0,
+    }
     n = len(s.c)
     i = START
     while i < n - 1:
         if not (s.side[i] != 0 and np.isfinite(s.watr[i]) and s.watr[i] >= thr):
             i += 1
             continue
+        diag["frozen_signals"] += 1
+        if pre_entry is not None and not pre_entry(s, i):
+            diag["predicate_rejected"] += 1
+            i += 1
+            continue
+        diag["predicate_eligible"] += 1
         sd = int(s.side[i])
         a = s.atr[i]
         buf = buf_frac * a
@@ -83,8 +96,9 @@ def run(s, tp, so_frac, so_at, buf_frac, thr=0.30, sl_mult=1.0, hold=8, offset=0
             xp = s.c[xb]
         r = r_banked + frac * (xp - entry) * sd / risk - cost_r
         out.append((int(s.ep[i]), r))
+        diag["trades"] += 1
         i = xb + 1
-    return out
+    return (out, diag) if return_diag else out
 
 
 def main():
