@@ -61,6 +61,7 @@ class EventKind(str, Enum):
     MARK = "mark"
     PARTIAL = "partial"
     FINAL = "final"
+    SWAP = "swap"
 
 
 class EquityMode(str, Enum):
@@ -88,6 +89,8 @@ _KIND_ALIASES = {
     "final": EventKind.FINAL,
     "final_exit": EventKind.FINAL,
     "exit": EventKind.FINAL,
+    "swap": EventKind.SWAP,
+    "swap_charge": EventKind.SWAP,
 }
 
 
@@ -118,6 +121,21 @@ class LifecycleEvent:
     stop_distance: float
     entry_cost_r: float = 0.0
     mark_role: str = "neutral"
+    cash_adjustment_r: float = 0.0
+    classification_r_component: float | None = None
+
+    @property
+    def classifier_r(self) -> float:
+        """Exit-deal R used by the deployed server-day loss classifier.
+
+        Legacy callers omit this field; their gross partial/final R is the
+        classifier component.  Cost-aware callers provide the exit-fraction
+        slippage-adjusted component explicitly.  Timed swap is kept separate
+        and attached to the final deal at account replay.
+        """
+        if self.classification_r_component is None:
+            return float(self.r_component)
+        return float(self.classification_r_component)
 
     @classmethod
     def from_mapping(cls, row: Mapping[str, object]) -> "LifecycleEvent":
@@ -150,6 +168,12 @@ class LifecycleEvent:
             stop_distance=float(required("stop_distance")),
             entry_cost_r=float(required("entry_cost_r")),
             mark_role=str(row.get("mark_role", "neutral")),
+            cash_adjustment_r=float(row.get("cash_adjustment_r", 0.0)),
+            classification_r_component=(
+                None
+                if row.get("classification_r_component") is None
+                else float(row["classification_r_component"])
+            ),
         )
 
 
@@ -275,6 +299,7 @@ def _validate_lifecycle_events(
             event.signal_atr,
             event.stop_distance,
             event.entry_cost_r,
+            event.cash_adjustment_r,
         )
         if not all(math.isfinite(x) for x in numeric):
             raise InputInvariantError(f"{event.event_id}: non-finite numeric field")
@@ -284,6 +309,11 @@ def _validate_lifecycle_events(
             raise InputInvariantError(f"{event.event_id}: invalid remaining fraction")
         if event.entry_cost_r < 0.0:
             raise InputInvariantError(f"{event.event_id}: entry cost cannot be negative")
+        if (
+            event.classification_r_component is not None
+            and not math.isfinite(event.classification_r_component)
+        ):
+            raise InputInvariantError(f"{event.event_id}: non-finite classifier R")
         if event.mark_role not in {"neutral", "favorable", "adverse"}:
             raise InputInvariantError(f"{event.event_id}: invalid mark role")
         by_trade.setdefault(event.trade_id, []).append(event)
@@ -317,6 +347,8 @@ def _validate_lifecycle_events(
                     raise InputInvariantError(f"{trade_id}: entry remaining fraction != 1")
                 if abs(row.r_component) > FRACTION_EPS or abs(row.open_r) > FRACTION_EPS:
                     raise InputInvariantError(f"{trade_id}: entry gross/open R must be zero")
+                if abs(row.cash_adjustment_r) > FRACTION_EPS:
+                    raise InputInvariantError(f"{trade_id}: entry cash adjustment must be zero")
             elif kind is EventKind.MARK:
                 if abs(row.r_component) > FRACTION_EPS:
                     raise InputInvariantError(f"{trade_id}: mark cannot realise R")
@@ -324,6 +356,8 @@ def _validate_lifecycle_events(
                     raise InputInvariantError(f"{trade_id}: mark changed nominal size")
                 if abs(row.open_r - price_r * nominal) > 1e-9:
                     raise InputInvariantError(f"{trade_id}: open_r inconsistent with mark price")
+                if abs(row.cash_adjustment_r) > FRACTION_EPS:
+                    raise InputInvariantError(f"{trade_id}: mark cash adjustment must be zero")
             elif kind is EventKind.PARTIAL:
                 if not 0.0 < row.remaining_fraction < nominal - FRACTION_EPS:
                     raise InputInvariantError(f"{trade_id}: partial did not reduce nominal size")
@@ -339,6 +373,13 @@ def _validate_lifecycle_events(
                 if abs(row.r_component - price_r * nominal_before) > 1e-9:
                     raise InputInvariantError(f"{trade_id}: final R inconsistent with price/size")
                 nominal = 0.0
+            elif kind is EventKind.SWAP:
+                if abs(row.r_component) > FRACTION_EPS or abs(row.open_r) > 1e-9:
+                    raise InputInvariantError(f"{trade_id}: swap must not realise price/open R")
+                if abs(row.remaining_fraction - nominal) > FRACTION_EPS:
+                    raise InputInvariantError(f"{trade_id}: swap changed nominal size")
+                if abs(row.entry_cost_r) > FRACTION_EPS:
+                    raise InputInvariantError(f"{trade_id}: swap entry cost must be zero")
             if kind is not EventKind.ENTRY and row.entry_cost_r > FRACTION_EPS:
                 raise InputInvariantError(f"{trade_id}: cost may only appear on entry")
 
@@ -738,10 +779,18 @@ class RiskPolicy:
     name: str
     phase1_risk: float
     phase2_risk: float
+    # Optional immutable symbol overrides.  An empty tuple preserves the
+    # historical scalar policy byte-for-byte.
+    symbol_risks: tuple[tuple[str, float, float], ...] = ()
 
     def __post_init__(self) -> None:
         if not self.name or not 0.0 < self.phase1_risk < 1.0 or not 0.0 < self.phase2_risk < 1.0:
             raise InputInvariantError("invalid risk policy")
+        names: set[str] = set()
+        for symbol, phase1, phase2 in self.symbol_risks:
+            if not symbol or symbol in names or not 0.0 < phase1 < 1.0 or not 0.0 < phase2 < 1.0:
+                raise InputInvariantError("invalid symbol risk policy")
+            names.add(symbol)
 
     def for_phase(self, phase: int) -> float:
         if phase == 1:
@@ -749,6 +798,14 @@ class RiskPolicy:
         if phase == 2:
             return self.phase2_risk
         raise InputInvariantError(f"invalid FTMO phase: {phase}")
+
+    def for_phase_symbol(self, phase: int, symbol: str) -> float:
+        if phase not in (1, 2):
+            raise InputInvariantError(f"invalid FTMO phase: {phase}")
+        for name, phase1, phase2 in self.symbol_risks:
+            if name == symbol:
+                return phase1 if phase == 1 else phase2
+        return self.for_phase(phase)
 
 
 @dataclass(frozen=True)
@@ -830,6 +887,9 @@ class TradeRuntime:
     mark_price: float
     cumulative_net_cash: float
     theoretical_net_r: float
+    entry_cost_r: float = 0.0
+    classifier_by_ea_day: dict[int, float] = field(default_factory=dict)
+    accrued_swap_cash: float = 0.0
 
 
 class PhaseAccount:
@@ -839,11 +899,13 @@ class PhaseAccount:
         risk_fraction: float,
         metas: Mapping[str, SymbolMeta],
         config: SimulationConfig,
+        risk_policy: RiskPolicy | None = None,
     ) -> None:
         self.phase = phase
         self.risk_fraction = risk_fraction
         self.metas = metas
         self.config = config
+        self.risk_policy = risk_policy
         self.balance = config.initial_balance
         self.peak_equity = config.initial_balance
         self.min_equity = config.initial_balance
@@ -969,9 +1031,14 @@ class PhaseAccount:
                 return
             self._capacity_assert(event)
             meta = self._meta(event.symbol)
+            risk_fraction = (
+                self.risk_policy.for_phase_symbol(self.phase, event.symbol)
+                if self.risk_policy is not None
+                else self.risk_fraction
+            )
             lot = size_for_risk(
                 self.balance,
-                self.risk_fraction,
+                risk_fraction,
                 event.stop_distance,
                 meta,
                 min_budget_multiple=self.config.min_lot_budget_multiple,
@@ -997,6 +1064,7 @@ class PhaseAccount:
                 mark_price=event.price,
                 cumulative_net_cash=-entry_cost,
                 theoretical_net_r=-event.entry_cost_r * self.config.cost_multiplier,
+                entry_cost_r=event.entry_cost_r * self.config.cost_multiplier,
             )
             self.positions[row.replay_trade_id] = runtime
             self.fills_today += 1
@@ -1011,6 +1079,14 @@ class PhaseAccount:
         meta = self._meta(runtime.symbol)
         if kind is EventKind.MARK:
             runtime.mark_price = event.price
+            return
+
+        if kind is EventKind.SWAP:
+            cash = event.cash_adjustment_r * runtime.actual_risk_cash
+            self.balance += cash
+            runtime.cumulative_net_cash += cash
+            runtime.theoretical_net_r += event.cash_adjustment_r
+            runtime.accrued_swap_cash += cash
             return
 
         if kind is EventKind.PARTIAL:
@@ -1031,6 +1107,12 @@ class PhaseAccount:
                 )
                 self.balance += cash
                 runtime.cumulative_net_cash += cash
+                classifier_cash = cash - runtime.entry_cost_r * (
+                    close_volume / runtime.volume
+                )
+                runtime.classifier_by_ea_day[row.ea_day] = (
+                    runtime.classifier_by_ea_day.get(row.ea_day, 0.0) + classifier_cash
+                )
                 runtime.current_volume -= close_volume
                 self.counters.partial_executed += 1
             runtime.nominal_remaining = event.remaining_fraction
@@ -1059,11 +1141,18 @@ class PhaseAccount:
             )
             if actual_sign != theoretical_sign:
                 self.counters.sign_mismatches += 1
+            final_classifier_cash = cash - runtime.entry_cost_r * (
+                runtime.current_volume / runtime.volume
+            ) + runtime.accrued_swap_cash
+            classifier_cash = (
+                runtime.classifier_by_ea_day.get(row.ea_day, 0.0)
+                + final_classifier_cash
+            )
             self.positions.pop(row.replay_trade_id)
             self.counters.completed += 1
-            if net < -MONEY_EPS:
+            if classifier_cash < -MONEY_EPS:
                 self.consecutive_losses_today += 1
-            elif net > MONEY_EPS:
+            elif classifier_cash > MONEY_EPS:
                 self.consecutive_losses_today = 0
             # Exact zero leaves the current streak unchanged, matching the
             # EA's three-way loss/win/flat ledger rule.
@@ -1228,7 +1317,7 @@ def simulate_two_phase_path(
 
     cursor = ReplayCursor(tape)
     raw = RawCapacityTracker(config.global_cap, config.cluster_cap)
-    account = PhaseAccount(1, policy.phase1_risk, metas, config)
+    account = PhaseAccount(1, policy.phase1_risk, metas, config, risk_policy=policy)
     phase1: PhaseResult | None = None
     previous_source_index: int | None = None
 
@@ -1259,7 +1348,7 @@ def simulate_two_phase_path(
             return PathOutcome(path_id, policy.name, phase1, failed)
         rows = cursor.events_for_day(replay_day, source_index)
         transition = False
-        for pos, row in enumerate(rows):
+        for row in rows:
             raw.process(row)
             account.ensure_ea_day(row.ea_day)
             account.process(row)
@@ -1272,21 +1361,25 @@ def simulate_two_phase_path(
                     return PathOutcome(path_id, policy.name, failed, _not_run_phase(2))
                 assert phase1 is not None
                 return PathOutcome(path_id, policy.name, phase1, failed)
-            if account.can_pass():
-                discarded = len(rows) - pos - 1 + cursor.discard_pending()
-                raw_active = raw.reset_phase_boundary()
-                passed = account.result(
-                    PhaseStatus.PASS,
-                    "TARGET_AND_MIN_DAYS",
-                    discarded_tail_events=discarded,
-                    discarded_raw_active=raw_active,
-                )
-                account.end_day()
-                if account.phase == 1:
-                    phase1 = passed
-                    account = PhaseAccount(2, policy.phase2_risk, metas, config)
-                    transition = True
-                    break
+
+        # Recognise a target only at the end of a source calendar day and only
+        # when the source tape is flat at the following Prague midnight.  This
+        # prevents a working pending from being treated as a passed phase.
+        if account.can_pass() and tape.flat_boundary_at_index(source_index + 1):
+            discarded = cursor.discard_pending()
+            raw_active = raw.reset_phase_boundary()
+            passed = account.result(
+                PhaseStatus.PASS,
+                "TARGET_AND_MIN_DAYS",
+                discarded_tail_events=discarded,
+                discarded_raw_active=raw_active,
+            )
+            account.end_day()
+            if account.phase == 1:
+                phase1 = passed
+                account = PhaseAccount(2, policy.phase2_risk, metas, config, risk_policy=policy)
+                transition = True
+            else:
                 assert phase1 is not None
                 return PathOutcome(path_id, policy.name, phase1, passed)
 
