@@ -84,5 +84,4 @@ settings writes: zero.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `2a087311596fcc04442c45e8d4f89065b7497c4b0b057493ce9c3d07f26c29e9`
