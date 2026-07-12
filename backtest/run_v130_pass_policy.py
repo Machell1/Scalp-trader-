@@ -7,7 +7,6 @@ not represented by a command-line flag here.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import hashlib
 import json
 import math
@@ -23,14 +22,13 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_WORKER_INIT_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_CSHARP_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
 RESULT = HERE / "v130_pass_policy_microchunk_results.json"
 NPZ = HERE / "v130_pass_policy_microchunk_paths.npz"
-PROTOCOL_SHA256 = "0db2f86fb5dd791ff0d27afbc536ccdddd326005e38ea9c6689356d3448c43f6"
+PROTOCOL_SHA256 = "13f771393bc9de6b47760be7dc4c25492bdceb9f3aa0ddd7a17fc5aef78774f8"
 PATHS = 100_000
 CHUNK_SIZE = 500
-WORKERS = 2
 BLOCK_LENGTH = 20
 MODES = ("E1_MEASURED", "E2_STRESS")
 
@@ -40,6 +38,7 @@ from freeze_ftmo_v130_blind import verify_manifest as verify_blind_manifest
 from v130_coupled import load_ftmo_split
 from v130_cost_ledger import run_cost_coupled
 from v130_pass_adapter import compile_cost_tape
+from v130_pass_policy_csharp import run_csharp_monte_carlo
 from v130_pass_policy import (
     C0,
     C1,
@@ -83,6 +82,8 @@ def _clean_dependency_check() -> str:
         "docs/V130_FTMO_PASS_POLICY_CHUNK_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_MICROCHUNK_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_WORKER_INIT_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_NUMBA_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_CSHARP_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
@@ -90,6 +91,9 @@ def _clean_dependency_check() -> str:
         "backtest/v130_risk_policy.py",
         "backtest/v130_pass_policy.py",
         "backtest/v130_pass_adapter.py",
+        "backtest/v130_pass_policy_csharp.py",
+        "backtest/v130_pass_policy_kernel.cs",
+        "backtest/check_v130_pass_policy_csharp.py",
         "backtest/run_v130_pass_policy.py",
         "backtest/ftmo_v130_blind_20260711.manifest.sha256",
     )
@@ -303,60 +307,32 @@ def _gate(results: dict[str, Any]) -> tuple[bool, list[str]]:
     return not failures, failures
 
 
-_WORKER_TAPE = None
-_WORKER_METAS = None
-
-
-def _init_mc_worker(tape, metas) -> None:
-    """Install immutable mode inputs once per spawned worker."""
-    global _WORKER_TAPE, _WORKER_METAS
-    _WORKER_TAPE = tape
-    _WORKER_METAS = metas
-
-
-def _mc_chunk(args):
-    """Top-level pickle-safe deterministic path chunk worker."""
-    start, count = args
-    if _WORKER_TAPE is None or _WORKER_METAS is None:
-        raise RuntimeError("MC worker inputs were not initialized")
-    runs = run_monte_carlo(
-        _WORKER_TAPE, _WORKER_METAS, POLICIES,
-        paths=count,
-        path_start=start,
-        bootstrap=BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH),
-        config=__import__("v130_pass_policy").SimulationConfig(equity_mode=EquityMode.TWO_STOP),
-    )
-    return start, {name: run.rows for name, run in runs.items()}
-
-
 def _chunk_file(mode: str, start: int) -> Path:
     return HERE / f"v130_pass_policy_chunk_{mode}_{start:06d}.npz"
 
 
 def _chunked_monte_carlo(mode: str, tape, metas) -> dict[str, CompactRun]:
-    direct = run_monte_carlo(
-        tape, metas, POLICIES,
-        paths=1,
-        path_start=0,
-        bootstrap=BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH),
-        config=__import__("v130_pass_policy").SimulationConfig(equity_mode=EquityMode.TWO_STOP),
-    )
-    with ProcessPoolExecutor(
-        max_workers=1,
-        initializer=_init_mc_worker,
-        initargs=(tape, metas),
-    ) as check_pool:
-        _, worker_rows = check_pool.submit(_mc_chunk, (0, 1)).result()
-    if any(
-        direct[name].rows.tobytes() != worker_rows[name].tobytes()
-        for name in ("C0", "C1", "P1")
-    ):
-        raise RuntimeError("worker-initialized MC differs from direct MC")
-    print(f"PASS worker_initialized_equals_direct mode={mode}", flush=True)
+    bootstrap = BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH)
+    config = __import__("v130_pass_policy").SimulationConfig(equity_mode=EquityMode.TWO_STOP)
+    for path_id in (0, 137):
+        direct = run_monte_carlo(
+            tape, metas, POLICIES, paths=1, path_start=path_id,
+            bootstrap=bootstrap, config=config,
+        )
+        compiled = run_csharp_monte_carlo(
+            tape, metas, POLICIES, paths=1, path_start=path_id,
+            bootstrap=bootstrap,
+        )
+        for name in ("C0", "C1", "P1"):
+            if direct[name].rows.tobytes() != compiled[name].rows.tobytes():
+                raise RuntimeError(
+                    f"C# MC differs from Python reference: mode={mode} "
+                    f"path={path_id} policy={name}"
+                )
+        print(f"PASS csharp_equals_reference mode={mode} path={path_id}", flush=True)
 
     starts = tuple(range(0, PATHS, CHUNK_SIZE))
     chunks: dict[int, dict[str, np.ndarray]] = {}
-    pending = []
     for start in starts:
         path = _chunk_file(mode, start)
         count = min(CHUNK_SIZE, PATHS - start)
@@ -369,23 +345,18 @@ def _chunked_monte_carlo(mode: str, tape, metas) -> dict[str, CompactRun]:
             chunks[start] = rows
             print(f"MC_CHUNK_REUSED mode={mode} start={start} count={count}", flush=True)
         else:
-            pending.append((start, count))
-    if pending:
-        with ProcessPoolExecutor(
-            max_workers=WORKERS,
-            initializer=_init_mc_worker,
-            initargs=(tape, metas),
-        ) as pool:
-            futures = {pool.submit(_mc_chunk, item): item[0] for item in pending}
-            for future in as_completed(futures):
-                start, rows = future.result()
-                np.savez_compressed(_chunk_file(mode, start), **rows)
-                chunks[start] = rows
-                print(
-                    f"MC_CHUNK_DONE mode={mode} start={start} "
-                    f"count={len(next(iter(rows.values())))} completed={len(chunks)}/{len(starts)}",
-                    flush=True,
-                )
+            runs = run_csharp_monte_carlo(
+                tape, metas, POLICIES, paths=count, path_start=start,
+                bootstrap=bootstrap,
+            )
+            rows = {name: run.rows for name, run in runs.items()}
+            np.savez_compressed(_chunk_file(mode, start), **rows)
+            chunks[start] = rows
+            print(
+                f"MC_CHUNK_DONE mode={mode} start={start} "
+                f"count={count} completed={len(chunks)}/{len(starts)}",
+                flush=True,
+            )
     policy_by_name = {policy.name: policy for policy in POLICIES}
     return {
         name: CompactRun(policy_by_name[name], np.concatenate([chunks[start][name] for start in starts]))
