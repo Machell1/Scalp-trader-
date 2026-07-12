@@ -7,6 +7,7 @@ not represented by a command-line flag here.
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import hashlib
 import json
 import math
@@ -22,12 +23,14 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_RESTART4_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_CHUNK_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
-RESULT = HERE / "v130_pass_policy_restart4_results.json"
-NPZ = HERE / "v130_pass_policy_restart4_paths.npz"
-PROTOCOL_SHA256 = "1780c9886bfb9ff74f8d368bebbe957384ddbec08b0d5d186bb55b74d848b2fd"
+RESULT = HERE / "v130_pass_policy_chunk_results.json"
+NPZ = HERE / "v130_pass_policy_chunk_paths.npz"
+PROTOCOL_SHA256 = "57f465900d0f0d04033f850d50802bac10d61c22276b48c8db43f40c074669b0"
 PATHS = 100_000
+CHUNK_SIZE = 5_000
+WORKERS = 2
 BLOCK_LENGTH = 20
 MODES = ("E1_MEASURED", "E2_STRESS")
 
@@ -43,6 +46,7 @@ from v130_pass_policy import (
     P1,
     POLICIES,
     BootstrapSpec,
+    CompactRun,
     EquityMode,
     InputInvariantError,
     run_monte_carlo,
@@ -76,6 +80,7 @@ def _clean_dependency_check() -> str:
         "docs/V130_FTMO_PASS_POLICY_REPAIR2_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_RESTART3_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_RESTART4_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_CHUNK_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
@@ -296,6 +301,59 @@ def _gate(results: dict[str, Any]) -> tuple[bool, list[str]]:
     return not failures, failures
 
 
+def _mc_chunk(args):
+    """Top-level pickle-safe deterministic path chunk worker."""
+    tape, metas, start, count = args
+    runs = run_monte_carlo(
+        tape, metas, POLICIES,
+        paths=count,
+        path_start=start,
+        bootstrap=BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH),
+        config=__import__("v130_pass_policy").SimulationConfig(equity_mode=EquityMode.TWO_STOP),
+    )
+    return start, {name: run.rows for name, run in runs.items()}
+
+
+def _chunk_file(mode: str, start: int) -> Path:
+    return HERE / f"v130_pass_policy_chunk_{mode}_{start:06d}.npz"
+
+
+def _chunked_monte_carlo(mode: str, tape, metas) -> dict[str, CompactRun]:
+    starts = tuple(range(0, PATHS, CHUNK_SIZE))
+    chunks: dict[int, dict[str, np.ndarray]] = {}
+    pending = []
+    for start in starts:
+        path = _chunk_file(mode, start)
+        count = min(CHUNK_SIZE, PATHS - start)
+        if path.exists():
+            with np.load(path, allow_pickle=False) as saved:
+                rows = {name: saved[name] for name in ("C0", "C1", "P1")}
+            expected = np.arange(start, start + count)
+            if any(not np.array_equal(rows[name]["path_id"], expected) for name in rows):
+                raise RuntimeError(f"invalid checkpoint path IDs: {path}")
+            chunks[start] = rows
+            print(f"MC_CHUNK_REUSED mode={mode} start={start} count={count}", flush=True)
+        else:
+            pending.append((tape, metas, start, count))
+    if pending:
+        with ProcessPoolExecutor(max_workers=WORKERS) as pool:
+            futures = {pool.submit(_mc_chunk, item): item[2] for item in pending}
+            for future in as_completed(futures):
+                start, rows = future.result()
+                np.savez_compressed(_chunk_file(mode, start), **rows)
+                chunks[start] = rows
+                print(
+                    f"MC_CHUNK_DONE mode={mode} start={start} "
+                    f"count={len(next(iter(rows.values())))} completed={len(chunks)}/{len(starts)}",
+                    flush=True,
+                )
+    policy_by_name = {policy.name: policy for policy in POLICIES}
+    return {
+        name: CompactRun(policy_by_name[name], np.concatenate([chunks[start][name] for start in starts]))
+        for name in ("C0", "C1", "P1")
+    }
+
+
 def run_development() -> dict[str, Any]:
     if RESULT.exists() or NPZ.exists():
         raise RuntimeError("refusing to overwrite existing pass-policy result")
@@ -364,14 +422,7 @@ def run_development() -> dict[str, Any]:
     arrays: dict[str, np.ndarray] = {}
     for mode in MODES:
         print(f"MC_START mode={mode} paths={PATHS}", flush=True)
-        runs = run_monte_carlo(
-            tapes[mode]["tape"],
-            tapes[mode]["metas"],
-            POLICIES,
-            paths=PATHS,
-            bootstrap=BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH),
-            config=__import__("v130_pass_policy").SimulationConfig(equity_mode=EquityMode.TWO_STOP),
-        )
+        runs = _chunked_monte_carlo(mode, tapes[mode]["tape"], tapes[mode]["metas"])
         arrays.update({f"{mode}__{name}": run.rows for name, run in runs.items()})
         mode_payload = {
             "summaries": {name: _summary_json(run) for name, run in runs.items()},

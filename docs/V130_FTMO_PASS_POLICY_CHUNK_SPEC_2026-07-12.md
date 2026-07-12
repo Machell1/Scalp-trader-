@@ -18,5 +18,4 @@ Registered command: `python -u backtest/run_v130_pass_policy.py --development`.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `57f465900d0f0d04033f850d50802bac10d61c22276b48c8db43f40c074669b0`

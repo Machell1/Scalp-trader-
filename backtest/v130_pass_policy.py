@@ -1456,17 +1456,19 @@ def run_monte_carlo(
     policies: Sequence[RiskPolicy] = POLICIES,
     *,
     paths: int,
+    path_start: int = 0,
     bootstrap: BootstrapSpec = BootstrapSpec(),
     config: SimulationConfig = SimulationConfig(),
 ) -> dict[str, CompactRun]:
-    if paths <= 0 or not policies:
+    if paths <= 0 or path_start < 0 or not policies:
         raise InputInvariantError("Monte Carlo needs positive paths and policies")
     if len({policy.name for policy in policies}) != len(policies):
         raise InputInvariantError("policy names must be unique")
     compiled = CompiledBootstrap.compile(tape, bootstrap)
     arrays = {policy.name: np.zeros(paths, dtype=RESULT_DTYPE) for policy in policies}
     total_days = 2 * config.max_calendar_days_per_phase
-    for path_id in range(paths):
+    for local_id in range(paths):
+        path_id = path_start + local_id
         # One stream per path, shared verbatim across every policy (CRN).
         source_indices = compiled.source_indices(path_id, total_days)
         for policy in policies:
@@ -1478,7 +1480,7 @@ def run_monte_carlo(
                 config=config,
                 path_id=path_id,
             )
-            _write_outcome(arrays[policy.name][path_id], outcome)
+            _write_outcome(arrays[policy.name][local_id], outcome)
     return {policy.name: CompactRun(policy, arrays[policy.name]) for policy in policies}
 
 
@@ -1735,6 +1737,17 @@ def self_test() -> tuple[str, ...]:
     )[phase_policy.name]
     assert run1.normalized_bytes() == run2.normalized_bytes()
     assert run1.sha256() == run2.sha256()
+    chunk_a = run_monte_carlo(
+        win_tape, small_metas, (phase_policy,), paths=2, path_start=0,
+        bootstrap=bootstrap, config=phase_config,
+    )[phase_policy.name]
+    chunk_b = run_monte_carlo(
+        win_tape, small_metas, (phase_policy,), paths=1, path_start=2,
+        bootstrap=bootstrap, config=phase_config,
+    )[phase_policy.name]
+    chunked = CompactRun(phase_policy, np.concatenate((chunk_a.rows, chunk_b.rows)))
+    assert chunked.normalized_bytes() == run1.normalized_bytes()
+    passed.append("monolithic_equals_path_id_chunks")
     summary = run1.summary()
     assert summary.both_passes == 3 and summary.p90_total_days_success == 8.0
     lo, hi = wilson_one_sided(88_000, 100_000)
