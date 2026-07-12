@@ -64,4 +64,4 @@ Command: `python backtest/run_v130_one_r_one_r.py`
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
+**Recorded protocol SHA256:** `16fc8f12a78db09424b6b6b7f30984a40e99894018f012289c8f1a669bd1f4d5`
