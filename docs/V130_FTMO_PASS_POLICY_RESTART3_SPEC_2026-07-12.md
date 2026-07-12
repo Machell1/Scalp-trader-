@@ -19,5 +19,4 @@ No confirmation/holdout or terminal write is authorized.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `f3242a7e13259107f3d4402a8e221e0b2bbac35b6383010b7def9849f6d48e21`

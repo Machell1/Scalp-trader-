@@ -22,11 +22,11 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_REPAIR2_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_RESTART3_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
-RESULT = HERE / "v130_pass_policy_repair_results.json"
-NPZ = HERE / "v130_pass_policy_repair_paths.npz"
-PROTOCOL_SHA256 = "fa63f652cb5dbe5005bba23b48756fccdb5f2819949fa476bbc4e387d016138c"
+RESULT = HERE / "v130_pass_policy_restart3_results.json"
+NPZ = HERE / "v130_pass_policy_restart3_paths.npz"
+PROTOCOL_SHA256 = "f3242a7e13259107f3d4402a8e221e0b2bbac35b6383010b7def9849f6d48e21"
 PATHS = 100_000
 BLOCK_LENGTH = 20
 MODES = ("E1_MEASURED", "E2_STRESS")
@@ -74,6 +74,7 @@ def _clean_dependency_check() -> str:
         "docs/V130_FTMO_PASS_POLICY_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_REPAIR_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_REPAIR2_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_RESTART3_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
