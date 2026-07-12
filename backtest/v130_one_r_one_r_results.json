@@ -1,0 +1,150 @@
+{
+  "candidate_minus_control_oos": {
+    "expectancy_r": 0.04781626332143908,
+    "n": 38,
+    "total_r": 57.8811635714961,
+    "win_rate": 0.16148195955498185
+  },
+  "commit": "27a4c84cb3c8c0277590726ea4775bab036ac04d",
+  "complete_pooled_oos_quarters": [
+    "2025Q4",
+    "2026Q1",
+    "2026Q2"
+  ],
+  "gates": {
+    "every_complete_oos_quarter_positive": true,
+    "every_symbol_oos_expectancy_positive": true,
+    "pooled_oos_expectancy_not_below_control": true,
+    "pooled_oos_expectancy_positive": true,
+    "pooled_oos_win_rate_gt_80pct": false
+  },
+  "ledger": {
+    "charged_cells": 1,
+    "end": 210,
+    "start": 209
+  },
+  "protocol_sha256": "9a32d3f85f9107e175693f40cb5cef2b1eaf779708ff350051cf0a34ce4770f3",
+  "results": {
+    "CANDIDATE_FULL_TP1": {
+      "all": {
+        "expectancy_r": 0.11709865207107596,
+        "n": 3897,
+        "total_r": 456.333447120983,
+        "win_rate": 0.5783936361303567
+      },
+      "stitched_oos": {
+        "expectancy_r": 0.1113504243379329,
+        "n": 1160,
+        "total_r": 129.16649223200216,
+        "win_rate": 0.5741379310344827
+      },
+      "stitched_oos_by_quarter": {
+        "2025Q4": {
+          "expectancy_r": 0.10930367278007207,
+          "n": 406,
+          "total_r": 44.37729114870926,
+          "win_rate": 0.5714285714285714
+        },
+        "2026Q1": {
+          "expectancy_r": 0.09590202364497692,
+          "n": 388,
+          "total_r": 37.209985174251045,
+          "win_rate": 0.5670103092783505
+        },
+        "2026Q2": {
+          "expectancy_r": 0.1267820878446485,
+          "n": 355,
+          "total_r": 45.007641184850215,
+          "win_rate": 0.5830985915492958
+        },
+        "2026Q3": {
+          "expectancy_r": 0.23377952038105876,
+          "n": 11,
+          "total_r": 2.5715747241916462,
+          "win_rate": 0.6363636363636364
+        }
+      },
+      "stitched_oos_by_symbol": {
+        "Japan_225": {
+          "expectancy_r": 0.10902377856633172,
+          "n": 380,
+          "total_r": 41.42903585520605,
+          "win_rate": 0.5868421052631579
+        },
+        "US_Tech_100": {
+          "expectancy_r": 0.19022866550220047,
+          "n": 386,
+          "total_r": 73.42826488384938,
+          "win_rate": 0.6062176165803109
+        },
+        "Wall_Street_30": {
+          "expectancy_r": 0.03631774490595616,
+          "n": 394,
+          "total_r": 14.309191492946727,
+          "win_rate": 0.5304568527918782
+        }
+      }
+    },
+    "CONTROL_V130": {
+      "all": {
+        "expectancy_r": 0.06088447035858481,
+        "n": 3757,
+        "total_r": 228.74295513720313,
+        "win_rate": 0.4069736491881821
+      },
+      "stitched_oos": {
+        "expectancy_r": 0.06353416101649381,
+        "n": 1122,
+        "total_r": 71.28532866050605,
+        "win_rate": 0.4126559714795009
+      },
+      "stitched_oos_by_quarter": {
+        "2025Q4": {
+          "expectancy_r": 0.049669834825756966,
+          "n": 390,
+          "total_r": 19.371235582045216,
+          "win_rate": 0.4025641025641026
+        },
+        "2026Q1": {
+          "expectancy_r": 0.06207714798835984,
+          "n": 374,
+          "total_r": 23.21685334764658,
+          "win_rate": 0.4144385026737968
+        },
+        "2026Q2": {
+          "expectancy_r": 0.07116107148256307,
+          "n": 348,
+          "total_r": 24.764052875931945,
+          "win_rate": 0.4166666666666667
+        },
+        "2026Q3": {
+          "expectancy_r": 0.3933186854882318,
+          "n": 10,
+          "total_r": 3.933186854882318,
+          "win_rate": 0.6
+        }
+      },
+      "stitched_oos_by_symbol": {
+        "Japan_225": {
+          "expectancy_r": 0.04556106691832001,
+          "n": 365,
+          "total_r": 16.629789425186804,
+          "win_rate": 0.41643835616438357
+        },
+        "US_Tech_100": {
+          "expectancy_r": 0.1332814611521727,
+          "n": 373,
+          "total_r": 49.71398500976042,
+          "win_rate": 0.4289544235924933
+        },
+        "Wall_Street_30": {
+          "expectancy_r": 0.012868630795726135,
+          "n": 384,
+          "total_r": 4.941554225558836,
+          "win_rate": 0.3932291666666667
+        }
+      }
+    }
+  },
+  "verdict": "DISPOSE"
+}
