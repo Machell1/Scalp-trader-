@@ -94,5 +94,4 @@ and live-setting changes authorized: zero.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `ef7e00a98e51cb7d407d0d79c08cda13d8efdb8d76a1943e23dcaad924bb4167`
