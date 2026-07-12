@@ -22,11 +22,11 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_CSHARP_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_CSHARP_PARALLEL_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
 RESULT = HERE / "v130_pass_policy_microchunk_results.json"
 NPZ = HERE / "v130_pass_policy_microchunk_paths.npz"
-PROTOCOL_SHA256 = "13f771393bc9de6b47760be7dc4c25492bdceb9f3aa0ddd7a17fc5aef78774f8"
+PROTOCOL_SHA256 = "f364738910824cc5bf249a9958d8ad25a3defced2e881b7af31ecb889d896465"
 PATHS = 100_000
 CHUNK_SIZE = 500
 BLOCK_LENGTH = 20
@@ -84,6 +84,7 @@ def _clean_dependency_check() -> str:
         "docs/V130_FTMO_PASS_POLICY_WORKER_INIT_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_NUMBA_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_CSHARP_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_CSHARP_PARALLEL_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",

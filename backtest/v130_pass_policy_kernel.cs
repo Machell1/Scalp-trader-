@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 internal sealed class Tape
 {
@@ -391,12 +392,18 @@ internal static class Program
         {
             if (args.Length != 2) throw new ArgumentException("usage: kernel input.bin output.bin");
             Tape t = ReadTape(args[0]);
+            Result[,] results = new Result[t.Paths, t.Policies];
+            Parallel.For(0, t.Paths, delegate(int path)
+            {
+                for (int policy = 0; policy < t.Policies; ++policy)
+                    results[path, policy] = new Simulator(t, path, policy).Run();
+            });
             using (BinaryWriter bw = new BinaryWriter(File.Create(args[1])))
             {
                 for (int path = 0; path < t.Paths; ++path)
                     for (int policy = 0; policy < t.Policies; ++policy)
                     {
-                        Result r = new Simulator(t, path, policy).Run();
+                        Result r = results[path, policy];
                         for (int j = 0; j < r.I.Length; ++j) bw.Write(r.I[j]);
                         for (int j = 0; j < r.D.Length; ++j) bw.Write(r.D[j]);
                     }
