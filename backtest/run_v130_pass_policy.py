@@ -23,11 +23,11 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_MICROCHUNK_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_WORKER_INIT_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
 RESULT = HERE / "v130_pass_policy_microchunk_results.json"
 NPZ = HERE / "v130_pass_policy_microchunk_paths.npz"
-PROTOCOL_SHA256 = "f234a41c64ff9ac49668a97bc7718b8ba9e5291e39d05ff6c45601f8cc15c2a3"
+PROTOCOL_SHA256 = "0db2f86fb5dd791ff0d27afbc536ccdddd326005e38ea9c6689356d3448c43f6"
 PATHS = 100_000
 CHUNK_SIZE = 500
 WORKERS = 2
@@ -82,6 +82,7 @@ def _clean_dependency_check() -> str:
         "docs/V130_FTMO_PASS_POLICY_RESTART4_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_CHUNK_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_MICROCHUNK_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_WORKER_INIT_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
@@ -302,11 +303,24 @@ def _gate(results: dict[str, Any]) -> tuple[bool, list[str]]:
     return not failures, failures
 
 
+_WORKER_TAPE = None
+_WORKER_METAS = None
+
+
+def _init_mc_worker(tape, metas) -> None:
+    """Install immutable mode inputs once per spawned worker."""
+    global _WORKER_TAPE, _WORKER_METAS
+    _WORKER_TAPE = tape
+    _WORKER_METAS = metas
+
+
 def _mc_chunk(args):
     """Top-level pickle-safe deterministic path chunk worker."""
-    tape, metas, start, count = args
+    start, count = args
+    if _WORKER_TAPE is None or _WORKER_METAS is None:
+        raise RuntimeError("MC worker inputs were not initialized")
     runs = run_monte_carlo(
-        tape, metas, POLICIES,
+        _WORKER_TAPE, _WORKER_METAS, POLICIES,
         paths=count,
         path_start=start,
         bootstrap=BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH),
@@ -320,6 +334,26 @@ def _chunk_file(mode: str, start: int) -> Path:
 
 
 def _chunked_monte_carlo(mode: str, tape, metas) -> dict[str, CompactRun]:
+    direct = run_monte_carlo(
+        tape, metas, POLICIES,
+        paths=1,
+        path_start=0,
+        bootstrap=BootstrapSpec(seed=13020260711, block_length=BLOCK_LENGTH),
+        config=__import__("v130_pass_policy").SimulationConfig(equity_mode=EquityMode.TWO_STOP),
+    )
+    with ProcessPoolExecutor(
+        max_workers=1,
+        initializer=_init_mc_worker,
+        initargs=(tape, metas),
+    ) as check_pool:
+        _, worker_rows = check_pool.submit(_mc_chunk, (0, 1)).result()
+    if any(
+        direct[name].rows.tobytes() != worker_rows[name].tobytes()
+        for name in ("C0", "C1", "P1")
+    ):
+        raise RuntimeError("worker-initialized MC differs from direct MC")
+    print(f"PASS worker_initialized_equals_direct mode={mode}", flush=True)
+
     starts = tuple(range(0, PATHS, CHUNK_SIZE))
     chunks: dict[int, dict[str, np.ndarray]] = {}
     pending = []
@@ -335,10 +369,14 @@ def _chunked_monte_carlo(mode: str, tape, metas) -> dict[str, CompactRun]:
             chunks[start] = rows
             print(f"MC_CHUNK_REUSED mode={mode} start={start} count={count}", flush=True)
         else:
-            pending.append((tape, metas, start, count))
+            pending.append((start, count))
     if pending:
-        with ProcessPoolExecutor(max_workers=WORKERS) as pool:
-            futures = {pool.submit(_mc_chunk, item): item[2] for item in pending}
+        with ProcessPoolExecutor(
+            max_workers=WORKERS,
+            initializer=_init_mc_worker,
+            initargs=(tape, metas),
+        ) as pool:
+            futures = {pool.submit(_mc_chunk, item): item[0] for item in pending}
             for future in as_completed(futures):
                 start, rows = future.result()
                 np.savez_compressed(_chunk_file(mode, start), **rows)
