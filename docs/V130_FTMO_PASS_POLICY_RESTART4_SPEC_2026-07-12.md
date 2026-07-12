@@ -14,5 +14,4 @@ New hypothesis charge zero. Confirmation, holdout and terminal writes denied.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `1780c9886bfb9ff74f8d368bebbe957384ddbec08b0d5d186bb55b74d848b2fd`
