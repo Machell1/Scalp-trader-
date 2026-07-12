@@ -75,3 +75,9 @@ reconciliation. Terminal writes, orders, EA changes, and settings changes: zero.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `239f3889bb36fd0dfcc46ee3376f55b86b48c1d1375c2b3be695b3f892a25467`
+
+## Result appended after registration
+
+Executed once at `58f2cc57723b39d56ea3049a921051ce4cb1514d`.
+Verdict: **DISPOSE**. Full report: `docs/PANIC_REBOUND_VETO_3R_RESULTS_2026-07-12.md`;
+lossless artifact: `backtest/panic_veto_3r_results.json`.
