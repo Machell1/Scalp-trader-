@@ -74,5 +74,4 @@ reconciliation. Terminal writes, orders, EA changes, and settings changes: zero.
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `239f3889bb36fd0dfcc46ee3376f55b86b48c1d1375c2b3be695b3f892a25467`
