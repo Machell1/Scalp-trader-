@@ -29,3 +29,11 @@ Hypothesis charge: zero. No blind-frame unlock or trading-terminal access.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `13f771393bc9de6b47760be7dc4c25492bdceb9f3aa0ddd7a17fc5aef78774f8`
+
+## Execution record
+
+The exact equivalence gate passed for E1/E2, path IDs 0/137, and all three
+policies after correcting Python sum grouping and canonical NaN bits. Four E1
+checkpoints (IDs 0..1,999) were written. A new 500-path checkpoint took about
+three minutes, projecting roughly 20 hours for both modes, so execution was
+stopped for path-level parallelization. No aggregate MC result was inspected.
