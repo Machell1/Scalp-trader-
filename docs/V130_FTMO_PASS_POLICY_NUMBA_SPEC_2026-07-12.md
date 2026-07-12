@@ -33,3 +33,11 @@ policy cell. No blind-frame unlock or trading-terminal access is permitted.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `79126053eeaae33174e93aaf292cd636a4b787ecfe0c1d5dd94761330f5c5428`
+
+## Execution record
+
+E1/path 0 was checkpointed from the Python reference. The monolithic Numba
+lowering did not finish in 20 minutes with optimization disabled. Extracting
+rail and result helpers still did not finish within a 15-minute ceiling. No
+compiled result row and no MC outcome was produced. The Numba implementation
+was disposed as an execution dead end; this tests no policy cell.
