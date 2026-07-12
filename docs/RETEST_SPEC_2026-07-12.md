@@ -109,3 +109,20 @@ SHA256 e7df76dfd077a1672abac3829505b5ba76b678204f036c241503986a1f7dc7a5)
 4. Ledger: 155 + 54 retest screens (30+19+4 gate+1 holdout) noted → future
    retrospective DSR hurdles at ~209. Confirmatory charges begin at promotion.
 5. Internet harvest (wf_910ad55a) results append separately when complete.
+
+### Harvest + fill-realism addendum (2026-07-13, same night)
+- Harvest delivered 57 raw -> 12 distilled ideas (docs/HARVEST_2026-07-13.md).
+  **Idea #1 (trade-through limit fills; MQL5 live data: 59% of touched-but-not-
+  crossed limits never fill) was actioned immediately** as a robustness column
+  (backtest/retest_fillrealism.py + inline asymmetric variant):
+  - Symmetric buffer stress: buf 0.02×ATR -> finalists +0.025; 0.05 -> negative.
+  - **Venue-correct asymmetric rule** (bid bars: BUY-side limits — long entries,
+    short TP/SO — need full-spread trade-through; sell-side fill at bid touch):
+    **TP1.5+so33@1R +0.0288 / MC 67.1%/18.2%; so50@1R TP2.0 +0.0270 / 66.1%/17.6%;
+    base −0.0310 / 14.0%.** The geometry delta (~+0.06) survives; the honest
+    planning numbers are MC ≈ 66%, not the touch-fill 93% (upper bound).
+- Queued for pre-registered screening next session (priority order): Alvarez
+  entry-geometry A/B under real fills; Raschke first-touch/ADX>30 gate; JFE
+  first/last-half-hour intraday momentum; uncapped stop-and-reverse exit;
+  bar-close stop evaluation; bracket grid remainder. Ledger charges at their
+  specs.
