@@ -265,3 +265,50 @@ lower-bound >88% calculation. Until then, the objective remains unproven.
 
 Not run at registration. Results may be appended here only; the protocol above
 the recorded hash is immutable.
+
+### Locked implementation conventions (before any policy cell)
+
+The following deterministic conventions resolve implementation details that the
+hashed protocol did not numerically define. They were recorded before opening
+any development policy outcome, confirmation, or holdout cell.
+
+- FTMO daily floor is Prague-midnight balance minus 5% of phase initial
+  balance. Equality is conservatively classified as a breach.
+- A phase passes only while flat, with closed balance at/above target and at
+  least four distinct Prague entry days. Phase 2 starts on the next Prague
+  calendar day and continues the same bootstrap stream without a redraw.
+- Registered original-volume transaction cost is debited at entry. Partial and
+  final rows contain gross price cashflows and must reconcile to theoretical R.
+- The paired R2-minus-C0 gate uses the unconditional matched-path delta
+  `p(R2-only pass) - p(C0-only pass)`. Its one-sided 95% lower bound is the
+  Bonferroni difference between a 97.5% one-sided exact Clopper-Pearson lower
+  bound for the R2-only multinomial cell and the corresponding exact upper
+  bound for the C0-only cell.
+- Primary moving blocks are 20 complete Prague calendar days and may start only
+  where both midnight boundaries are flat across working pendings and open
+  positions. Orphans, overlaps, or ambiguous stitched ordering are fatal
+  fidelity errors.
+- Median and P90 completion days use successful both-phase paths; failures,
+  hard halts, breaches, and timeouts are reported separately.
+- The symbol-dependence gate requires nonnegative expectancy for every symbol
+  and positive pooled expectancy after deleting each symbol.
+- "Last four quarters" means the last four complete calendar quarters. Fewer
+  than four complete quarters is a failure.
+- The conservative two-stop open-equity envelope is eligibility-binding. The
+  2x-stop gap envelope is reported as the mandatory diagnostic stress.
+- FTMO limits and minimum days reset at Europe/Prague midnight. The deployed EA
+  uses broker `TimeCurrent()` and therefore resets its fills, streak, and 4%
+  day halt on Europe/Helsinki broker days (one hour earlier); both clocks are
+  modeled independently.
+- Favorable and adverse bar marks are replayed while positions are open. The EA
+  peak is updated from favorable marked equity before the binding stop envelope
+  is applied to floor/drawdown tests.
+- A policy-neutral tape is eligibility-valid only if every path reports zero
+  policy-dependent skipped entries and zero theoretical-versus-rounded outcome
+  sign mismatches. Any nonzero divergence kills the study rather than assuming
+  missed opportunities.
+- The policy-independent tape retains the theoretical 50% partial. Account
+  replay applies actual lot-step partial rounding; when a partial is invalid,
+  the full rounded position remains for the final price cashflow.
+
+No policy result had been run when these conventions were appended.

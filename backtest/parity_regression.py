@@ -4,7 +4,6 @@ trade-for-trade on EVERY manifest CSV before any corrected number is reported.
 Pre-registered gate in docs/W2_PARITY_SPEC_2026-07-12.md: identity of
 (signal_bar, entry_bar, side, r) with |dr| < 1e-9. Any diff = stop.
 """
-import glob
 import os
 import sys
 
@@ -12,6 +11,8 @@ import numpy as np
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+CANONICAL_MANIFEST = os.path.join(HERE, "data", "MANIFEST.sha256")
 sys.path.insert(0, HERE)
 from scalper_backtest import Params, simulate_symbol
 from walkforward_dsr import real_cost_per_side
@@ -23,8 +24,37 @@ P = dict(momentum_bars=6, momentum_atr=2.0, atr_period=14, direction="cont",
          max_hold_bars=8)
 
 
+def canonical_csvs():
+    """Return only the 46 pinned Deriv CSVs named by the canonical manifest.
+
+    A recursive data-directory glob is unsafe now that ignored, sealed FTMO
+    frames coexist under backtest/data: merely running a legacy regression
+    must never open a confirmation or holdout price file.
+    """
+    paths = []
+    data_root = os.path.realpath(os.path.join(HERE, "data"))
+    # Parse bytes because the historical comment header contains a CP-1252 em
+    # dash, while every actionable SHA256/path record is deliberately ASCII.
+    with open(CANONICAL_MANIFEST, "rb") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line or line.startswith(b"#"):
+                continue
+            fields = line.split(maxsplit=1)
+            if len(fields) != 2 or not fields[1].lower().endswith(b".csv"):
+                continue
+            relative = fields[1].decode("ascii")
+            path = os.path.realpath(os.path.join(ROOT, relative.replace("/", os.sep)))
+            if os.path.commonpath((data_root, path)) != data_root:
+                raise RuntimeError(f"manifest path escapes canonical data root: {relative}")
+            paths.append(path)
+    if len(paths) != 46 or len(set(paths)) != 46:
+        raise RuntimeError(f"expected 46 unique canonical CSVs, found {len(paths)}")
+    return sorted(paths)
+
+
 def main():
-    files = sorted(glob.glob(os.path.join(HERE, "data", "*", "*.csv")))
+    files = canonical_csvs()
     n_ok = n_fail = 0
     total_trades = 0
     for path in files:
