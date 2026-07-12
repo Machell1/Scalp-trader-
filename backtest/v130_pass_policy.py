@@ -385,7 +385,10 @@ class PassTape:
             raise InputInvariantError("calendar boundary index out of range")
         boundary = self.first_day + timedelta(days=boundary_index)
         epoch = _local_midnight_epoch(boundary, PRAGUE)
-        return not any(trade.start_epoch < epoch < trade.end_epoch for trade in self.trades)
+        # A final event exactly at midnight is replayed on the following
+        # calendar day; keep that boundary ineligible so a sampled block
+        # cannot orphan the carried final event.
+        return not any(trade.start_epoch < epoch <= trade.end_epoch for trade in self.trades)
 
     def eligible_flat_block_starts(self, block_length: int) -> tuple[int, ...]:
         if block_length <= 0 or block_length > self.n_days:
@@ -1660,6 +1663,21 @@ def self_test() -> tuple[str, ...]:
         last_day="2026-01-08",
     )
     assert not pending_tape.flat_boundary_at_index(1)
+    # Equality-boundary regression: a final event exactly at Prague midnight
+    # is replayed on the following calendar day and therefore is not flat.
+    equality_boundary = _local_midnight_epoch(date(2026, 1, 6), PRAGUE)
+    equality_tape = PassTape.from_events(
+        (
+            AccountEvent("eq-open", "eq", "US30.cash", "US", equality_boundary - 3600, 1,
+                         AccountEventKind.PENDING_OPEN, 1, 100.0, 10.0),
+            AccountEvent("eq-final", "eq", "US30.cash", "US", equality_boundary, 2,
+                         AccountEventKind.PENDING_CANCEL, 1),
+        ),
+        first_day="2026-01-05",
+        last_day="2026-01-07",
+    )
+    assert not equality_tape.flat_boundary_at_index(1)
+    passed.append("final_event_exactly_at_midnight_is_not_flat")
     starts = pending_tape.eligible_flat_block_starts(2)
     compiled = CompiledBootstrap.compile(
         pending_tape,

@@ -22,11 +22,11 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_REPAIR_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
-RESULT = HERE / "v130_pass_policy_development_results.json"
-NPZ = HERE / "v130_pass_policy_development_paths.npz"
-PROTOCOL_SHA256 = "0bccf0057f65b30e70a3b70663476ecadf6348efaee5aa366f3e235a3dfad671"
+RESULT = HERE / "v130_pass_policy_repair_results.json"
+NPZ = HERE / "v130_pass_policy_repair_paths.npz"
+PROTOCOL_SHA256 = "486bc9ae857332f29dbe1bb434399d3baeaaa0e3938f6e338ddb22bab05bc4"
 PATHS = 100_000
 BLOCK_LENGTH = 20
 MODES = ("E1_MEASURED", "E2_STRESS")
@@ -72,6 +72,7 @@ def _protocol_hash() -> str:
 def _clean_dependency_check() -> str:
     tracked = (
         "docs/V130_FTMO_PASS_POLICY_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_REPAIR_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
@@ -348,7 +349,7 @@ def run_development() -> dict[str, Any]:
         },
         "edge": edge,
         "mc": {},
-        "ledger": {"start": 209, "charged_cells": ["C1_development", "P1_development"], "end": 211},
+        "ledger": {"start": 211, "charged_cells": ["repair_same_development_cells"], "end": 211},
     }
     if edge_failures:
         result["edge_gate"] = {"pass": False, "failures": edge_failures}

@@ -525,7 +525,7 @@ class CompiledPassTape:
         boundary_day = date.fromisoformat(self.first_day) + timedelta(days=boundary_index)
         boundary_epoch = _local_midnight_epoch(boundary_day, PRAGUE)
         return not any(
-            lifecycle.placement_epoch < boundary_epoch < lifecycle.end_epoch
+            lifecycle.placement_epoch < boundary_epoch <= lifecycle.end_epoch
             for lifecycle in self.lifecycles
         )
 
@@ -1027,7 +1027,7 @@ def _eligible_starts(
 
     def flat(index: int) -> bool:
         boundary = _local_midnight_epoch(first_day + timedelta(days=index), PRAGUE)
-        return not any(row.placement_epoch < boundary < row.end_epoch for row in rows)
+        return not any(row.placement_epoch < boundary <= row.end_epoch for row in rows)
 
     return tuple(
         start
