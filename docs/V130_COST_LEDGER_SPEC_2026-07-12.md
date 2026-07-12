@@ -1,9 +1,12 @@
 # v1.30 executable-price cost-ledger parity audit — pre-registration
 
-**Date:** 2026-07-12 UTC  
-**Branch:** `codex/v130-cost-ledger-audit`  
+**Date:** 2026-07-12 UTC
+
+**Branch:** `codex/v130-cost-ledger-audit`
+
 **Outcome frame:** frozen FTMO development split only; confirmation and holdout
-are not authorized by this protocol  
+are not authorized by this protocol
+
 **Expectation:** neutral fidelity measurement, not an improvement claim
 
 ## 1. Question and frozen premise
@@ -268,10 +271,17 @@ sequential phases, 100,000 paths, and a one-sided 95% lower bound strictly above
 ---
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `68d1b852aa23db69b02c6b50bd9344b4d3c36aaba0814d2e84f39e6e407c39cc`
+**Recorded protocol SHA256:** `1991c5163c08e368448502226f9758980666a0cc363e3dc36d5a74363eb2c8ae`
 
 ---
 ## RESULTS
+
+Registration note: commit `a9de11c` exposed three intentional Markdown hard
+breaks as `git diff --check` trailing-whitespace failures. Before any outcome
+cell, those breaks were normalized and the protocol was rehashed. The binding
+pre-outcome hash is the recorded value above; the earlier
+`68d1b852aa23db69b02c6b50bd9344b4d3c36aaba0814d2e84f39e6e407c39cc` is
+superseded and was never used for an outcome run.
 
 Not run at registration. Results may be appended here only; the protocol above
 the recorded hash is immutable.
