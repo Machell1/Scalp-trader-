@@ -516,11 +516,16 @@ def freeze() -> None:
         }
 
         for symbol, split_spec in SPLITS.items():
-            full_start = parse_utc(split_spec["holdout"]["start"])
             full_end = parse_utc(split_spec["mined"]["end"])
-            rates = mt5.copy_rates_range(symbol, mt5.TIMEFRAME_M15, full_start, full_end)
+            # MT5 rejects this multi-year copy_rates_range call with error -2 on
+            # the bound terminal. Use the immutable registered UTC end plus the
+            # registered total count; exact start/end and every split are still
+            # enforced below, so no drifting position offset enters provenance.
+            rates = mt5.copy_rates_from(
+                symbol, mt5.TIMEFRAME_M15, full_end, EXPECTED_TOTAL
+            )
             if rates is None:
-                raise RuntimeError(f"{symbol}: copy_rates_range failed: {mt5.last_error()}")
+                raise RuntimeError(f"{symbol}: copy_rates_from failed: {mt5.last_error()}")
             rates = np.asarray(rates)
             integrity[symbol] = validate_rates(symbol, rates)
             split_payload["symbols"][symbol] = validate_splits(symbol, rates)
