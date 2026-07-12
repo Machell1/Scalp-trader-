@@ -1,0 +1,232 @@
+{
+  "blind_holdout_accessed": false,
+  "candidate_minus_control_oos": {
+    "expectancy_r": 0.05034944039867245,
+    "n": -251,
+    "retention": 0.7662942271880819,
+    "total_r": 49.941585811980445,
+    "win_rate": 0.021307792040294093
+  },
+  "commit": "f058de297064211225933bffbda395829db79e52",
+  "complete_pooled_oos_quarters": [
+    "2025Q4",
+    "2026Q1",
+    "2026Q2"
+  ],
+  "confirmation_accessed": false,
+  "fip_diagnostics_all": {
+    "eligibility_rate": 0.698407319552694,
+    "frozen_signals": 5902,
+    "predicate_eligible": 4122,
+    "predicate_rejected": 1780,
+    "trades": 2728
+  },
+  "fip_diagnostics_by_symbol_all": {
+    "Japan_225": {
+      "frozen_signals": 1900,
+      "predicate_eligible": 1334,
+      "predicate_rejected": 566,
+      "trades": 842
+    },
+    "US_Tech_100": {
+      "frozen_signals": 2020,
+      "predicate_eligible": 1411,
+      "predicate_rejected": 609,
+      "trades": 944
+    },
+    "Wall_Street_30": {
+      "frozen_signals": 1982,
+      "predicate_eligible": 1377,
+      "predicate_rejected": 605,
+      "trades": 942
+    }
+  },
+  "ftmo_mc_paths": 0,
+  "gates": {
+    "default_regression_and_synthetic_pass": true,
+    "every_complete_oos_quarter_positive": false,
+    "every_symbol_oos_expectancy_positive": false,
+    "oos_expectancy_not_below_control": true,
+    "oos_expectancy_positive": true,
+    "oos_trade_retention_at_least_35pct": true,
+    "oos_win_rate_lift_at_least_5pp": false
+  },
+  "ledger": {
+    "charged_cells": 1,
+    "working_end": 214,
+    "working_start": 213
+  },
+  "protocol_sha256": "f5d20adc0f9d3d8535a8c4b585f4ef2c6fa5a82261b66d5b3073299325d79ad4",
+  "regression": {
+    "Japan_225@0.00": {
+      "n": 1153,
+      "passed": true,
+      "sha256": "407314b9c2ebe5379ec275c129d82d28b338f2f66b47e5891ca289eb782390f5"
+    },
+    "Japan_225@0.02": {
+      "n": 1131,
+      "passed": true,
+      "sha256": "a05673b0553894f5abfee74147e2bd06a0063a9503622cb5e83e4c56174d775c"
+    },
+    "Japan_225@0.05": {
+      "n": 1111,
+      "passed": true,
+      "sha256": "7a0734beb906bdd00b88734ecff54fba46757c8dd7517aac7f98c50098adfe8b"
+    },
+    "US_Tech_100@0.00": {
+      "n": 1232,
+      "passed": true,
+      "sha256": "d1ad13795d5b83cdde3db6dd45ec81ca7bf8640756173f6d920f58a5d717c206"
+    },
+    "US_Tech_100@0.02": {
+      "n": 1206,
+      "passed": true,
+      "sha256": "c8d0c24aa5fd6fc571b1b17937aade8e4553db44f9d0f3cc57b6ff39a48a8346"
+    },
+    "US_Tech_100@0.05": {
+      "n": 1178,
+      "passed": true,
+      "sha256": "29f854d72945b39c89aae7640715288f4d117fc634d2857799c8de3e44698520"
+    },
+    "Wall_Street_30@0.00": {
+      "n": 1279,
+      "passed": true,
+      "sha256": "5f3046b10d91c11632391ccad4a88eaf4029dd392303e8457c9c5838900b64d2"
+    },
+    "Wall_Street_30@0.02": {
+      "n": 1256,
+      "passed": true,
+      "sha256": "63c2dfdef6ed6d839f77ddecf111582de1e54e4ca6774c88f2d4f7a9a0c6ec4b"
+    },
+    "Wall_Street_30@0.05": {
+      "n": 1228,
+      "passed": true,
+      "sha256": "83cb337253466d36462224f50b5a6fcfea280d47572b60fac83bc5fb5c2b90f1"
+    }
+  },
+  "results": {
+    "C0_PASSIVE_3R": {
+      "all": {
+        "expectancy_r": -0.04053280595149918,
+        "n": 3593,
+        "total_r": -145.63437178373655,
+        "win_rate": 0.3331477873643195
+      },
+      "stitched_oos": {
+        "expectancy_r": -0.0338804636010877,
+        "n": 1074,
+        "total_r": -36.38761790756819,
+        "win_rate": 0.3407821229050279
+      },
+      "stitched_oos_by_quarter": {
+        "2025Q4": {
+          "expectancy_r": -0.08803211654559577,
+          "n": 381,
+          "total_r": -33.54023640387199,
+          "win_rate": 0.31496062992125984
+        },
+        "2026Q1": {
+          "expectancy_r": 0.012632308587405399,
+          "n": 352,
+          "total_r": 4.4465726227667,
+          "win_rate": 0.3664772727272727
+        },
+        "2026Q2": {
+          "expectancy_r": -0.046488616422928015,
+          "n": 331,
+          "total_r": -15.387732035989172,
+          "win_rate": 0.33534743202416917
+        },
+        "2026Q3": {
+          "expectancy_r": 0.8093777909526271,
+          "n": 10,
+          "total_r": 8.09377790952627,
+          "win_rate": 0.6
+        }
+      },
+      "stitched_oos_by_symbol": {
+        "Japan_225": {
+          "expectancy_r": -0.035934664514408125,
+          "n": 352,
+          "total_r": -12.649001909071659,
+          "win_rate": 0.35511363636363635
+        },
+        "US_Tech_100": {
+          "expectancy_r": -0.006542942622417159,
+          "n": 354,
+          "total_r": -2.316201688335674,
+          "win_rate": 0.3418079096045198
+        },
+        "Wall_Street_30": {
+          "expectancy_r": -0.058213082364567556,
+          "n": 368,
+          "total_r": -21.42241431016086,
+          "win_rate": 0.32608695652173914
+        }
+      }
+    },
+    "F1_FIP4OF5_3R": {
+      "all": {
+        "expectancy_r": -0.021150457089087804,
+        "n": 2728,
+        "total_r": -57.69844693903153,
+        "win_rate": 0.3467741935483871
+      },
+      "stitched_oos": {
+        "expectancy_r": 0.016468976797584755,
+        "n": 823,
+        "total_r": 13.553967904412254,
+        "win_rate": 0.362089914945322
+      },
+      "stitched_oos_by_quarter": {
+        "2025Q4": {
+          "expectancy_r": -0.05093227799465164,
+          "n": 291,
+          "total_r": -14.821292896443627,
+          "win_rate": 0.33676975945017185
+        },
+        "2026Q1": {
+          "expectancy_r": 0.04476113869098684,
+          "n": 280,
+          "total_r": 12.533118833476316,
+          "win_rate": 0.37857142857142856
+        },
+        "2026Q2": {
+          "expectancy_r": 0.029068329188539827,
+          "n": 244,
+          "total_r": 7.092672322003717,
+          "win_rate": 0.36475409836065575
+        },
+        "2026Q3": {
+          "expectancy_r": 1.0936837056719813,
+          "n": 8,
+          "total_r": 8.74946964537585,
+          "win_rate": 0.625
+        }
+      },
+      "stitched_oos_by_symbol": {
+        "Japan_225": {
+          "expectancy_r": 0.06515229064762519,
+          "n": 256,
+          "total_r": 16.67898640579205,
+          "win_rate": 0.39453125
+        },
+        "US_Tech_100": {
+          "expectancy_r": 0.033786431047038136,
+          "n": 290,
+          "total_r": 9.79806500364106,
+          "win_rate": 0.3586206896551724
+        },
+        "Wall_Street_30": {
+          "expectancy_r": -0.046653731065057255,
+          "n": 277,
+          "total_r": -12.923083505020859,
+          "win_rate": 0.33574007220216606
+        }
+      }
+    }
+  },
+  "terminal_writes": 0,
+  "verdict": "DISPOSE",
+  "win_rate_above_80pct_diagnostic": false
+}
