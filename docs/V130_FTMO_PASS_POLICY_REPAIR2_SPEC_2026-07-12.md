@@ -11,4 +11,4 @@ No new ledger charge; this is a registration correction for the same charged cel
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `2b26bf2cdc147d2703b26f0ce0525d28bcdfba15bc46e55e7d0ac0b8edaf25d3`
+**Recorded protocol SHA256:** `fa63f652cb5dbe5005bba23b48756fccdb5f2819949fa476bbc4e387d016138c`
