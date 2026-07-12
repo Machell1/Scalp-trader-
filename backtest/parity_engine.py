@@ -167,7 +167,12 @@ class LifecycleMark:
 
 @dataclass(frozen=True)
 class ExecutionPlan:
-    """Resolved lifecycle returned by an optional ``run_live`` execution hook."""
+    """Resolved lifecycle returned by an optional ``run_live`` execution hook.
+
+    ``loss_classification_r`` is a default-off override for the EA day-streak
+    ledger.  It permits a resolver to reproduce deal-history day truncation
+    without changing the trade's full-lifecycle ``total_r``.
+    """
     exit_bar: int
     exit_price: float
     reason: str
@@ -175,6 +180,7 @@ class ExecutionPlan:
     free_epoch: int
     entry_r_component: float = 0.0
     marks: tuple[LifecycleMark, ...] = ()
+    loss_classification_r: float | None = None
 
 
 CASHFLOW_MARK_KINDS = frozenset({"partial_fill"})
@@ -362,7 +368,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
         emit("signal_rejection", si, epoch=event_ep, bar=i, sig_i=i,
              side=side, price=price, reason=reason, before=snap, after=snap)
 
-    def book(si, tr, modeled_exit_epoch):
+    def book(si, tr, modeled_exit_epoch, loss_classification_r=None):
         trades.append(tr)
         if caps is not None:
             # Preserve the historical UTC tape exactly when day_key is absent.
@@ -370,9 +376,11 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
             day_epoch = (symbols[si].ep[tr.exit_bar] if day_key is None
                          else modeled_exit_epoch)
             d = account_day(day_epoch)
-            if tr.r < 0:
+            loss_r = (tr.r if loss_classification_r is None
+                      else loss_classification_r)
+            if loss_r < 0:
                 consec_day[d] = consec_day.get(d, 0) + 1
-            elif tr.r > 0 or execution is None:
+            elif loss_r > 0 or execution is None:
                 # Legacy path historically reset on zero.  Custom/live v1.30
                 # mirrors ConsecutiveLossesToday(): zero leaves the streak.
                 consec_day[d] = 0
@@ -554,7 +562,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
             plan = active["plan"]
             modeled_epoch = (int(plan.free_epoch) if plan.reason == "TIME" else
                              int(symbols[si].ep[tr.exit_bar]) + BAR_SEC - 1)
-            book(si, tr, modeled_epoch)
+            book(si, tr, modeled_epoch, plan.loss_classification_r)
             marked_r = sum(float(mark.r_component) for mark in plan.marks
                            if mark.kind in CASHFLOW_MARK_KINDS)
             emit("final_exit", si, epoch=modeled_epoch, scheduler_epoch=epoch,

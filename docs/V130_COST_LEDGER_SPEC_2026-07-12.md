@@ -180,9 +180,11 @@ zero. For points-mode swap, cash per lot is
 `swap_points * point / tick_size * trade_tick_value_loss`; it is divided
 by full-position frozen-stop risk cash per lot to obtain R. Friday rollover is
 multiplied by three when the Europe/Helsinki calendar day immediately before
-the crossed midnight is Friday. The slippage debit is applied at entry in any
-later account simulation so it cannot improve an intraday drawdown path; swap
-remains timed at rollover.
+the crossed midnight is Friday. Only a preceding Monday-through-Friday is a
+chargeable rollover; Saturday/Sunday calendar midnights add no second charge
+because Friday's triple rollover already covers the weekend. The slippage debit
+is applied at entry in any later account simulation so it cannot improve an
+intraday drawdown path; swap remains timed at rollover.
 
 ### E2 — mandatory conservative double-slippage/swap stress
 
@@ -271,7 +273,7 @@ sequential phases, 100,000 paths, and a one-sided 95% lower bound strictly above
 ---
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `1991c5163c08e368448502226f9758980666a0cc363e3dc36d5a74363eb2c8ae`
+**Recorded protocol SHA256:** `271a12f4ce46717f15871aaf0c54321780484442709b82d628b047a2132d97a4`
 
 ---
 ## RESULTS
@@ -282,6 +284,13 @@ cell, those breaks were normalized and the protocol was rehashed. The binding
 pre-outcome hash is the recorded value above; the earlier
 `68d1b852aa23db69b02c6b50bd9344b4d3c36aaba0814d2e84f39e6e407c39cc` is
 superseded and was never used for an outcome run.
+
+Second pre-outcome normalization: source review identified that Friday's
+registered triple rollover already covers the weekend. The protocol now
+explicitly excludes separate Saturday/Sunday charges. Hash
+`1991c5163c08e368448502226f9758980666a0cc363e3dc36d5a74363eb2c8ae`
+is therefore also superseded before any outcome run. The binding hash is the
+recorded value above.
 
 Not run at registration. Results may be appended here only; the protocol above
 the recorded hash is immutable.
