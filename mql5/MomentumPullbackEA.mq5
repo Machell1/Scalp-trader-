@@ -198,6 +198,8 @@ int    g_atrHandle[];    // Parallel ATR handle per symbol
 datetime g_lastScanBar[];// Per-symbol last processed bar (own bar clock, not chart symbol)
 
 // Pending order ticket -> signal-bar ATR frozen at placement (transferred on fill).
+// The RAM cache is mirrored to terminal global variables so a restart while an
+// order is working cannot replace signal-time geometry with fill-time ATR.
 struct PendingSigAtr { ulong orderTicket; double atr; };
 PendingSigAtr g_pendingSigAtr[];
 
@@ -228,6 +230,7 @@ struct PositionMgmtState
    double   maeR;          // max adverse excursion (R)
    // v1.30 partial-close lifecycle (all geometry derives from frozen signal ATR).
    double   initialVolume;
+   bool     signalAtrFrozen;
    double   partialTargetVolume;
    double   partialLevel;
    int      partialState;
@@ -286,6 +289,8 @@ int OnInit()
       Print("No tradable non-synthetic symbols found. Add symbols to Market Watch.");
       return(INIT_FAILED);
      }
+
+   RestorePendingSigAtrFromLiveOrders();
 
    RestoreRiskLedger();   // v1.26: reconstruct today's ledger from deal history - a mid-day
                           // re-init must NOT re-arm a fresh daily budget (audit P1)
@@ -584,21 +589,53 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
       g_tradesToday++;   // v1.27 B3: the daily cap counts FILLS (engine parity; placements were miscounting)
       ulong orderTicket = (ulong)HistoryDealGetInteger(trans.deal, DEAL_ORDER);
       datetime dealTime = (datetime)HistoryDealGetInteger(trans.deal, DEAL_TIME);
-      double sigAtr = TakePendingSigAtr(orderTicket);
+      // Peek, do not consume: a partially filled entry order can retain a live
+      // residual. Its placement ATR must remain restart-safe until the order is
+      // terminal; SweepStalePendingSigAtr performs terminal cleanup.
+      double sigAtr = PeekPendingSigAtr(orderTicket);
+      bool sigAtrFrozen = (sigAtr > 0.0);
+      int existingState = FindPositionState(posId);
+      if(sigAtr <= 0.0 && existingState >= 0 && g_posState[existingState].signalAtr > 0.0)
+        {
+         // A broker may fragment one entry order into several DEAL_ENTRY_IN rows.
+         // Never let a later fragment's fill-time fallback replace the first
+         // fragment's authoritative signal ATR.
+         sigAtr = g_posState[existingState].signalAtr;
+         sigAtrFrozen = g_posState[existingState].signalAtrFrozen;
+        }
       if(sigAtr <= 0.0)
          ReadAtrForSymbol(symbol, sigAtr);
-      RegisterPositionState(posId, symbol, sigAtr, dealTime);
+      RegisterPositionState(posId, symbol, sigAtr, dealTime, sigAtrFrozen);
       // v1.25: freeze entry context for the trade log
       int si = FindPositionState(posId);
       if(si >= 0)
         {
-         g_posState[si].entryPrice = HistoryDealGetDouble(trans.deal, DEAL_PRICE);
-         g_posState[si].dir = (HistoryDealGetInteger(trans.deal, DEAL_TYPE) == DEAL_TYPE_BUY) ? 1 : -1;
+         double histEntry = 0.0, histInVol = 0.0;
+         int histDir = 0;
+         if(PositionHistoryEntryContext(posId, histEntry, histDir, histInVol))
+           {
+            g_posState[si].entryPrice = histEntry; // volume-weighted across fragmented entry fills
+            g_posState[si].dir = histDir;
+           }
+         else
+           {
+            g_posState[si].entryPrice = HistoryDealGetDouble(trans.deal, DEAL_PRICE);
+            g_posState[si].dir = (HistoryDealGetInteger(trans.deal, DEAL_TYPE) == DEAL_TYPE_BUY) ? 1 : -1;
+           }
          g_posState[si].riskPrice = (g_posState[si].signalAtr > 0.0) ? InpStopAtrMult * g_posState[si].signalAtr : 0.0;
          double inVol = 0.0, outVol = 0.0;
+         double priorTargetVolume = g_posState[si].partialTargetVolume;
          if(PositionHistoryVolumes(posId, inVol, outVol) && inVol > g_posState[si].initialVolume)
             g_posState[si].initialVolume = inVol;
          RefreshPartialGeometry(si, symbol);
+         double vstep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+         if(g_posState[si].partialState == PARTIAL_SKIPPED &&
+            priorTargetVolume <= 0.0 && g_posState[si].partialTargetVolume > 0.0)
+            SetPartialState(si, PARTIAL_ARMED, "entry fill made the 50% target volume feasible");
+         else if(g_posState[si].partialState == PARTIAL_DONE &&
+            g_posState[si].partialTargetVolume > 0.0 &&
+            outVol + 0.5 * vstep < g_posState[si].partialTargetVolume)
+            SetPartialState(si, PARTIAL_TRIGGERED, "entry fill increased the 50% target; closing the remainder");
          PersistPartialState(si);
          double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
          double sprPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
@@ -1165,7 +1202,7 @@ void SweepStalePendingSigAtr()
          string sym = HistoryOrderGetString(ticket, ORDER_SYMBOL);
          double atr = TakePendingSigAtr(ticket);
          RegisterPositionState(posId, sym, atr,
-                               (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_DONE));
+                               (datetime)HistoryOrderGetInteger(ticket, ORDER_TIME_DONE), atr > 0.0);
          continue;
         }
       // Terminal state with no position (canceled / expired / rejected unfilled): drop.
@@ -1584,27 +1621,101 @@ void LogSkip(string symbol, string reason, double atr=0.0, double spreadAtrSide=
       PrintFormat("SKIP %s: %s", symbol, reason);
   }
 
+string PendingSigAtrGv(ulong orderTicket)
+  {
+   return("MPB_v130_pending_atr_" + (string)orderTicket);
+  }
+
+int FindPendingSigAtr(ulong orderTicket)
+  {
+   for(int i = 0; i < ArraySize(g_pendingSigAtr); i++)
+      if(g_pendingSigAtr[i].orderTicket == orderTicket)
+         return(i);
+   return(-1);
+  }
+
+double PeekPendingSigAtr(ulong orderTicket)
+  {
+   int idx = FindPendingSigAtr(orderTicket);
+   if(idx >= 0)
+      return(g_pendingSigAtr[idx].atr);
+   string gv = PendingSigAtrGv(orderTicket);
+   if(GlobalVariableCheck(gv))
+      return(GlobalVariableGet(gv));
+   return(0.0);
+  }
+
 void StorePendingSigAtr(ulong orderTicket, double atr)
   {
    if(orderTicket == 0 || atr <= 0.0)
       return;
-   int n = ArraySize(g_pendingSigAtr);
-   ArrayResize(g_pendingSigAtr, n + 1);
-   g_pendingSigAtr[n].orderTicket = orderTicket;
-   g_pendingSigAtr[n].atr = atr;
+   int idx = FindPendingSigAtr(orderTicket);
+   if(idx < 0)
+     {
+      idx = ArraySize(g_pendingSigAtr);
+      ArrayResize(g_pendingSigAtr, idx + 1);
+      g_pendingSigAtr[idx].orderTicket = orderTicket;
+     }
+   g_pendingSigAtr[idx].atr = atr;
+   GlobalVariableSet(PendingSigAtrGv(orderTicket), atr);
+   GlobalVariablesFlush();
   }
 
 double TakePendingSigAtr(ulong orderTicket)
   {
-   for(int i = 0; i < ArraySize(g_pendingSigAtr); i++)
+   double atr = PeekPendingSigAtr(orderTicket);
+   int idx = FindPendingSigAtr(orderTicket);
+   if(idx >= 0)
      {
-      if(g_pendingSigAtr[i].orderTicket == orderTicket)
+      for(int j = idx; j < ArraySize(g_pendingSigAtr) - 1; j++)
+         g_pendingSigAtr[j] = g_pendingSigAtr[j + 1];
+      ArrayResize(g_pendingSigAtr, ArraySize(g_pendingSigAtr) - 1);
+     }
+   GlobalVariableDel(PendingSigAtrGv(orderTicket));
+   GlobalVariablesFlush();
+   return(atr);
+  }
+
+void RestorePendingSigAtrFromLiveOrders()
+  {
+   int restored = 0;
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+      ulong ticket = OrderGetTicket(i);
+      if(ticket == 0 || !ordInfo.Select(ticket) || ordInfo.Magic() != InpMagicNumber)
+         continue;
+      double atr = PeekPendingSigAtr(ticket);
+      if(atr <= 0.0)
+         continue;
+      StorePendingSigAtr(ticket, atr);
+      restored++;
+     }
+   if(restored > 0)
+      PrintFormat("v1.30 restored %d pending signal-ATR record(s)", restored);
+  }
+
+double TakePendingSigAtrForPosition(long positionId)
+  {
+   if(!HistorySelectByPosition((ulong)positionId))
+      return(0.0);
+   int total = HistoryDealsTotal();
+   for(int i = 0; i < total; i++)
+     {
+      ulong deal = HistoryDealGetTicket(i);
+      if(deal == 0 || HistoryDealGetInteger(deal, DEAL_MAGIC) != InpMagicNumber)
+         continue;
+      long entry = HistoryDealGetInteger(deal, DEAL_ENTRY);
+      if(entry != DEAL_ENTRY_IN && entry != DEAL_ENTRY_INOUT)
+         continue;
+      ulong orderTicket = (ulong)HistoryDealGetInteger(deal, DEAL_ORDER);
+      double atr = PeekPendingSigAtr(orderTicket);
+      if(atr > 0.0)
         {
-         double atr = g_pendingSigAtr[i].atr;
-         for(int j = i; j < ArraySize(g_pendingSigAtr) - 1; j++)
-            g_pendingSigAtr[j] = g_pendingSigAtr[j + 1];
-         ArrayResize(g_pendingSigAtr, ArraySize(g_pendingSigAtr) - 1);
-         return(atr);
+         // Keep the order GV if a residual is still working. A terminal order's
+         // ATR has now been promoted to the position and can be removed.
+         if(ordInfo.Select(orderTicket))
+            return(atr);
+         return(TakePendingSigAtr(orderTicket));
         }
      }
    return(0.0);
@@ -1653,6 +1764,7 @@ string PartialStateGv(long positionId)   { return("MPB_v130_so_state_" + (string
 string PartialVolumeGv(long positionId)  { return("MPB_v130_so_initvol_" + (string)positionId); }
 string PartialTriggerGv(long positionId) { return("MPB_v130_so_trigger_" + (string)positionId); }
 string PartialAttemptsGv(long positionId){ return("MPB_v130_so_attempts_" + (string)positionId); }
+string PositionFrozenAtrGv(long positionId){ return("MPB_v130_frozen_atr_" + (string)positionId); }
 
 string PartialStateText(int state)
   {
@@ -1716,6 +1828,40 @@ bool PositionHistoryVolumes(long positionId, double &entryVolume, double &exitVo
          exitVolume += v;
      }
    return(entryVolume > 0.0);
+  }
+
+bool PositionHistoryEntryContext(long positionId, double &entryPrice, int &dir, double &entryVolume)
+  {
+   entryPrice = 0.0;
+   dir = 0;
+   entryVolume = 0.0;
+   if(!HistorySelectByPosition((ulong)positionId))
+      return(false);
+   double weightedPrice = 0.0;
+   int total = HistoryDealsTotal();
+   for(int i = 0; i < total; i++)
+     {
+      ulong deal = HistoryDealGetTicket(i);
+      if(deal == 0 || HistoryDealGetInteger(deal, DEAL_MAGIC) != InpMagicNumber)
+         continue;
+      long entry = HistoryDealGetInteger(deal, DEAL_ENTRY);
+      if(entry != DEAL_ENTRY_IN && entry != DEAL_ENTRY_INOUT)
+         continue;
+      long type = HistoryDealGetInteger(deal, DEAL_TYPE);
+      if(type != DEAL_TYPE_BUY && type != DEAL_TYPE_SELL)
+         continue;
+      double volume = HistoryDealGetDouble(deal, DEAL_VOLUME);
+      if(volume <= 0.0)
+         continue;
+      weightedPrice += HistoryDealGetDouble(deal, DEAL_PRICE) * volume;
+      entryVolume += volume;
+      if(dir == 0)
+         dir = (type == DEAL_TYPE_BUY) ? 1 : -1;
+     }
+   if(entryVolume <= 0.0 || dir == 0)
+      return(false);
+   entryPrice = weightedPrice / entryVolume;
+   return(entryPrice > 0.0);
   }
 
 bool FindOpenPositionById(long positionId, ulong &ticket, string &symbol, double &volume)
@@ -1949,17 +2095,40 @@ bool ReadAtrForSymbol(string symbol, double &value)
    return(WilderAtrForSymbol(symbol, value));   // v1.27: single estimator everywhere
   }
 
-void RegisterPositionState(long positionId, string symbol, double signalAtr, datetime openTime)
+void RegisterPositionState(long positionId, string symbol, double signalAtr, datetime openTime,
+                           bool signalAtrAuthoritative=false)
   {
    int existing = FindPositionState(positionId);
    if(existing >= 0)
      {
-      // v1.26: a REAL frozen ATR arriving after a fallback registration must win
-      // (the fallback used current ATR; downstream riskPrice/R math needs the true one).
-      if(signalAtr > 0.0 && g_posState[existing].signalAtr != signalAtr)
+      // A pending may fill while the terminal is offline. Retry recovery from its
+      // persisted order-ticket ATR before accepting a current-ATR fallback.
+      if(!signalAtrAuthoritative && !g_posState[existing].signalAtrFrozen)
+        {
+         double recoveredAtr = 0.0;
+         if(GlobalVariableCheck(PositionFrozenAtrGv(positionId)))
+            recoveredAtr = GlobalVariableGet(PositionFrozenAtrGv(positionId));
+         if(recoveredAtr <= 0.0)
+            recoveredAtr = TakePendingSigAtrForPosition(positionId);
+         if(recoveredAtr > 0.0)
+           {
+            signalAtr = recoveredAtr;
+            signalAtrAuthoritative = true;
+           }
+        }
+      // A real signal ATR may replace a fallback registration. A later fragmented
+      // entry fill may not replace an already-authoritative ATR.
+      if(signalAtr > 0.0 &&
+         (signalAtrAuthoritative || g_posState[existing].signalAtr <= 0.0) &&
+         (g_posState[existing].signalAtr != signalAtr ||
+          g_posState[existing].signalAtrFrozen != signalAtrAuthoritative))
         {
          g_posState[existing].signalAtr = signalAtr;
+         g_posState[existing].signalAtrFrozen = signalAtrAuthoritative;
          GlobalVariableSet("DSv121_atr_" + (string)positionId, signalAtr);
+         if(signalAtrAuthoritative)
+            GlobalVariableSet(PositionFrozenAtrGv(positionId), signalAtr);
+         GlobalVariablesFlush();
          if(g_posState[existing].entryPrice > 0.0)
             g_posState[existing].riskPrice = InpStopAtrMult * signalAtr;
          RefreshPartialGeometry(existing, symbol);
@@ -1972,8 +2141,25 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    if(shift >= 0)
       entryBar = (datetime)iTime(symbol, InpTimeframe, shift);
 
-   // Frozen-ATR persistence (review fix): restore the ORIGINAL signal ATR across EA
-   // reloads via a terminal global variable, before falling back to the current ATR.
+   // Frozen-ATR persistence: prefer an authoritative position GV, then recover
+   // the placement-time ATR through the entry deal's persisted order-ticket GV.
+   if(!signalAtrAuthoritative && GlobalVariableCheck(PositionFrozenAtrGv(positionId)))
+     {
+      signalAtr = GlobalVariableGet(PositionFrozenAtrGv(positionId));
+      signalAtrAuthoritative = (signalAtr > 0.0);
+     }
+   if(!signalAtrAuthoritative)
+     {
+      double recoveredAtr = TakePendingSigAtrForPosition(positionId);
+      if(recoveredAtr > 0.0)
+        {
+         signalAtr = recoveredAtr;
+         signalAtrAuthoritative = true;
+        }
+     }
+
+   // Legacy fallback GV can contain a current-ATR recovery from older versions;
+   // retain it for continuity but never label it authoritative.
    string gvName = "DSv121_atr_" + (string)positionId;
    if(signalAtr <= 0.0 && GlobalVariableCheck(gvName))
       signalAtr = GlobalVariableGet(gvName);
@@ -1981,6 +2167,9 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
       ReadAtrForSymbol(symbol, signalAtr);
    if(signalAtr > 0.0)
       GlobalVariableSet(gvName, signalAtr);
+   if(signalAtrAuthoritative && signalAtr > 0.0)
+      GlobalVariableSet(PositionFrozenAtrGv(positionId), signalAtr);
+   GlobalVariablesFlush();
 
    int barsClosed = 0;
    for(int s = 1; s < 500; s++)
@@ -2006,6 +2195,7 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    g_posState[n].mfeR = 0.0;
    g_posState[n].maeR = 0.0;
    g_posState[n].initialVolume = 0.0;
+   g_posState[n].signalAtrFrozen = signalAtrAuthoritative;
    g_posState[n].partialTargetVolume = 0.0;
    g_posState[n].partialLevel = 0.0;
    g_posState[n].partialState = PARTIAL_ARMED;
@@ -2071,6 +2261,7 @@ void PruneClosedPositionStates()
       if(!open)
         {
          GlobalVariableDel("DSv121_atr_" + (string)g_posState[i].positionId);
+         GlobalVariableDel(PositionFrozenAtrGv(g_posState[i].positionId));
          DeletePartialGlobals(g_posState[i].positionId);
          for(int j = i; j < ArraySize(g_posState) - 1; j++)
             g_posState[j] = g_posState[j + 1];
