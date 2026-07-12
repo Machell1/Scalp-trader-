@@ -294,3 +294,32 @@ recorded value above.
 
 Not run at registration. Results may be appended here only; the protocol above
 the recorded hash is immutable.
+
+### Development result — 2026-07-12 UTC
+
+Registered command:
+`python -u backtest/run_v130_cost_audit.py --development` at
+`304fe0dcb8cbcd00f963874818e697cfbf6c8112`.
+
+The frozen-data, 46-file regression, control-reproduction, synthetic,
+geometry, access, and determinism gates passed. The corrected executable
+ledgers measured E0 `+0.0505231267R` over 1,521 trades, E1
+`+0.0249106113R` over 1,497 trades, and E2 `+0.0027554447R` over 1,497
+trades. [MEASURED: registered command @ `304fe0d`]
+
+The edge gate nevertheless failed exactly three cells:
+
+1. `E2_STRESS/US30.cash: symbol expectancy < 0`
+2. `E2_STRESS/without-JP225.cash: expectancy <= 0`
+3. `E2_STRESS/without-US100.cash: expectancy <= 0`
+
+Verdict: `KILLED_AT_EDGE_GATE`. Account Monte Carlo paths run: 0.
+Confirmation and holdout accessed: false. Trial ledger: `209 -> 209`.
+[MEASURED: result JSON @ `304fe0d`]
+
+The full command output, every C0/E0/E1/E2 cell, cost and rollover
+decomposition, fidelity evidence, failed-command journal, and terminal-write
+journal are in `docs/V130_COST_LEDGER_RESULTS_2026-07-12.md`. The lossless
+event artifact, including every sign-changing and later rejected trade ID, is
+`backtest/v130_cost_audit_results.json` with SHA256
+`d37455d10db728e7c4fbf6eea8321a2602b7621b9acb289255315814515ac3e0`.
