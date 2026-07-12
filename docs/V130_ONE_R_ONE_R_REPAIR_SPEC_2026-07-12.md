@@ -11,5 +11,4 @@ parameter changes are allowed. The registered command remains
 
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
-**Recorded protocol SHA256:** `PENDING`
-
+**Recorded protocol SHA256:** `9a32d3f85f9107e175693f40cb5cef2b1eaf779708ff350051cf0a34ce4770f3`

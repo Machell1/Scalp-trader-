@@ -12,8 +12,8 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_ONE_R_ONE_R_SPEC_2026-07-12.md"
-PROTOCOL_SHA256 = "16fc8f12a78db09424b6b6b7f30984a40e99894018f012289c8f1a669bd1f4d5"
+SPEC = ROOT / "docs" / "V130_ONE_R_ONE_R_REPAIR_SPEC_2026-07-12.md"
+PROTOCOL_SHA256 = "9a32d3f85f9107e175693f40cb5cef2b1eaf779708ff350051cf0a34ce4770f3"
 RESULT = HERE / "v130_one_r_one_r_results.json"
 
 sys.path.insert(0, str(HERE))
@@ -38,6 +38,7 @@ def verify_clean_dependencies() -> str:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     paths = (
         "docs/V130_ONE_R_ONE_R_SPEC_2026-07-12.md",
+        "docs/V130_ONE_R_ONE_R_REPAIR_SPEC_2026-07-12.md",
         "backtest/run_v130_one_r_one_r.py",
         "backtest/retest_engine.py",
         "backtest/parity_engine.py",
@@ -86,7 +87,7 @@ def main() -> None:
         raw = pd.read_csv(path)
         time_col = next(col for col in raw.columns if col.lower() == "time")
         times = pd.to_datetime(raw[time_col], utc=True)
-        quarters = pd.PeriodIndex(times.tz_convert(None), freq="Q")
+        quarters = pd.PeriodIndex(times.dt.tz_convert(None), freq="Q")
         ordered = sorted(set(str(q) for q in quarters))
         oos = set(ordered[int(len(ordered) * 0.7):])
         symbol_oos[symbol] = oos
