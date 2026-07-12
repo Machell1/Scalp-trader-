@@ -22,11 +22,11 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_REPAIR_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_REPAIR2_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
 RESULT = HERE / "v130_pass_policy_repair_results.json"
 NPZ = HERE / "v130_pass_policy_repair_paths.npz"
-PROTOCOL_SHA256 = "486bc9ae857332f29dbe1bb434399d3baeaaa0e3938f6e338ddb22bab05bc4"
+PROTOCOL_SHA256 = "2b26bf2cdc147d2703b26f0ce0525d28bcdfba15bc46e55e7d0ac0b8edaf25d3"
 PATHS = 100_000
 BLOCK_LENGTH = 20
 MODES = ("E1_MEASURED", "E2_STRESS")
@@ -73,6 +73,7 @@ def _clean_dependency_check() -> str:
     tracked = (
         "docs/V130_FTMO_PASS_POLICY_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_REPAIR_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_REPAIR2_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
