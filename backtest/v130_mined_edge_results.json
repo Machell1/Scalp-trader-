@@ -1,0 +1,387 @@
+{
+  "edge_gate": {
+    "failures": [
+      "F1_PER_BAR/US30.cash: symbol expectancy < 0",
+      "F1_PER_BAR: cross-server-midnight streak semantics differ from EA",
+      "F2_STRICT_ASK/US30.cash: symbol expectancy < 0",
+      "F2_STRICT_ASK/without-JP225.cash: pooled expectancy <= 0",
+      "F2_STRICT_ASK/without-US100.cash: pooled expectancy <= 0",
+      "F2_STRICT_ASK: cross-server-midnight streak semantics differ from EA",
+      "F2_STRICT_ASK_2X: pooled expectancy <= 0",
+      "F2_STRICT_ASK_2X: last-four-quarter expectancy <= 0",
+      "F2_STRICT_ASK_2X/JP225.cash: symbol expectancy < 0",
+      "F2_STRICT_ASK_2X/US100.cash: symbol expectancy < 0",
+      "F2_STRICT_ASK_2X/US30.cash: symbol expectancy < 0",
+      "F2_STRICT_ASK_2X/without-JP225.cash: pooled expectancy <= 0",
+      "F2_STRICT_ASK_2X/without-US100.cash: pooled expectancy <= 0",
+      "F2_STRICT_ASK_2X/without-US30.cash: pooled expectancy <= 0",
+      "F2_STRICT_ASK_2X: cross-server-midnight streak semantics differ from EA"
+    ],
+    "pass": false
+  },
+  "execution": {
+    "D0_TOUCH": {
+      "census": {
+        "cap_cluster": 465,
+        "cap_global": 148,
+        "cooldown": 304,
+        "day_consec": 171,
+        "day_fills": 48,
+        "occupied": 807,
+        "q_expired": 0,
+        "q_released": 0,
+        "q_replaced": 0,
+        "q_stale": 0,
+        "q_stashed": 0,
+        "w2_fail": 5526
+      },
+      "cross_ea_server_midnight_trades": 40,
+      "deterministic_rerun_sha256": "aa7064cc2509cf1c7cdb158dae57feedc2e584098c72b5bf01b2b9a3bbda4a13",
+      "event_count": 25366,
+      "event_sha256": "aa7064cc2509cf1c7cdb158dae57feedc2e584098c72b5bf01b2b9a3bbda4a13",
+      "summary": {
+        "delete_symbol_expectancy": {
+          "JP225.cash": 0.04391314082462591,
+          "US100.cash": 0.04448995658067016,
+          "US30.cash": 0.08779757161518847
+        },
+        "expectancy": 0.05800077618460795,
+        "last_four_complete_quarters": [
+          "2025Q3",
+          "2025Q4",
+          "2026Q1",
+          "2026Q2"
+        ],
+        "last_four_expectancy": 0.06286479855166323,
+        "n": 1544,
+        "per_quarter": {
+          "2025Q2": {
+            "expectancy": 0.02600307360796184,
+            "n": 288,
+            "win_rate": 0.4027777777777778
+          },
+          "2025Q3": {
+            "expectancy": 0.08626316119684678,
+            "n": 309,
+            "win_rate": 0.4401294498381877
+          },
+          "2025Q4": {
+            "expectancy": 0.05136816853692386,
+            "n": 308,
+            "win_rate": 0.4025974025974026
+          },
+          "2026Q1": {
+            "expectancy": 0.07002422453077044,
+            "n": 299,
+            "win_rate": 0.4180602006688963
+          },
+          "2026Q2": {
+            "expectancy": 0.043496690975001945,
+            "n": 301,
+            "win_rate": 0.40863787375415284
+          },
+          "2026Q3": {
+            "expectancy": 0.14250906134788494,
+            "n": 39,
+            "win_rate": 0.46153846153846156
+          }
+        },
+        "per_symbol": {
+          "JP225.cash": {
+            "expectancy": 0.08040862571692839,
+            "n": 596,
+            "win_rate": 0.4395973154362416
+          },
+          "US100.cash": {
+            "expectancy": 0.09938654991877534,
+            "n": 380,
+            "win_rate": 0.4263157894736842
+          },
+          "US30.cash": {
+            "expectancy": 0.006800648825018909,
+            "n": 568,
+            "win_rate": 0.38380281690140844
+          }
+        },
+        "win_rate": 0.41580310880829013
+      }
+    },
+    "F1_PER_BAR": {
+      "census": {
+        "cap_cluster": 470,
+        "cap_global": 151,
+        "cooldown": 294,
+        "day_consec": 176,
+        "day_fills": 33,
+        "occupied": 823,
+        "q_expired": 0,
+        "q_released": 0,
+        "q_replaced": 0,
+        "q_stale": 0,
+        "q_stashed": 0,
+        "w2_fail": 5520
+      },
+      "cross_ea_server_midnight_trades": 38,
+      "deterministic_rerun_sha256": "6f0025dffec7011edf9a3a2701df7775a26b34b51cbae9d6efc3c557c24bd849",
+      "event_count": 24895,
+      "event_sha256": "6f0025dffec7011edf9a3a2701df7775a26b34b51cbae9d6efc3c557c24bd849",
+      "summary": {
+        "delete_symbol_expectancy": {
+          "JP225.cash": 0.0023489879225614485,
+          "US100.cash": 0.013275838679127393,
+          "US30.cash": 0.03755978770453858
+        },
+        "expectancy": 0.017579903598853454,
+        "last_four_complete_quarters": [
+          "2025Q3",
+          "2025Q4",
+          "2026Q1",
+          "2026Q2"
+        ],
+        "last_four_expectancy": 0.01891620261695118,
+        "n": 1504,
+        "per_quarter": {
+          "2025Q2": {
+            "expectancy": -0.0001923641131939226,
+            "n": 279,
+            "win_rate": 0.3942652329749104
+          },
+          "2025Q3": {
+            "expectancy": 0.037488255286709286,
+            "n": 299,
+            "win_rate": 0.42474916387959866
+          },
+          "2025Q4": {
+            "expectancy": 0.01943576381813879,
+            "n": 303,
+            "win_rate": 0.38943894389438943
+          },
+          "2026Q1": {
+            "expectancy": 0.02010658003881212,
+            "n": 294,
+            "win_rate": 0.41156462585034015
+          },
+          "2026Q2": {
+            "expectancy": -0.001981872397685497,
+            "n": 290,
+            "win_rate": 0.3896551724137931
+          },
+          "2026Q3": {
+            "expectancy": 0.10408277683468224,
+            "n": 39,
+            "win_rate": 0.4358974358974359
+          }
+        },
+        "per_symbol": {
+          "JP225.cash": {
+            "expectancy": 0.04170860506541916,
+            "n": 582,
+            "win_rate": 0.4261168384879725
+          },
+          "US100.cash": {
+            "expectancy": 0.030962487966744875,
+            "n": 366,
+            "win_rate": 0.4016393442622951
+          },
+          "US30.cash": {
+            "expectancy": -0.01648651750220678,
+            "n": 556,
+            "win_rate": 0.37949640287769787
+          }
+        },
+        "win_rate": 0.4029255319148936
+      }
+    },
+    "F2_STRICT_ASK": {
+      "census": {
+        "cap_cluster": 466,
+        "cap_global": 148,
+        "cooldown": 286,
+        "day_consec": 207,
+        "day_fills": 39,
+        "occupied": 812,
+        "q_expired": 0,
+        "q_released": 0,
+        "q_replaced": 0,
+        "q_stale": 0,
+        "q_stashed": 0,
+        "w2_fail": 5533
+      },
+      "cross_ea_server_midnight_trades": 38,
+      "deterministic_rerun_sha256": "6cd7b86866592927bd22475465feff138324c2487d8219a6a022e73b08b111a0",
+      "event_count": 24565,
+      "event_sha256": "6cd7b86866592927bd22475465feff138324c2487d8219a6a022e73b08b111a0",
+      "summary": {
+        "delete_symbol_expectancy": {
+          "JP225.cash": -0.012850225351308113,
+          "US100.cash": -0.0019393846882569,
+          "US30.cash": 0.022858166089051623
+        },
+        "expectancy": 0.002541095567729845,
+        "last_four_complete_quarters": [
+          "2025Q3",
+          "2025Q4",
+          "2026Q1",
+          "2026Q2"
+        ],
+        "last_four_expectancy": 0.000946711965148145,
+        "n": 1497,
+        "per_quarter": {
+          "2025Q2": {
+            "expectancy": -0.004957671705779681,
+            "n": 277,
+            "win_rate": 0.3898916967509025
+          },
+          "2025Q3": {
+            "expectancy": 0.031199046743927247,
+            "n": 299,
+            "win_rate": 0.4214046822742475
+          },
+          "2025Q4": {
+            "expectancy": -0.0012402829801115632,
+            "n": 297,
+            "win_rate": 0.38047138047138046
+          },
+          "2026Q1": {
+            "expectancy": 0.005932569500776605,
+            "n": 297,
+            "win_rate": 0.4074074074074074
+          },
+          "2026Q2": {
+            "expectancy": -0.03334742097997158,
+            "n": 288,
+            "win_rate": 0.375
+          },
+          "2026Q3": {
+            "expectancy": 0.10408277683468224,
+            "n": 39,
+            "win_rate": 0.4358974358974359
+          }
+        },
+        "per_symbol": {
+          "JP225.cash": {
+            "expectancy": 0.026806930269689888,
+            "n": 581,
+            "win_rate": 0.4199655765920826
+          },
+          "US100.cash": {
+            "expectancy": 0.016537967772382697,
+            "n": 363,
+            "win_rate": 0.39118457300275483
+          },
+          "US30.cash": {
+            "expectancy": -0.03214120926432758,
+            "n": 553,
+            "win_rate": 0.3743218806509946
+          }
+        },
+        "win_rate": 0.39612558450233804
+      }
+    },
+    "F2_STRICT_ASK_2X": {
+      "census": {
+        "cap_cluster": 466,
+        "cap_global": 148,
+        "cooldown": 286,
+        "day_consec": 207,
+        "day_fills": 39,
+        "occupied": 812,
+        "q_expired": 0,
+        "q_released": 0,
+        "q_replaced": 0,
+        "q_stale": 0,
+        "q_stashed": 0,
+        "w2_fail": 5533
+      },
+      "cross_ea_server_midnight_trades": 38,
+      "deterministic_rerun_sha256": "c34e15c96c7c2413dae8c77809c6f7bdbcc14b43b1007487e52f81e526d6d79e",
+      "event_count": 24565,
+      "event_sha256": "c34e15c96c7c2413dae8c77809c6f7bdbcc14b43b1007487e52f81e526d6d79e",
+      "summary": {
+        "delete_symbol_expectancy": {
+          "JP225.cash": -0.05823480523006726,
+          "US100.cash": -0.0498452945180469,
+          "US30.cash": -0.024916853358073584
+        },
+        "expectancy": -0.044552156026796345,
+        "last_four_complete_quarters": [
+          "2025Q3",
+          "2025Q4",
+          "2026Q1",
+          "2026Q2"
+        ],
+        "last_four_expectancy": -0.046176144783457496,
+        "n": 1497,
+        "per_quarter": {
+          "2025Q2": {
+            "expectancy": -0.05196803851168774,
+            "n": 277,
+            "win_rate": 0.3898916967509025
+          },
+          "2025Q3": {
+            "expectancy": -0.015920851314811052,
+            "n": 299,
+            "win_rate": 0.4214046822742475
+          },
+          "2025Q4": {
+            "expectancy": -0.048417321858244364,
+            "n": 297,
+            "win_rate": 0.37373737373737376
+          },
+          "2026Q1": {
+            "expectancy": -0.04125372799005049,
+            "n": 297,
+            "win_rate": 0.4074074074074074
+          },
+          "2026Q2": {
+            "expectancy": -0.0803520508374695,
+            "n": 288,
+            "win_rate": 0.3715277777777778
+          },
+          "2026Q3": {
+            "expectancy": 0.057297335509914726,
+            "n": 39,
+            "win_rate": 0.4358974358974359
+          }
+        },
+        "per_symbol": {
+          "JP225.cash": {
+            "expectancy": -0.02298019962370485,
+            "n": 581,
+            "win_rate": 0.41824440619621345
+          },
+          "US100.cash": {
+            "expectancy": -0.02801656635991448,
+            "n": 363,
+            "win_rate": 0.3884297520661157
+          },
+          "US30.cash": {
+            "expectancy": -0.07807064738172272,
+            "n": 553,
+            "win_rate": 0.37251356238698013
+          }
+        },
+        "win_rate": 0.39412157648630597
+      }
+    }
+  },
+  "ledger": {
+    "charged_cells": [],
+    "end": 209,
+    "start": 209
+  },
+  "mc": {
+    "status": "NOT_RUN_DUE_TO_EDGE_GATE"
+  },
+  "provenance": {
+    "classification": "MEASURED",
+    "command": "python backtest/run_v130_risk_study.py --development-edge",
+    "commit": "18b04c7a8613fcfdee952d2ceb7cddbed54eccd4",
+    "created_utc": "2026-07-12T06:14:47.522503+00:00",
+    "frame": "mined",
+    "paths_run": 0,
+    "protocol_sha256": "8f2043af550df082e493a3d295f305d014c4083115b96bfbdfe61855f860e30a",
+    "registered_mc_paths": 100000
+  },
+  "verdict": "KILLED_AT_EDGE_GATE"
+}
