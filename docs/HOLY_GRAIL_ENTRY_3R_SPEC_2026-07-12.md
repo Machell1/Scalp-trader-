@@ -85,3 +85,9 @@ settings writes: zero.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `2a087311596fcc04442c45e8d4f89065b7497c4b0b057493ce9c3d07f26c29e9`
+
+## Result appended after registration
+
+Executed once at `2c717850e1d2871282cc42972b4cdd1dba144d09`.
+Verdict: **DISPOSE**. Report: `docs/HOLY_GRAIL_ENTRY_3R_RESULTS_2026-07-12.md`;
+artifact: `backtest/holy_grail_entry_3r_results.json`.
