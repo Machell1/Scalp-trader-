@@ -20,3 +20,10 @@ No confirmation/holdout or terminal write is authorized.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `f3242a7e13259107f3d4402a8e221e0b2bbac35b6383010b7def9849f6d48e21`
+
+## Execution record
+
+All preflights and both edge gates passed; the process printed
+`MC_START mode=E1_MEASURED paths=100000`, then disappeared without a process,
+terminal result line, JSON, NPZ, or Windows Application Error event. No MC
+outcome was exposed. Classified as an execution-host session termination.
