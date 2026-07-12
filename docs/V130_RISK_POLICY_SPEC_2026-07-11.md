@@ -312,3 +312,38 @@ any development policy outcome, confirmation, or holdout cell.
   the full rounded position remains for the final price cashflow.
 
 No policy result had been run when these conventions were appended.
+
+### Development edge-gate result
+
+The registered development edge command was run once against the newest
+30,000-bar frozen slice for each of the three FTMO symbols:
+
+```text
+verified FTMO blind freeze 9 OK, 0 missing, 0 mismatched, 0 extra
+verified FTMO blind freeze 9 OK, 0 missing, 0 mismatched, 0 extra
+EXECUTION mode=D0_TOUCH n=1544 exp=+0.0580007762 win=0.4158031088 event_sha256=aa7064cc2509cf1c7cdb158dae57feedc2e584098c72b5bf01b2b9a3bbda4a13
+EXECUTION mode=F1_PER_BAR n=1504 exp=+0.0175799036 win=0.4029255319 event_sha256=6f0025dffec7011edf9a3a2701df7775a26b34b51cbae9d6efc3c557c24bd849
+EXECUTION mode=F2_STRICT_ASK n=1497 exp=+0.0025410956 win=0.3961255845 event_sha256=6cd7b86866592927bd22475465feff138324c2487d8219a6a022e73b08b111a0
+EXECUTION mode=F2_STRICT_ASK_2X n=1497 exp=-0.0445521560 win=0.3941215765 event_sha256=c34e15c96c7c2413dae8c77809c6f7bdbcc14b43b1007487e52f81e526d6d79e
+RESULT_FILE=C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\v130_mined_edge_results.json
+VERDICT=KILLED_AT_EDGE_GATE
+```
+
+[MEASURED: `python backtest/run_v130_risk_study.py --development-edge` @
+`18b04c7a8613fcfdee952d2ceb7cddbed54eccd4`]
+
+The mandatory F2 strict-ask 2x-cost pooled expectancy was
+`-0.0445521560R`; its last-four-complete-quarter expectancy was
+`-0.0461761448R`; and JP225.cash, US100.cash, and US30.cash were each
+negative. The registered edge gate therefore killed the risk-policy study
+before C0/R1/R2/R3 Monte Carlo. Paths run: 0 of 100,000. Ledger: 209 -> 209;
+charge 0. Confirmation and holdout were not opened. [MEASURED: development
+edge command @ `18b04c7`]
+
+The exhaustive symbol, quarter, deletion, coupling-census, fidelity, failure,
+and terminal-write tables are recorded in
+`docs/V130_RISK_POLICY_RESULTS_2026-07-12.md`; the machine-readable artifact is
+`backtest/v130_mined_edge_results.json`. The one-line disposition is:
+
+**V1.30 RISK-SIZING IDEA DISPOSED -- EDGE LOST UNDER MANDATORY F2 2X COST;
+>88% FTMO CHALLENGE PASS EXPECTANCY NOT DEMONSTRATED.**
