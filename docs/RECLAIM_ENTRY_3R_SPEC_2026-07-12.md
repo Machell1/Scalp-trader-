@@ -95,3 +95,10 @@ and live-setting changes authorized: zero.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `ef7e00a98e51cb7d407d0d79c08cda13d8efdb8d76a1943e23dcaad924bb4167`
+
+## Result appended after registration
+
+Executed once at commit `64b837e267dc5be36d56e870d9220caf584e6c20`.
+Verdict: **DISPOSE**. The complete measurements and every cell are recorded in
+`docs/RECLAIM_ENTRY_3R_RESULTS_2026-07-12.md`; the lossless result artifact is
+`backtest/reclaim_entry_3r_results.json`.
