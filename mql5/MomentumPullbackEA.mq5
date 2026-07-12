@@ -1,4 +1,14 @@
 //+------------------------------------------------------------------+
+//|   v1.30 (2026-07-13): CORRECTED-ENGINE EARLY BANKING.             |
+//|     * Bank 50% once at +1R using the frozen signal-bar Wilder ATR |
+//|       and initial stop multiple; the remainder keeps its bracket. |
+//|     * TP3 -> TP2 via a versioned input name so an existing chart  |
+//|       cannot silently retain the obsolete saved TP3 value.        |
+//|     * Partial state is ticket-keyed, restart-safe, tick-checked,   |
+//|       lot-step rounded down, and separately logged with slippage. |
+//|     * Partial DEAL_ENTRY_OUT events do not trigger full-exit       |
+//|       cooldown, trade-final logging, or consecutive-loss logic.   |
+//|                                                                  |
 //|                                            MomentumPullbackEA.mq5 |
 //|   Multi-symbol M15 momentum-continuation EA (pullback entry).     |
 //|                                                                  |
@@ -75,9 +85,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.29"
+#property version   "1.30"
 #property strict
-#property description "Multi-symbol M15 momentum-continuation EA. Pullback-limit entry, fixed bracket exits (SL/TP/time). Cost-gated universe."
+#property description "Multi-symbol M15 momentum pullback EA v1.30. Bank 50% at +1R, TP2 remainder, fixed SL/time exit."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -93,13 +103,13 @@ enum ENUM_ENTRY_MODE
 //--- Symbol universe -------------------------------------------------
 input group "=== Symbol Universe ==="
 input bool   InpScanMarketWatch  = false;     // Scan Market Watch (used only when the whitelist below is empty)
-input string InpSymbolWhitelist  = "US30.cash,US100.cash";  // FTMO forward test (2026-07-10): BTCUSD removed - FTMO crypto commission (~0.29R/round-turn) kills the edge there. Empty = scan Market Watch.
+input string InpSymbolWhitelist  = "US30.cash,US100.cash,JP225.cash";  // v1.30 corrected-engine trio. Empty = scan Market Watch.
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
-input group "=== v1.29 Candle Filter (full-gate PASS 2026-07-10; spec SHA256 5c776330) ==="
-input bool   InpCandleFilter    = true;  // W2: trade ONLY signals whose signal bar has an adverse-side wick >= threshold. Contested impulses continue (+0.120R OOS vs +0.078R); clean climax bars are exhausted. Removes trades only - cannot add risk.
-input double InpMinAdvWickAtr   = 0.30;  // Adverse-wick threshold in ATR (0.30 = gated W2 cell; 0.50 = W3, fewer/better trades; 0 = off)
+input group "=== Candle Filter (retained signal definition; parity-corrected 2026-07-12) ==="
+input bool   InpCandleFilter    = true;  // W2 remains the forward-test signal definition; its old post-hoc expectancy claim was overturned by live-parity enumeration.
+input double InpMinAdvWickAtr   = 0.30;  // Adverse-wick threshold in frozen signal ATR (0.30 = W2; 0 = off)
 
 input group "=== Momentum Strategy ==="
 input ENUM_TIMEFRAMES InpTimeframe   = PERIOD_M15; // Working timeframe
@@ -119,15 +129,19 @@ input group "=== Pending Entry ==="
 input ENUM_ENTRY_MODE InpEntryMode = ENTRY_LIMIT_PULLBACK; // Entry geometry (PULLBACK = validated; BREAKOUT = legacy)
 input double InpPullbackAtr        = 0.6;  // PULLBACK mode: place the LIMIT this many ATR back toward price
 input double InpEntryOffsetAtr     = 0.05; // BREAKOUT mode: place the STOP this many ATR beyond price
-input int    InpPendingExpiryBars  = 3;    // Cancel an untriggered pending order after N bars
+input int    InpPendingExpiryBars  = 3;    // Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.30 retest assumes w4
 input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop pending glued to price
 
 //--- Risk / exits ----------------------------------------------------
 input group "=== Risk & Exits ==="
-input double InpRiskPercent      = 0.5;   // Risk per trade (% of balance)
+input double InpRiskPercent      = 0.3;   // Corrected-engine MC sizing; current FTMO chart already uses 0.3%
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
-input double InpTakeProfitAtrMult= 3.0;   // Take-profit distance (ATR). 3.0 = let winners run (backtest-validated); 0 = trail only
-input bool   InpUseLockTrail     = false; // v1.23 PURE BRACKET default: BE-lock+trail OFF (exit-ladder study 2026-07-02: the ladder truncated winners; bracket OOS +0.078R vs +0.050R, avg win 1.72R vs 1.02R, 5x better 2x-cost margin). true = re-enable the ladder below.
+input double InpTakeProfitAtrMultV130 = 2.0; // v1.30 renamed intentionally: chart-saved TP3 must not survive this upgrade
+input bool   InpUsePartialCloseV130   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
+input double InpPartialCloseFractionV130 = 0.50; // Fraction of ORIGINAL position volume to close (rounded DOWN to lot step)
+input double InpPartialCloseAtRV130   = 1.0;  // Trigger in initial R, using frozen signal ATR * InpStopAtrMult
+input int    InpPartialRetrySecondsV130 = 30; // Reconcile before a bounded retry after a transient server result
+input bool   InpUseLockTrail     = false; // Corrected-engine retest: every lock/trail arm remains negative; v1.30 early banking is the only enabled exit overlay.
 input double InpLockTriggerAtr   = 0.25;  // (only if InpUseLockTrail) once price is this many ATR in profit, lock the trade
 input int    InpLockBufferPoints = 0;     // (only if InpUseLockTrail) extra points locked above break-even (0 = auto: spread+2)
 input double InpTrailAtrMult      = 0.5;  // (only if InpUseLockTrail) trailing distance after lock (ATR)
@@ -149,7 +163,7 @@ input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spr
 // acceptance study (lower drawdown at equal pooled expectancy). Day-1 saw 4 same-direction
 // Tech-100-cluster entries in 70 min stacking ~1.5% correlated heat.
 input int    InpMaxPerCluster    = 1;     // Max open+pending per correlation cluster (0 = off, current behavior)
-input string InpClusterSpec      = "US30.cash|US100.cash;BTCUSD";  // FTMO clusters: US indices (1 at a time) + BTC // Clusters ';'-separated, symbols '|'-separated
+input string InpClusterSpec      = "US30.cash|US100.cash;JP225.cash";  // v1.30 clusters: one US-index seat; JP225 independent
 
 //--- Execution -------------------------------------------------------
 input group "=== Execution ==="
@@ -165,8 +179,9 @@ input bool   InpFreshnessGuard   = true;  // Block NEW entries on stale ticks / 
 input int    InpMaxTickAgeSec     = 60;    // Max age (s) of the latest tick before a symbol is considered frozen (catches dead feeds, not normal illiquid gaps)
 input bool   InpTradeLog          = true;  // Write a per-trade CSV (MFE/MAE in R, spread@entry, exit reason) = the doc's "post-trade learning" data. Pure observability.
 input string InpTradeLogFile      = "MomentumPullback_trades.csv";
+input string InpPartialLogFileV130= "MomentumPullback_partials_v130.csv"; // Actual partial fill + level-vs-fill slippage
 // Protective but they DO alter the validated trade distribution -> OFF by default; flip on deliberately.
-input int    InpNewsBlockMins     = 3;     // Block NEW entries within N min of a HIGH-impact calendar event (0=off). PROTECTIVE, NOT in the validated backtest; self-disables if the broker has no calendar (Deriv usually lacks one).
+input int    InpNewsBlockMins     = 3;     // Protective entry block is ON; evaluation accounts allow news, but this conservative gate remains chart-compatible. 0=off.
 input string InpBlockHours        = "";
 
 input group "=== v1.28 Thought-Process Panel (observability only) ==="
@@ -186,6 +201,15 @@ datetime g_lastScanBar[];// Per-symbol last processed bar (own bar clock, not ch
 struct PendingSigAtr { ulong orderTicket; double atr; };
 PendingSigAtr g_pendingSigAtr[];
 
+enum ENUM_PARTIAL_STATE
+  {
+   PARTIAL_ARMED     = 0,
+   PARTIAL_TRIGGERED = 1,
+   PARTIAL_DONE      = 2,
+   PARTIAL_SKIPPED   = 3
+  };
+#define V130_PARTIAL_MAX_ATTEMPTS 5
+
 // Open position metadata for bar-close management (keyed by POSITION_IDENTIFIER).
 struct PositionMgmtState
   {
@@ -202,6 +226,14 @@ struct PositionMgmtState
    double   spreadAtrEntry;// spread/ATR/side at fill
    double   mfeR;          // max favorable excursion (R), sampled each heartbeat
    double   maeR;          // max adverse excursion (R)
+   // v1.30 partial-close lifecycle (all geometry derives from frozen signal ATR).
+   double   initialVolume;
+   double   partialTargetVolume;
+   double   partialLevel;
+   int      partialState;
+   datetime partialTriggerTime;
+   datetime partialNextRetry;
+   int      partialAttempts;
   };
 PositionMgmtState g_posState[];
 
@@ -229,7 +261,25 @@ int OnInit()
   {
    trade.SetExpertMagicNumber(InpMagicNumber);
    trade.SetDeviationInPoints(InpDeviationPoints);
+   trade.SetMarginMode();
    trade.LogLevel(LOG_LEVEL_ERRORS);
+
+   if(InpUsePartialCloseV130)
+     {
+      if(InpPartialCloseFractionV130 <= 0.0 || InpPartialCloseFractionV130 >= 1.0 ||
+         InpPartialCloseAtRV130 <= 0.0)
+        {
+         Print("v1.30 invalid partial-close inputs: fraction must be in (0,1) and trigger R > 0");
+         return(INIT_PARAMETERS_INCORRECT);
+        }
+      long accountLogin = AccountInfoInteger(ACCOUNT_LOGIN);
+      if(accountLogin > 0 &&
+         (ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+        {
+         Print("v1.30 partial close requires a hedging account; refusing to initialize on netting/exchange mode");
+         return(INIT_PARAMETERS_INCORRECT);
+        }
+     }
 
    if(!BuildSymbolUniverse())
      {
@@ -275,9 +325,11 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.29.1 ready. Entry=%s. Exits=%s. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.30 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
-               (InpUseLockTrail ? "lock/trail ladder" : "PURE BRACKET (SL/TP/time)"),
+               (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
+                                       : "partial OFF"),
+               InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
    return(INIT_SUCCEEDED);
@@ -539,6 +591,11 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
          g_posState[si].entryPrice = HistoryDealGetDouble(trans.deal, DEAL_PRICE);
          g_posState[si].dir = (HistoryDealGetInteger(trans.deal, DEAL_TYPE) == DEAL_TYPE_BUY) ? 1 : -1;
          g_posState[si].riskPrice = (g_posState[si].signalAtr > 0.0) ? InpStopAtrMult * g_posState[si].signalAtr : 0.0;
+         double inVol = 0.0, outVol = 0.0;
+         if(PositionHistoryVolumes(posId, inVol, outVol) && inVol > g_posState[si].initialVolume)
+            g_posState[si].initialVolume = inVol;
+         RefreshPartialGeometry(si, symbol);
+         PersistPartialState(si);
          double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
          double sprPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
          g_posState[si].spreadAtrEntry = (g_posState[si].signalAtr > 0.0) ? 0.5 * sprPrice / g_posState[si].signalAtr : 0.0;
@@ -548,6 +605,41 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 
    if(dealEntry == DEAL_ENTRY_OUT)
      {
+      // v1.30: DEAL_ENTRY_OUT can be the +1R partial. Classify from cumulative
+      // position volumes (not event ordering: MetaQuotes does not guarantee it).
+      int psi = FindPositionState(posId);
+      if(psi < 0)
+        {
+         ulong ot = 0; string os = ""; double ov = 0.0;
+         if(FindOpenPositionById(posId, ot, os, ov))
+           {
+            RegisterPositionState(posId, os, 0.0,
+                                  (datetime)HistoryDealGetInteger(trans.deal, DEAL_TIME));
+            psi = FindPositionState(posId);
+           }
+        }
+      double entryVol = 0.0, exitVol = 0.0;
+      bool haveVolumes = PositionHistoryVolumes(posId, entryVol, exitVol);
+      double vstep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+      bool isPartialExit = haveVolumes && entryVol > 0.0 &&
+                           exitVol + 0.5 * vstep < entryVol;
+      if(isPartialExit)
+        {
+         if(psi >= 0)
+           {
+            if(entryVol > g_posState[psi].initialVolume)
+               g_posState[psi].initialVolume = entryVol;
+            RefreshPartialGeometry(psi, symbol);
+            if(g_posState[psi].partialTargetVolume > 0.0 &&
+               exitVol + 0.5 * vstep >= g_posState[psi].partialTargetVolume)
+               SetPartialState(psi, PARTIAL_DONE, "executed target volume");
+            else
+               SetPartialState(psi, PARTIAL_TRIGGERED, "partial execution awaiting target remainder");
+           }
+         LogPartialDeal(trans.deal, posId, symbol);
+         return; // partial is NOT a completed trade: no cooldown, full log, or streak event
+        }
+
       // v1.27 B5: forbid signals on the engine-equivalent exit bar. Broker SL/TP
       // fire INTRABAR (exit bar = current bar, shift 0); the EA time exit fires at
       // the OPEN of the bar after the engine exit bar (shift 1).
@@ -560,7 +652,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
          if(xb > g_noSignalUpTo[xidx])
             g_noSignalUpTo[xidx] = xb;
         }
-      // full close (pure-bracket EA never partials): log it
+      // Full close only. Any preceding partial is aggregated by LogClosedTrade.
       if(InpTradeLog)
          LogClosedTrade(trans.deal, posId, symbol);
      }
@@ -641,33 +733,65 @@ void LogClosedTrade(ulong dealTicket, long posId, string symbol)
       dir = g_posState[si].dir; mfe = g_posState[si].mfeR; mae = g_posState[si].maeR;
       sprE = g_posState[si].spreadAtrEntry; bars = g_posState[si].barsClosed;
      }
-   // v1.26: state missing/incomplete (reload, prune race) -> rebuild from deal history
-   // instead of logging dir=SELL entry=0 R=0 (audit).
-   if(entryPx <= 0.0 || dir == 0)
+
+   // v1.30: aggregate entry, partial, and final deals. The volume-weighted
+   // price R is banked_frac*level_R + remainder*exit_R; cash profit includes
+   // the actual entry/exit commissions and swaps exactly once.
+   bool haveHistory = HistorySelectByPosition((ulong)posId);
+   double totalEntryVol = 0.0, entryNotional = 0.0, totalProfit = 0.0;
+   if(haveHistory)
      {
-      if(HistorySelectByPosition(posId))
+      int nd = HistoryDealsTotal();
+      for(int i = 0; i < nd; i++)
         {
-         int nd = HistoryDealsTotal();
-         for(int i = 0; i < nd; i++)
+         ulong dd = HistoryDealGetTicket(i);
+         if(dd == 0 || HistoryDealGetInteger(dd, DEAL_MAGIC) != InpMagicNumber)
+            continue;
+         totalProfit += HistoryDealGetDouble(dd, DEAL_PROFIT)
+                      + HistoryDealGetDouble(dd, DEAL_SWAP)
+                      + HistoryDealGetDouble(dd, DEAL_COMMISSION);
+         long de = HistoryDealGetInteger(dd, DEAL_ENTRY);
+         if(de == DEAL_ENTRY_IN || de == DEAL_ENTRY_INOUT)
            {
-            ulong dd = HistoryDealGetTicket(i);
-            if(dd != 0 && HistoryDealGetInteger(dd, DEAL_ENTRY) == DEAL_ENTRY_IN)
-              {
-               entryPx = HistoryDealGetDouble(dd, DEAL_PRICE);
+            double dv = HistoryDealGetDouble(dd, DEAL_VOLUME);
+            totalEntryVol += dv;
+            entryNotional += dv * HistoryDealGetDouble(dd, DEAL_PRICE);
+            if(dir == 0)
                dir = (HistoryDealGetInteger(dd, DEAL_TYPE) == DEAL_TYPE_BUY) ? 1 : -1;
-               break;
-              }
            }
         }
-      if(riskPx <= 0.0)
-        {
-         double fallbackAtr = 0.0;
-         if(ReadAtrForSymbol(symbol, fallbackAtr) && fallbackAtr > 0.0)
-            riskPx = InpStopAtrMult * fallbackAtr;   // fill-time-ish ATR: degraded but honest
-        }
+      if(totalEntryVol > 0.0)
+         entryPx = entryNotional / totalEntryVol;
+      profit = totalProfit;
      }
-   if(riskPx > 0.0 && entryPx > 0.0 && dir != 0)
+
+   if(riskPx <= 0.0)
+     {
+      double fallbackAtr = 0.0;
+      if(ReadAtrForSymbol(symbol, fallbackAtr) && fallbackAtr > 0.0)
+         riskPx = InpStopAtrMult * fallbackAtr;
+     }
+
+   if(haveHistory && riskPx > 0.0 && entryPx > 0.0 && dir != 0 && totalEntryVol > 0.0)
+     {
+      double weightedR = 0.0;
+      int nd2 = HistoryDealsTotal();
+      for(int j = 0; j < nd2; j++)
+        {
+         ulong dd2 = HistoryDealGetTicket(j);
+         if(dd2 == 0 || HistoryDealGetInteger(dd2, DEAL_MAGIC) != InpMagicNumber)
+            continue;
+         long de2 = HistoryDealGetInteger(dd2, DEAL_ENTRY);
+         if(de2 != DEAL_ENTRY_OUT && de2 != DEAL_ENTRY_OUT_BY)
+            continue;
+         double frac = HistoryDealGetDouble(dd2, DEAL_VOLUME) / totalEntryVol;
+         weightedR += frac * dir * (HistoryDealGetDouble(dd2, DEAL_PRICE) - entryPx) / riskPx;
+        }
+      realR = weightedR;
+     }
+   else if(riskPx > 0.0 && entryPx > 0.0 && dir != 0)
       realR = dir * (exitPx - entryPx) / riskPx;
+
    int h = FileOpen(InpTradeLogFile, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
    if(h != INVALID_HANDLE)
      {
@@ -864,7 +988,7 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       offset = 10 * point;
 
    double stopDist = atr * InpStopAtrMult;
-   double tpDist   = (InpTakeProfitAtrMult > 0.0) ? atr * InpTakeProfitAtrMult : 0.0;
+   double tpDist   = (InpTakeProfitAtrMultV130 > 0.0) ? atr * InpTakeProfitAtrMultV130 : 0.0;
    if(stopsLevel > 0.0)
      {
       stopDist = MathMax(stopDist, stopsLevel * 1.5);
@@ -1118,8 +1242,8 @@ void ManagePendingOrders()
          if(newEntry < curPrice - point)
            {
             double sl = SnapPrice(symbol, newEntry - stopDist);
-            double tp = (InpTakeProfitAtrMult > 0.0)
-                        ? SnapPrice(symbol, newEntry + atr * InpTakeProfitAtrMult) : 0.0;
+            double tp = (InpTakeProfitAtrMultV130 > 0.0)
+                        ? SnapPrice(symbol, newEntry + atr * InpTakeProfitAtrMultV130) : 0.0;
             trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
            }
         }
@@ -1131,8 +1255,8 @@ void ManagePendingOrders()
          if(newEntry > curPrice + point)
            {
             double sl = SnapPrice(symbol, newEntry + stopDist);
-            double tp = (InpTakeProfitAtrMult > 0.0)
-                        ? SnapPrice(symbol, newEntry - atr * InpTakeProfitAtrMult) : 0.0;
+            double tp = (InpTakeProfitAtrMultV130 > 0.0)
+                        ? SnapPrice(symbol, newEntry - atr * InpTakeProfitAtrMultV130) : 0.0;
             trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
            }
         }
@@ -1185,6 +1309,12 @@ void ManageOpenPositions()
          if(!posInfo.SelectByTicket(ticket))   // ApplyDesiredSL may have closed the position
             continue;
         }
+
+      // v1.30 partial is tick-checked on every heartbeat, independent of the
+      // bar-close lock/trail cadence. A sent close request owns this heartbeat
+      // so time/SL management cannot race the server transaction chain.
+      if(ManagePartialClose(ticket, stateIdx))
+         continue;
 
       if(InpManageOnBarClose)
          ManagePositionBarClose(ticket, stateIdx);
@@ -1484,6 +1614,301 @@ int FindPositionState(long positionId)
    return(-1);
   }
 
+void LogPartialDeal(ulong dealTicket, long posId, string symbol)
+  {
+   if(!InpTradeLog || StringLen(InpPartialLogFileV130) == 0)
+      return;
+   int si = FindPositionState(posId);
+   double fill = HistoryDealGetDouble(dealTicket, DEAL_PRICE);
+   double vol = HistoryDealGetDouble(dealTicket, DEAL_VOLUME);
+   double level = (si >= 0) ? g_posState[si].partialLevel : 0.0;
+   double risk = (si >= 0) ? g_posState[si].riskPrice : 0.0;
+   double initialVol = (si >= 0) ? g_posState[si].initialVolume : 0.0;
+   double targetVol = (si >= 0) ? g_posState[si].partialTargetVolume : 0.0;
+   int dir = (si >= 0) ? g_posState[si].dir : 0;
+   double slipPrice = (dir != 0 && level > 0.0) ? dir * (fill - level) : 0.0;
+   double slipR = (risk > 0.0) ? slipPrice / risk : 0.0;
+   int h = FileOpen(InpPartialLogFileV130, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   if(h != INVALID_HANDLE)
+     {
+      if(FileSize(h) == 0)
+         FileWriteString(h, "time,deal,position_id,symbol,dir,initial_volume,target_volume,deal_volume,level,fill,slippage_price,slippage_R,state\r\n");
+      FileSeek(h, 0, SEEK_END);
+      FileWriteString(h, StringFormat("%s,%I64u,%I64d,%s,%s,%.2f,%.2f,%.2f,%.5f,%.5f,%.5f,%.5f,%s\r\n",
+                      TimeToString((datetime)HistoryDealGetInteger(dealTicket, DEAL_TIME), TIME_DATE | TIME_SECONDS),
+                      dealTicket, posId, symbol, dir > 0 ? "BUY" : (dir < 0 ? "SELL" : "NA"),
+                      initialVol, targetVol, vol, level, fill, slipPrice, slipR,
+                      (si >= 0) ? PartialStateText(g_posState[si].partialState) : "UNKNOWN"));
+      FileClose(h);
+     }
+   PrintFormat("v1.30 PARTIAL FILL position=%I64d deal=%I64u %s vol=%.2f level=%.5f fill=%.5f slip=%+.5f (%+.4fR)",
+               posId, dealTicket, symbol, vol, level, fill, slipPrice, slipR);
+  }
+
+string PartialStateGv(long positionId)   { return("MPB_v130_so_state_" + (string)positionId); }
+string PartialVolumeGv(long positionId)  { return("MPB_v130_so_initvol_" + (string)positionId); }
+string PartialTriggerGv(long positionId) { return("MPB_v130_so_trigger_" + (string)positionId); }
+string PartialAttemptsGv(long positionId){ return("MPB_v130_so_attempts_" + (string)positionId); }
+
+string PartialStateText(int state)
+  {
+   if(state == PARTIAL_ARMED)     return("ARMED");
+   if(state == PARTIAL_TRIGGERED) return("TRIGGERED");
+   if(state == PARTIAL_DONE)      return("DONE");
+   if(state == PARTIAL_SKIPPED)   return("SKIPPED");
+   return("UNKNOWN");
+  }
+
+int VolumeDigits(double step)
+  {
+   for(int d = 0; d <= 8; d++)
+      if(MathAbs(NormalizeDouble(step, d) - step) < 1e-10)
+         return(d);
+   return(8);
+  }
+
+double FloorVolumeToStep(string symbol, double volume)
+  {
+   double step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   if(step <= 0.0 || volume <= 0.0)
+      return(0.0);
+   double units = MathFloor((volume + 1e-12) / step);
+   return(NormalizeDouble(units * step, VolumeDigits(step)));
+  }
+
+double PartialTargetVolume(string symbol, double initialVolume)
+  {
+   if(!InpUsePartialCloseV130 || initialVolume <= 0.0)
+      return(0.0);
+   double minVol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+   double raw = initialVolume * InpPartialCloseFractionV130;
+   if(raw + 1e-12 < minVol)                 // binding: never round a sub-min half upward
+      return(0.0);
+   double target = FloorVolumeToStep(symbol, raw);
+   if(target + 1e-12 < minVol)
+      return(0.0);
+   if(initialVolume - target + 1e-12 < minVol) // a partial must leave a valid remainder
+      return(0.0);
+   return(target);
+  }
+
+bool PositionHistoryVolumes(long positionId, double &entryVolume, double &exitVolume)
+  {
+   entryVolume = 0.0;
+   exitVolume = 0.0;
+   if(!HistorySelectByPosition((ulong)positionId))
+      return(false);
+   int total = HistoryDealsTotal();
+   for(int i = 0; i < total; i++)
+     {
+      ulong d = HistoryDealGetTicket(i);
+      if(d == 0 || HistoryDealGetInteger(d, DEAL_MAGIC) != InpMagicNumber)
+         continue;
+      long e = HistoryDealGetInteger(d, DEAL_ENTRY);
+      double v = HistoryDealGetDouble(d, DEAL_VOLUME);
+      if(e == DEAL_ENTRY_IN || e == DEAL_ENTRY_INOUT)
+         entryVolume += v;
+      else if(e == DEAL_ENTRY_OUT || e == DEAL_ENTRY_OUT_BY)
+         exitVolume += v;
+     }
+   return(entryVolume > 0.0);
+  }
+
+bool FindOpenPositionById(long positionId, ulong &ticket, string &symbol, double &volume)
+  {
+   ticket = 0;
+   symbol = "";
+   volume = 0.0;
+   for(int p = PositionsTotal() - 1; p >= 0; p--)
+     {
+      ulong t = PositionGetTicket(p);
+      if(t == 0 || !posInfo.SelectByTicket(t) || posInfo.Magic() != InpMagicNumber)
+         continue;
+      if((long)posInfo.Identifier() != positionId)
+         continue;
+      ticket = t;
+      symbol = posInfo.Symbol();
+      volume = posInfo.Volume();
+      return(true);
+     }
+   return(false);
+  }
+
+void PersistPartialState(int stateIdx)
+  {
+   if(stateIdx < 0 || stateIdx >= ArraySize(g_posState))
+      return;
+   long id = g_posState[stateIdx].positionId;
+   GlobalVariableSet(PartialStateGv(id), (double)g_posState[stateIdx].partialState);
+   if(g_posState[stateIdx].initialVolume > 0.0)
+      GlobalVariableSet(PartialVolumeGv(id), g_posState[stateIdx].initialVolume);
+   if(g_posState[stateIdx].partialTriggerTime > 0)
+      GlobalVariableSet(PartialTriggerGv(id), (double)g_posState[stateIdx].partialTriggerTime);
+   GlobalVariableSet(PartialAttemptsGv(id), (double)g_posState[stateIdx].partialAttempts);
+   GlobalVariablesFlush();
+  }
+
+void DeletePartialGlobals(long positionId)
+  {
+   GlobalVariableDel(PartialStateGv(positionId));
+   GlobalVariableDel(PartialVolumeGv(positionId));
+   GlobalVariableDel(PartialTriggerGv(positionId));
+   GlobalVariableDel(PartialAttemptsGv(positionId));
+   GlobalVariablesFlush();
+  }
+
+void RefreshPartialGeometry(int stateIdx, string symbol)
+  {
+   if(stateIdx < 0 || stateIdx >= ArraySize(g_posState))
+      return;
+   if(g_posState[stateIdx].entryPrice > 0.0 && g_posState[stateIdx].riskPrice > 0.0 && g_posState[stateIdx].dir != 0)
+      g_posState[stateIdx].partialLevel = g_posState[stateIdx].entryPrice
+                                           + g_posState[stateIdx].dir * InpPartialCloseAtRV130
+                                             * g_posState[stateIdx].riskPrice;
+   if(g_posState[stateIdx].initialVolume > 0.0)
+      g_posState[stateIdx].partialTargetVolume = PartialTargetVolume(symbol, g_posState[stateIdx].initialVolume);
+  }
+
+void RestorePartialState(int stateIdx, string symbol, double currentVolume)
+  {
+   if(stateIdx < 0 || stateIdx >= ArraySize(g_posState))
+      return;
+   long id = g_posState[stateIdx].positionId;
+   if(GlobalVariableCheck(PartialVolumeGv(id)))
+      g_posState[stateIdx].initialVolume = GlobalVariableGet(PartialVolumeGv(id));
+
+   double inVol = 0.0, outVol = 0.0;
+   if(PositionHistoryVolumes(id, inVol, outVol) && inVol > g_posState[stateIdx].initialVolume)
+      g_posState[stateIdx].initialVolume = inVol;
+   if(g_posState[stateIdx].initialVolume <= 0.0)
+      g_posState[stateIdx].initialVolume = currentVolume;
+
+   if(GlobalVariableCheck(PartialStateGv(id)))
+      g_posState[stateIdx].partialState = (int)GlobalVariableGet(PartialStateGv(id));
+   if(GlobalVariableCheck(PartialTriggerGv(id)))
+      g_posState[stateIdx].partialTriggerTime = (datetime)GlobalVariableGet(PartialTriggerGv(id));
+   if(GlobalVariableCheck(PartialAttemptsGv(id)))
+      g_posState[stateIdx].partialAttempts = (int)GlobalVariableGet(PartialAttemptsGv(id));
+
+   RefreshPartialGeometry(stateIdx, symbol);
+   double step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   double reduced = MathMax(outVol, g_posState[stateIdx].initialVolume - currentVolume);
+   if(g_posState[stateIdx].partialTargetVolume <= 0.0)
+      g_posState[stateIdx].partialState = PARTIAL_SKIPPED;
+   else if(reduced + 0.5 * step >= g_posState[stateIdx].partialTargetVolume)
+      g_posState[stateIdx].partialState = PARTIAL_DONE;
+   else if(g_posState[stateIdx].partialState == PARTIAL_DONE)
+      g_posState[stateIdx].partialState = PARTIAL_ARMED; // stale/corrupt GV cannot suppress a missing partial
+   PersistPartialState(stateIdx);
+  }
+
+bool PartialRetcodeRetryable(uint rc)
+  {
+   return(rc == TRADE_RETCODE_REQUOTE || rc == TRADE_RETCODE_PRICE_CHANGED ||
+          rc == TRADE_RETCODE_TIMEOUT || rc == TRADE_RETCODE_CONNECTION ||
+          rc == TRADE_RETCODE_TOO_MANY_REQUESTS || rc == TRADE_RETCODE_PRICE_OFF ||
+          rc == TRADE_RETCODE_LOCKED || rc == TRADE_RETCODE_MARKET_CLOSED);
+  }
+
+void SetPartialState(int stateIdx, int state, string reason)
+  {
+   if(stateIdx < 0 || stateIdx >= ArraySize(g_posState))
+      return;
+   if(g_posState[stateIdx].partialState == state)
+      return;
+   g_posState[stateIdx].partialState = state;
+   PersistPartialState(stateIdx);
+   PrintFormat("v1.30 PARTIAL STATE position=%I64d state=%s: %s",
+               g_posState[stateIdx].positionId, PartialStateText(state), reason);
+  }
+
+bool ManagePartialClose(ulong ticket, int stateIdx)
+  {
+   if(!InpUsePartialCloseV130 || stateIdx < 0 || stateIdx >= ArraySize(g_posState))
+      return(false);
+   if((ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
+     {
+      SetPartialState(stateIdx, PARTIAL_SKIPPED, "account is not in hedging mode");
+      return(false);
+     }
+   string symbol = posInfo.Symbol();
+   double currentVolume = posInfo.Volume();
+   RefreshPartialGeometry(stateIdx, symbol);
+   int state = g_posState[stateIdx].partialState;
+   if(state == PARTIAL_DONE || state == PARTIAL_SKIPPED)
+      return(false);
+   if(g_posState[stateIdx].partialLevel <= 0.0 || g_posState[stateIdx].riskPrice <= 0.0)
+      return(false);
+
+   MqlTick tick;
+   if(!SymbolInfoTick(symbol, tick) || tick.bid <= 0.0 || tick.ask <= 0.0)
+      return(false);
+   double exitSide = (g_posState[stateIdx].dir > 0) ? tick.bid : tick.ask;
+   bool reached = (g_posState[stateIdx].dir > 0)
+                  ? (exitSide >= g_posState[stateIdx].partialLevel)
+                  : (exitSide <= g_posState[stateIdx].partialLevel);
+   if(state == PARTIAL_ARMED && !reached)
+      return(false);
+   if(state == PARTIAL_ARMED)
+     {
+      g_posState[stateIdx].partialState = PARTIAL_TRIGGERED;
+      g_posState[stateIdx].partialTriggerTime = TimeCurrent();
+      g_posState[stateIdx].partialNextRetry = 0;
+      g_posState[stateIdx].partialAttempts = 0;
+      PersistPartialState(stateIdx);
+      PrintFormat("v1.30 PARTIAL TRIGGER position=%I64d %s level=%.5f exitSide=%.5f initialVol=%.2f targetVol=%.2f",
+                  g_posState[stateIdx].positionId, symbol, g_posState[stateIdx].partialLevel,
+                  exitSide, g_posState[stateIdx].initialVolume, g_posState[stateIdx].partialTargetVolume);
+     }
+
+   if(TimeCurrent() < g_posState[stateIdx].partialNextRetry)
+      return(false);
+
+   double inVol = 0.0, outVol = 0.0;
+   PositionHistoryVolumes(g_posState[stateIdx].positionId, inVol, outVol);
+   double reduced = MathMax(outVol, g_posState[stateIdx].initialVolume - currentVolume);
+   double step = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   double minVol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
+   double remaining = g_posState[stateIdx].partialTargetVolume - reduced;
+   if(remaining <= 0.5 * step)
+     {
+      SetPartialState(stateIdx, PARTIAL_DONE, "reconciled target volume");
+      return(false);
+     }
+   double closeVolume = FloorVolumeToStep(symbol, remaining);
+   if(closeVolume + 1e-12 < minVol || currentVolume - closeVolume + 1e-12 < minVol)
+     {
+      SetPartialState(stateIdx, PARTIAL_SKIPPED, "half volume is below broker min/step or leaves invalid remainder");
+      return(false);
+     }
+   if(g_posState[stateIdx].partialAttempts >= V130_PARTIAL_MAX_ATTEMPTS)
+     {
+      SetPartialState(stateIdx, PARTIAL_SKIPPED, "bounded retry limit reached");
+      return(false);
+     }
+
+   trade.SetTypeFillingBySymbol(symbol);
+   bool ok = trade.PositionClosePartial(ticket, closeVolume, InpDeviationPoints);
+   uint rc = trade.ResultRetcode();
+   g_posState[stateIdx].partialAttempts++;
+   g_posState[stateIdx].partialNextRetry = TimeCurrent() + MathMax(InpPartialRetrySecondsV130, 5);
+   PersistPartialState(stateIdx);
+   if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_DONE_PARTIAL))
+     {
+      PrintFormat("v1.30 PARTIAL REQUEST position=%I64d %s closeVol=%.2f retcode=%u (%s) deal=%I64u price=%.5f",
+                  g_posState[stateIdx].positionId, symbol, closeVolume, rc,
+                  trade.ResultRetcodeDescription(), trade.ResultDeal(), trade.ResultPrice());
+      return(true); // avoid a same-heartbeat full-management race; deal event/reconcile finalizes state
+     }
+   if(!PartialRetcodeRetryable(rc))
+      SetPartialState(stateIdx, PARTIAL_SKIPPED, StringFormat("non-retryable retcode %u (%s)", rc, trade.ResultRetcodeDescription()));
+   else
+      PrintFormat("v1.30 PARTIAL RETRY position=%I64d %s attempt=%d/%d retcode=%u (%s)",
+                  g_posState[stateIdx].positionId, symbol, g_posState[stateIdx].partialAttempts,
+                  V130_PARTIAL_MAX_ATTEMPTS, rc, trade.ResultRetcodeDescription());
+   return(false);
+  }
+
 //+------------------------------------------------------------------+
 //| barsClosed = closed bars since (and including) the entry bar,     |
 //| recomputed from the entry bar's shift so a multi-bar backfill     |
@@ -1531,6 +1956,9 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
         {
          g_posState[existing].signalAtr = signalAtr;
          GlobalVariableSet("DSv121_atr_" + (string)positionId, signalAtr);
+         if(g_posState[existing].entryPrice > 0.0)
+            g_posState[existing].riskPrice = InpStopAtrMult * signalAtr;
+         RefreshPartialGeometry(existing, symbol);
         }
       return;
      }
@@ -1573,10 +2001,18 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    g_posState[n].spreadAtrEntry = 0.0;
    g_posState[n].mfeR = 0.0;
    g_posState[n].maeR = 0.0;
+   g_posState[n].initialVolume = 0.0;
+   g_posState[n].partialTargetVolume = 0.0;
+   g_posState[n].partialLevel = 0.0;
+   g_posState[n].partialState = PARTIAL_ARMED;
+   g_posState[n].partialTriggerTime = 0;
+   g_posState[n].partialNextRetry = 0;
+   g_posState[n].partialAttempts = 0;
 
    // v1.26: populate entry context from the LIVE position so trade-log rows survive
    // registrations outside the DEAL_ENTRY_IN path (reload sync, prune race) -
    // previously such rows logged dir=SELL entry=0 realized_R=0 (audit).
+   double currentVolume = 0.0;
    for(int p = PositionsTotal() - 1; p >= 0; p--)
      {
       ulong pt = PositionGetTicket(p);
@@ -1586,13 +2022,15 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
          continue;
       g_posState[n].entryPrice = posInfo.PriceOpen();
       g_posState[n].dir = (posInfo.PositionType() == POSITION_TYPE_BUY) ? 1 : -1;
+      currentVolume = posInfo.Volume();
       double slp = posInfo.StopLoss();
-      if(slp > 0.0)
-         g_posState[n].riskPrice = MathAbs(g_posState[n].entryPrice - slp);   // the stop actually placed
-      else if(signalAtr > 0.0)
+      if(signalAtr > 0.0)
          g_posState[n].riskPrice = InpStopAtrMult * signalAtr;
+      else if(slp > 0.0)
+         g_posState[n].riskPrice = MathAbs(g_posState[n].entryPrice - slp);   // degraded fallback only
       break;
      }
+   RestorePartialState(n, symbol, currentVolume);
   }
 
 void SyncOpenPositionStates()
@@ -1629,6 +2067,7 @@ void PruneClosedPositionStates()
       if(!open)
         {
          GlobalVariableDel("DSv121_atr_" + (string)g_posState[i].positionId);
+         DeletePartialGlobals(g_posState[i].positionId);
          for(int j = i; j < ArraySize(g_posState) - 1; j++)
             g_posState[j] = g_posState[j + 1];
          ArrayResize(g_posState, ArraySize(g_posState) - 1);
@@ -1996,6 +2435,8 @@ int ConsecutiveLossesToday()
       return(0);
    int streak = 0;
    int total = HistoryDealsTotal();
+   long seen[];
+   ArrayResize(seen, 0);
    for(int i = total - 1; i >= 0; i--)
      {
       ulong d = HistoryDealGetTicket(i);
@@ -2003,11 +2444,36 @@ int ConsecutiveLossesToday()
          continue;
       if(HistoryDealGetInteger(d, DEAL_MAGIC) != InpMagicNumber)
          continue;
-      if(HistoryDealGetInteger(d, DEAL_ENTRY) != DEAL_ENTRY_OUT)
+      long de = HistoryDealGetInteger(d, DEAL_ENTRY);
+      if(de != DEAL_ENTRY_OUT && de != DEAL_ENTRY_OUT_BY)
          continue;
-      double pnl = HistoryDealGetDouble(d, DEAL_PROFIT)
-                 + HistoryDealGetDouble(d, DEAL_SWAP)
-                 + HistoryDealGetDouble(d, DEAL_COMMISSION);
+      long posId = HistoryDealGetInteger(d, DEAL_POSITION_ID);
+      bool duplicate = false;
+      for(int s = 0; s < ArraySize(seen); s++)
+         if(seen[s] == posId) { duplicate = true; break; }
+      if(duplicate)
+         continue;
+
+      // A still-open position has only emitted a v1.30 partial; it is not a
+      // completed win/loss and cannot reset or extend the daily streak.
+      ulong openTicket = 0; string openSymbol = ""; double openVolume = 0.0;
+      if(FindOpenPositionById(posId, openTicket, openSymbol, openVolume))
+         continue;
+
+      int ns = ArraySize(seen);
+      ArrayResize(seen, ns + 1);
+      seen[ns] = posId;
+      double pnl = 0.0;
+      for(int j = 0; j < total; j++)
+        {
+         ulong pd = HistoryDealGetTicket(j);
+         if(pd == 0 || HistoryDealGetInteger(pd, DEAL_MAGIC) != InpMagicNumber ||
+            HistoryDealGetInteger(pd, DEAL_POSITION_ID) != posId)
+            continue;
+         pnl += HistoryDealGetDouble(pd, DEAL_PROFIT)
+              + HistoryDealGetDouble(pd, DEAL_SWAP)
+              + HistoryDealGetDouble(pd, DEAL_COMMISSION);
+        }
       if(pnl < 0.0)
          streak++;
       else if(pnl > 0.0)
@@ -2090,8 +2556,8 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.28  THOUGHT PROCESS   %s srv",
-            TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.30  THOUGHT PROCESS   %s srv",
+             TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
      {
@@ -2114,10 +2580,12 @@ void PanelUpdate()
       double mfe = (si >= 0) ? g_posState[si].mfeR : 0.0;
       double mae = (si >= 0) ? g_posState[si].maeR : 0.0;
       int bars = (si >= 0) ? g_posState[si].barsClosed : 0;
-      PanelSet(ln++, StringFormat("POS  %s %s %.2f @ %.2f | bar %d/%d | MFE %+.2fR MAE %+.2fR",
-               posInfo.Symbol(), posInfo.PositionType() == POSITION_TYPE_BUY ? "BUY " : "SELL",
-               posInfo.Volume(), posInfo.PriceOpen(), bars, InpMaxHoldingBars, mfe, mae),
-               clrDeepSkyBlue);
+      string so = (si >= 0) ? StringFormat("%s@%.2f", PartialStateText(g_posState[si].partialState),
+                                            g_posState[si].partialLevel) : "UNKNOWN";
+      PanelSet(ln++, StringFormat("POS %s %s %.2f @ %.2f | b%d/%d | MFE%+.2f MAE%+.2f | SO %s",
+                posInfo.Symbol(), posInfo.PositionType() == POSITION_TYPE_BUY ? "BUY " : "SELL",
+                posInfo.Volume(), posInfo.PriceOpen(), bars, InpMaxHoldingBars, mfe, mae, so),
+                clrDeepSkyBlue);
       shown++;
      }
    int pend = 0;
@@ -2157,12 +2625,12 @@ void DecisionCsvMaybe()
    s_lastBar = b;
    MqlDateTime st;
    TimeToStruct(TimeCurrent(), st);
-   string fn = StringFormat("MomentumPullback_decisions_%04d%02d.csv", st.year, st.mon);
+   string fn = StringFormat("MomentumPullback_decisions_v130_%04d%02d.csv", st.year, st.mon);
    int h = FileOpen(fn, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
    if(h == INVALID_HANDLE)
       return;
    if(FileSize(h) == 0)
-      FileWriteString(h, "time,verdicts,fills,day_pnl,halted,hard,positions,pendings\r\n");
+      FileWriteString(h, "time,verdicts,fills,day_pnl,halted,hard,positions,pendings,partial_states\r\n");
    FileSeek(h, 0, SEEK_END);
    string vs = "";
    for(int i = 0; i < ArraySize(g_symbols); i++)
@@ -2180,10 +2648,16 @@ void DecisionCsvMaybe()
       ulong tk = PositionGetTicket(p);
       if(tk != 0 && posInfo.SelectByTicket(tk) && posInfo.Magic() == InpMagicNumber) poss++;
      }
-   FileWriteString(h, StringFormat("%s,%s,%d,%.2f,%s,%s,%d,%d\r\n",
-                   TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS), vs,
-                   g_tradesToday, AccountInfoDouble(ACCOUNT_EQUITY) - g_dayStartBalance,
-                   g_halted ? "y" : "n", g_haltedHard ? "y" : "n", poss, pend));
+   string partials = "";
+   for(int s = 0; s < ArraySize(g_posState); s++)
+      partials += (s ? " ; " : "") + (string)g_posState[s].positionId + ":" +
+                  PartialStateText(g_posState[s].partialState) + "@" +
+                  DoubleToString(g_posState[s].partialLevel, 5);
+   StringReplace(partials, ",", "|");
+   FileWriteString(h, StringFormat("%s,%s,%d,%.2f,%s,%s,%d,%d,%s\r\n",
+                    TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS), vs,
+                    g_tradesToday, AccountInfoDouble(ACCOUNT_EQUITY) - g_dayStartBalance,
+                    g_halted ? "y" : "n", g_haltedHard ? "y" : "n", poss, pend, partials));
    FileClose(h);
   }
 //+------------------------------------------------------------------+
