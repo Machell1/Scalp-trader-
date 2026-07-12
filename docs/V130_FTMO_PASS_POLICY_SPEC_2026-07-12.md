@@ -426,3 +426,35 @@ verbatim; no repair-and-silent-rerun is allowed after an outcome has begun.
 
 Not run at registration. Results may be appended here only; the protocol above
 the recorded hash is immutable.
+
+### Failed first development attempt — 2026-07-12 UTC
+
+The registered command passed both weighted edge gates, then entered the
+100,000-path E1 run and failed before completing the first path. No MC result
+JSON or path artifact was written. The exact final output was:
+
+```text
+EDGE mode=E1_MEASURED n=1497 weighted_exp=+0.0395687931 last4=+0.0363527195 pass=True
+EDGE mode=E2_STRESS n=1497 weighted_exp=+0.0173443000 last4=+0.0136382904 pass=True
+MC_START mode=E1_MEASURED paths=100000
+Traceback (most recent call last):
+  File "C:\\Users\\Sanique Richards\\Downloads\\codex-scalp\\backtest\\run_v130_pass_policy.py", line 416, in <module>
+    main()
+  File "C:\\Users\\Sanique Richards\\Downloads\\codex-scalp\\backtest\\run_v130_pass_policy.py", line 410, in main
+    result = run_development()
+  File "C:\\Users\\Sanique Richards\\Downloads\\codex-scalp\\backtest\\run_v130_pass_policy.py", line 363, in run_development
+    runs = run_monte_carlo(
+  File "C:\\Users\\Sanique Richards\\Downloads\\codex-scalp\\backtest\\v130_pass_policy.py", line 1470, in run_monte_carlo
+    outcome = simulate_two_phase_path(
+  File "C:\\Users\\Sanique Richards\\Downloads\\codex-scalp\\backtest\\v130_pass_policy.py", line 1210, in simulate_two_phase_path
+    raise BootstrapOverlapError("non-flat lifecycle at sampled block boundary")
+v130_risk_policy.BootstrapOverlapError: non-flat lifecycle at sampled block boundary
+```
+
+[MEASURED: `python -u backtest/run_v130_pass_policy.py --development` @
+`fc05dc0`]
+
+This is an implementation/fidelity failure, not a policy outcome. Completed MC
+paths: 0. No confirmation or holdout was accessed. The command is not rerun
+under this hash; any repair run must be separately registered and must retain
+this failure in its lineage.
