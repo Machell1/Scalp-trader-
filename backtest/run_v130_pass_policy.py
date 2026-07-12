@@ -23,13 +23,13 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_CHUNK_SPEC_2026-07-12.md"
+SPEC = ROOT / "docs" / "V130_FTMO_PASS_POLICY_MICROCHUNK_SPEC_2026-07-12.md"
 AUDIT = HERE / "v130_cost_audit_results.json"
-RESULT = HERE / "v130_pass_policy_chunk_results.json"
-NPZ = HERE / "v130_pass_policy_chunk_paths.npz"
-PROTOCOL_SHA256 = "57f465900d0f0d04033f850d50802bac10d61c22276b48c8db43f40c074669b0"
+RESULT = HERE / "v130_pass_policy_microchunk_results.json"
+NPZ = HERE / "v130_pass_policy_microchunk_paths.npz"
+PROTOCOL_SHA256 = "f234a41c64ff9ac49668a97bc7718b8ba9e5291e39d05ff6c45601f8cc15c2a3"
 PATHS = 100_000
-CHUNK_SIZE = 5_000
+CHUNK_SIZE = 500
 WORKERS = 2
 BLOCK_LENGTH = 20
 MODES = ("E1_MEASURED", "E2_STRESS")
@@ -81,6 +81,7 @@ def _clean_dependency_check() -> str:
         "docs/V130_FTMO_PASS_POLICY_RESTART3_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_RESTART4_SPEC_2026-07-12.md",
         "docs/V130_FTMO_PASS_POLICY_CHUNK_SPEC_2026-07-12.md",
+        "docs/V130_FTMO_PASS_POLICY_MICROCHUNK_SPEC_2026-07-12.md",
         "backtest/parity_engine.py",
         "backtest/test_parity_hooks.py",
         "backtest/v130_coupled.py",
