@@ -1,4 +1,14 @@
 //+------------------------------------------------------------------+
+//|   v1.32 (2026-07-13): ENTRY RELIABILITY + BROKER PORTABILITY.     |
+//|     * Preserve the validated H1 signal/limit geometry unchanged.  |
+//|     * Recover the known 10015 crossed-limit race with one bounded |
+//|       market retry, only while the fresh quote is at least as good|
+//|       as the original limit price.                                |
+//|     * Fail closed when signal-candle OHLC is incomplete.          |
+//|     * Resolve unique broker suffixes and apply cluster/risk rules  |
+//|       to the resolved names, enabling portable multi-asset sets.  |
+//|     * Generalize reduced-risk sleeves through explicit overrides. |
+//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -92,9 +102,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.31"
+#property version   "1.32"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
+#property description "Multi-symbol H1 momentum pullback EA v1.32. Reliable pullback placement and portable risk sleeves."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -112,6 +122,7 @@ input group "=== Symbol Universe ==="
 input bool   InpScanMarketWatch  = false;     // Scan Market Watch (used only when the whitelist below is empty)
 input string InpSymbolWhitelistV131 = "US30.cash,US100.cash,JP225.cash,USDJPY";  // v1.31 confirmed H1 portfolio. Versioned so saved trio-only input cannot survive.
 #define InpSymbolWhitelist InpSymbolWhitelistV131
+input bool   InpResolveBrokerSuffixesV132 = true; // If an exact whitelist name is absent, accept one UNIQUE broker-suffixed match (for example USDJPY.a). Ambiguous matches are rejected.
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
@@ -140,11 +151,13 @@ input double InpPullbackAtr        = 0.6;  // PULLBACK mode: place the LIMIT thi
 input double InpEntryOffsetAtr     = 0.05; // BREAKOUT mode: place the STOP this many ATR beyond price
 input int    InpPendingExpiryBars  = 3;    // Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.30 retest assumes w4
 input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop pending glued to price
+input bool   InpRetryCrossedLimitV132 = true; // Recover one known 10015 race as market only if the refreshed quote has already crossed the limit at an equal-or-better price
 
 //--- Risk / exits ----------------------------------------------------
 input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.3;   // Corrected-engine MC sizing; current FTMO chart already uses 0.3%
 input double InpUSDJPYRiskPercentV131 = 0.05; // Confirmed USDJPY sleeve; dynamic cash risk, not a fixed lot size
+input string InpRiskOverridesV132 = "USDJPY=0.05"; // Comma-separated admitted symbol=risk% sleeves. Names match unique broker suffixes; unspecified symbols use base risk.
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
 input double InpTakeProfitAtrMultV130 = 2.0; // v1.30 renamed intentionally: chart-saved TP3 must not survive this upgrade
 input bool   InpUsePartialCloseV130   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
@@ -279,9 +292,10 @@ int OnInit()
    trade.LogLevel(LOG_LEVEL_ERRORS);
 
    if(InpRiskPercent <= 0.0 || InpUSDJPYRiskPercentV131 <= 0.0 ||
-      InpUSDJPYRiskPercentV131 > InpRiskPercent)
+      InpUSDJPYRiskPercentV131 > InpRiskPercent ||
+      !ValidateRiskOverrides())
      {
-      Print("v1.31 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
+      Print("v1.32 invalid risk inputs: risk values must be positive and no symbol override may exceed base risk");
       return(INIT_PARAMETERS_INCORRECT);
      }
 
@@ -325,7 +339,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.32 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -352,14 +366,14 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.32 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; overrides=%s.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131);
+               InpRiskOverridesV132);
    return(INIT_SUCCEEDED);
   }
 
@@ -388,9 +402,14 @@ bool BuildSymbolUniverse()
       int n = StringSplit(InpSymbolWhitelist, StringGetCharacter(",", 0), candidates);
       for(int i = 0; i < n; i++)
         {
-         string s = Trim(candidates[i]);
-         if(StringLen(s) > 0)
-            AddSymbol(s);
+         string requested = Trim(candidates[i]);
+         if(StringLen(requested) == 0)
+            continue;
+         string resolved = ResolveBrokerSymbol(requested);
+         if(StringLen(resolved) > 0)
+            AddSymbol(resolved);
+         else
+            PrintFormat("WARN: whitelist symbol '%s' is unavailable or has ambiguous broker suffix matches", requested);
         }
      }
    else if(InpScanMarketWatch)
@@ -415,6 +434,9 @@ bool BuildSymbolUniverse()
 //+------------------------------------------------------------------+
 void AddSymbol(string symbol)
   {
+   for(int i = 0; i < ArraySize(g_symbols); i++)
+      if(g_symbols[i] == symbol)
+         return;
    if(IsSynthetic(symbol))
       return;
    if(!SymbolSelect(symbol, true))
@@ -447,6 +469,45 @@ void AddSymbol(string symbol)
    g_noSignalUpTo[idx] = 0;
    g_lastVerdict[idx] = "";     // v1.28 panel
    g_lastVerdictT[idx] = 0;
+  }
+
+//+------------------------------------------------------------------+
+//| Resolve an exact symbol first, then one unique broker suffix.     |
+//| Prefix matching is deliberately one-way: a configured canonical  |
+//| token may gain a suffix, but a shorter token cannot steal it.     |
+//+------------------------------------------------------------------+
+string ResolveBrokerSymbol(string requested)
+  {
+   if(SymbolSelect(requested, true))
+      return(requested);
+   if(!InpResolveBrokerSuffixesV132)
+      return("");
+
+   string reqUp = requested;
+   StringToUpper(reqUp);
+   string match = "";
+   int total = SymbolsTotal(false);
+   for(int i = 0; i < total; i++)
+     {
+      string candidate = SymbolName(i, false);
+      string candUp = candidate;
+      StringToUpper(candUp);
+      if(StringLen(candUp) <= StringLen(reqUp) || StringFind(candUp, reqUp) != 0)
+         continue;
+      if(StringLen(match) > 0)
+        {
+         PrintFormat("WARN: broker suffix resolution for '%s' is ambiguous: '%s' and '%s'",
+                     requested, match, candidate);
+         return("");
+        }
+      match = candidate;
+     }
+   if(StringLen(match) > 0 && SymbolSelect(match, true))
+     {
+      PrintFormat("Resolved broker symbol '%s' -> '%s'", requested, match);
+      return(match);
+     }
+   return("");
   }
 
 //+------------------------------------------------------------------+
@@ -984,18 +1045,22 @@ void ScanSymbol(string symbol, int atrHandle)
      {
       double high1 = iHigh(symbol, InpTimeframe, 1);
       double low1  = iLow(symbol, InpTimeframe, 1);
-      if(high1 > 0.0 && low1 > 0.0)
+      if(high1 <= 0.0 || low1 <= 0.0 || high1 < MathMax(open1, close1) ||
+         low1 > MathMin(open1, close1))
         {
-         double bodyTop  = MathMax(open1, close1);
-         double bodyBot  = MathMin(open1, close1);
-         double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
-         double advWickAtr = advWick / atr;
-         if(advWickAtr < InpMinAdvWickAtr)
-           {
-            LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
-                    advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
-            return;
-           }
+         LogSkip(symbol, "candle filter: invalid signal-bar OHLC (fail closed)",
+                 atr, spreadAtrSide, -moveAtr);
+         return;
+        }
+      double bodyTop  = MathMax(open1, close1);
+      double bodyBot  = MathMin(open1, close1);
+      double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
+      double advWickAtr = advWick / atr;
+      if(advWickAtr < InpMinAdvWickAtr)
+        {
+         LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
+                 advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
+         return;
         }
      }
 
@@ -1141,6 +1206,44 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
      }
 
    uint rc = trade.ResultRetcode();
+   // v1.32: close the decision-to-send race documented in live telemetry.  A limit
+   // can become wrong-side after the initial check and be rejected as 10015. Retry
+   // exactly once, and only when a refreshed executable quote is equal to or better
+   // than the original limit. Never convert a limit that price moved away from.
+   if(!sendMarket && isLimit && InpRetryCrossedLimitV132 &&
+      !(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED)) &&
+      rc == TRADE_RETCODE_INVALID_PRICE)
+     {
+      MqlTick fresh;
+      if(SymbolInfoTick(symbol, fresh))
+        {
+         bool crossedAtBetterPrice = isBuy ? (fresh.ask > 0.0 && fresh.ask <= entry)
+                                           : (fresh.bid > 0.0 && fresh.bid >= entry);
+         if(crossedAtBetterPrice)
+           {
+            double retryEntry = isBuy ? fresh.ask : fresh.bid;
+            double retrySl = SnapPrice(symbol, isBuy ? retryEntry - stopDist
+                                                     : retryEntry + stopDist);
+            double retryTp = (tpDist > 0.0)
+                             ? SnapPrice(symbol, isBuy ? retryEntry + tpDist
+                                                       : retryEntry - tpDist)
+                             : 0.0;
+            PrintFormat("%s %s rejected 10015 after quote crossed; one market retry at %.5f vs limit %.5f",
+                        symbol, tag, retryEntry, entry);
+            ok = isBuy ? trade.Buy (lots, symbol, 0.0, retrySl, retryTp, InpTradeComment)
+                       : trade.Sell(lots, symbol, 0.0, retrySl, retryTp, InpTradeComment);
+            rc = trade.ResultRetcode();
+            if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))
+              {
+               entry = retryEntry;
+               sl = retrySl;
+               tp = retryTp;
+               tag = isBuy ? "BUY MARKET(crossed-limit retry)"
+                           : "SELL MARKET(crossed-limit retry)";
+              }
+           }
+        }
+     }
    if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))   // v1.26: bool alone only means "request passed basic checks"
      {
       StorePendingSigAtr(trade.ResultOrder(), atr);   // v1.27 B3: fills are counted in OnTradeTransaction
@@ -1158,9 +1261,63 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 //+------------------------------------------------------------------+
 double RiskPercentForSymbol(string symbol)
   {
-   if(symbol == "USDJPY")
+   string overrides[];
+   int count = StringSplit(InpRiskOverridesV132, StringGetCharacter(",", 0), overrides);
+   for(int i = 0; i < count; i++)
+     {
+      string pair[];
+      if(StringSplit(overrides[i], StringGetCharacter("=", 0), pair) != 2)
+         continue;
+      string token = Trim(pair[0]);
+      if(SymbolMatchesConfigToken(symbol, token))
+         return(StringToDouble(Trim(pair[1])));
+     }
+   // Preserve v1.31 behavior if an existing chart deliberately clears the new map.
+   if(SymbolMatchesConfigToken(symbol, "USDJPY"))
       return(InpUSDJPYRiskPercentV131);
    return(InpRiskPercent);
+  }
+
+//+------------------------------------------------------------------+
+bool ValidateRiskOverrides()
+  {
+   string spec = Trim(InpRiskOverridesV132);
+   if(StringLen(spec) == 0)
+      return(true);
+   string overrides[];
+   int count = StringSplit(spec, StringGetCharacter(",", 0), overrides);
+   for(int i = 0; i < count; i++)
+     {
+      string pair[];
+      if(StringSplit(overrides[i], StringGetCharacter("=", 0), pair) != 2)
+        {
+         PrintFormat("Invalid risk override '%s'; expected SYMBOL=percent", Trim(overrides[i]));
+         return(false);
+        }
+      string token = Trim(pair[0]);
+      double risk = StringToDouble(Trim(pair[1]));
+      if(StringLen(token) == 0 || risk <= 0.0 || risk > InpRiskPercent)
+        {
+         PrintFormat("Invalid risk override '%s'; percent must be in (0, %.4f]",
+                     Trim(overrides[i]), InpRiskPercent);
+         return(false);
+        }
+     }
+   return(true);
+  }
+
+//+------------------------------------------------------------------+
+//| Match canonical config names to exact or broker-suffixed symbols. |
+//+------------------------------------------------------------------+
+bool SymbolMatchesConfigToken(string symbol, string token)
+  {
+   string symUp = Trim(symbol);
+   string tokUp = Trim(token);
+   StringToUpper(symUp);
+   StringToUpper(tokUp);
+   if(StringLen(tokUp) == 0 || StringLen(symUp) < StringLen(tokUp))
+      return(false);
+   return(StringFind(symUp, tokUp) == 0);
   }
 
 //+------------------------------------------------------------------+
@@ -2483,7 +2640,7 @@ int ClusterOf(string symbol)
       string members[];
       int nm = StringSplit(clusters[ci], StringGetCharacter("|", 0), members);
       for(int mi = 0; mi < nm; mi++)
-         if(Trim(members[mi]) == symbol)
+         if(SymbolMatchesConfigToken(symbol, Trim(members[mi])))
             return(ci);
      }
    return(-1);
@@ -2795,7 +2952,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.32  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
