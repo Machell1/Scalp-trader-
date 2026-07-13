@@ -146,4 +146,3 @@ def adaptive_signal_frame(
     w["side"] = np.where(valid, side, 0).astype(np.int8)
     w["momentum_shift"] = geom.momentum_shift
     return w.drop(columns=["_decision", "_available"])
-

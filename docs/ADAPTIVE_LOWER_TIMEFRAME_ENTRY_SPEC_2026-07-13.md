@@ -48,4 +48,3 @@ process; this mode does not turn an unprofitable asset into an admitted one.
 
 Synthetic invariants are in `backtest/test_adaptive_entry.py`. The research
 mirror is `backtest/adaptive_entry.py`.
-
