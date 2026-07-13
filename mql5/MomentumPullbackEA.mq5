@@ -1,4 +1,21 @@
 //+------------------------------------------------------------------+
+//|   v1.32 (2026-07-13): SLIDING-ANCHOR RESEARCH FLAG (default OFF).  |
+//|     * InpUseAnchorAggV132=false keeps live behavior byte-for-byte  |
+//|       identical to v1.31: nothing below changes while it is off.  |
+//|     * When ON, the working timeframe becomes a fast clock (M15 or |
+//|       M5 chart input) and every signal quantity — momentum, Wilder |
+//|       ATR, W2 wick, pullback offset, stop/TP/partial levels, the  |
+//|       pending window and the max-hold count — is computed on      |
+//|       trailing ANCHOR bars (InpAnchorFactorV132 working bars per   |
+//|       anchor bar; 4 = M15->H1, 12 = M5->H1). The H1-scale signal  |
+//|       and H1-scale cost/ATR math are preserved by construction;   |
+//|       only the evaluation phase becomes dense (sliding).          |
+//|     * GATE: docs/MTF_ANCHOR_SPEC_2026-07-13.md must pass, then a  |
+//|       pre-registered account MC, owner sign-off, and forward       |
+//|       validation BEFORE this flag is ever enabled on the live      |
+//|       chart. Until then it exists so research and live share one   |
+//|       mechanization.                                              |
+//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -92,9 +109,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.31"
+#property version   "1.32"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
+#property description "Multi-symbol H1 momentum pullback EA v1.32. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R. Sliding-anchor research flag (OFF)."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -126,6 +143,17 @@ input int    InpMomentumBars     = 6;     // Lookback bars for the move
 input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
+
+//--- v1.32 sliding anchor (RESEARCH FLAG) -----------------------------
+input group "=== v1.32 Sliding Anchor (RESEARCH - must stay OFF until docs/MTF_ANCHOR_SPEC_2026-07-13.md + account MC + owner sign-off) ==="
+input bool   InpUseAnchorAggV132  = false; // OFF = v1.31 behavior exactly. ON = evaluate the H1-scale signal on a sliding lower-TF clock.
+input int    InpAnchorFactorV132  = 4;     // Working-TF bars per anchor bar (4: M15 chart -> H1 anchors, 12: M5 -> H1). All signal/risk geometry uses anchor units.
+
+// Effective anchor factor: 1 = anchor bar == working bar (flag off / degenerate input).
+int EffAnchorFactor()
+  {
+   return((InpUseAnchorAggV132 && InpAnchorFactorV132 > 1) ? InpAnchorFactorV132 : 1);
+  }
 
 //--- Anchored VWAP (discount/premium gate) --------------------------
 input group "=== Anchored VWAP (AVWAP) ==="
@@ -285,6 +313,23 @@ int OnInit()
       return(INIT_PARAMETERS_INCORRECT);
      }
 
+   if(InpUseAnchorAggV132)
+     {
+      if(InpAnchorFactorV132 < 2 || InpAnchorFactorV132 > 60)
+        {
+         Print("v1.32 invalid anchor factor: InpAnchorFactorV132 must be in [2,60] when the sliding anchor is enabled");
+         return(INIT_PARAMETERS_INCORRECT);
+        }
+      // Research flag: the sliding anchor has NOT cleared the MTF_ANCHOR gate,
+      // the account MC, or owner sign-off — warn loudly on every init so an
+      // accidental live enablement is visible in the journal and the panel.
+      PrintFormat("WARNING v1.32: sliding anchor ENABLED (factor %d on %s -> anchor span %d min). "
+                  "This is a RESEARCH mode gated by docs/MTF_ANCHOR_SPEC_2026-07-13.md; "
+                  "do not run it on the production account before the gate + owner sign-off.",
+                  InpAnchorFactorV132, EnumToString(InpTimeframe),
+                  (int)(InpAnchorFactorV132 * PeriodSeconds(InpTimeframe) / 60));
+     }
+
    if(InpUsePartialCloseV130)
      {
       if(InpPartialCloseFractionV130 <= 0.0 || InpPartialCloseFractionV130 >= 1.0 ||
@@ -325,7 +370,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.32 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -352,14 +397,15 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.32 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s%s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
-               ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131);
+               ArraySize(g_symbols), EnumToString(InpTimeframe),
+               (EffAnchorFactor() > 1 ? StringFormat(" [SLIDING ANCHOR x%d - RESEARCH]", EffAnchorFactor()) : ""),
+               InpRiskPercent, InpUSDJPYRiskPercentV131);
    return(INIT_SUCCEEDED);
   }
 
@@ -941,9 +987,36 @@ void ScanSymbol(string symbol, int atrHandle)
         }
      }
 
+   // v1.32: with the sliding anchor OFF (factor 1) these are exactly the v1.31
+   // reads. With it ON, the signal bar is the trailing ANCHOR window (working
+   // shifts 1..factor) and the momentum reference is InpMomentumBars ANCHOR
+   // bars back — the same H1-scale signal, evaluated on the working-TF clock.
+   int factor = EffAnchorFactor();
    double close1    = iClose(symbol, InpTimeframe, 1);
-   double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
-   double open1     = iOpen(symbol, InpTimeframe, 1);
+   double closePast = iClose(symbol, InpTimeframe, (InpMomentumBars - 1) * factor + 1);
+   double open1     = iOpen(symbol, InpTimeframe, factor);
+   double sigHigh   = iHigh(symbol, InpTimeframe, 1);
+   double sigLow    = iLow(symbol, InpTimeframe, 1);
+   if(factor > 1)
+     {
+      // Anchor signal bar must be wall-clock contiguous (study parity: broken
+      // windows are never signal bars). Aggregate its high/low while checking.
+      long stepSec = PeriodSeconds(InpTimeframe);
+      for(int sh = 2; sh <= factor; sh++)
+        {
+         datetime tNew = (datetime)iTime(symbol, InpTimeframe, sh - 1);
+         datetime tOld = (datetime)iTime(symbol, InpTimeframe, sh);
+         if(tNew == 0 || tOld == 0 || (long)(tNew - tOld) != stepSec)
+           {
+            LogSkip(symbol, "anchor window broken (session gap)");
+            return;
+           }
+         double hh = iHigh(symbol, InpTimeframe, sh);
+         double ll = iLow(symbol, InpTimeframe, sh);
+         if(hh > sigHigh) sigHigh = hh;
+         if(ll > 0.0 && ll < sigLow) sigLow = ll;
+        }
+     }
    if(close1 == 0.0 || closePast == 0.0)
      {
       LogSkip(symbol, "missing bar data");
@@ -982,8 +1055,10 @@ void ScanSymbol(string symbol, int atrHandle)
    // (buyers fought = still fuel); a BUY needs an UPPER wick. Skips only.
    if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))
      {
-      double high1 = iHigh(symbol, InpTimeframe, 1);
-      double low1  = iLow(symbol, InpTimeframe, 1);
+      // v1.32: sigHigh/sigLow are the shift-1 bar's high/low at factor 1
+      // (v1.31 behavior) and the anchor window's extrema in anchor mode.
+      double high1 = sigHigh;
+      double low1  = sigLow;
       if(high1 > 0.0 && low1 > 0.0)
         {
          double bodyTop  = MathMax(open1, close1);
@@ -1116,8 +1191,8 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       // v1.27 B2: the engine's 3-bar fill window is counted on the SYMBOL'S OWN
       // clock (session breaks produce no bars). Precise expiry = the bar-counted
       // check in ManagePendingOrders; the broker wall-clock expiry stays only as
-      // a +3-day backstop for when the EA itself is dead.
-      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe) + 259200);
+      // a +3-day backstop for when the EA itself is dead. (v1.32: anchor units.)
+      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * EffAnchorFactor() * PeriodSeconds(InpTimeframe) + 259200);
       ttype  = ORDER_TIME_SPECIFIED;
      }
 
@@ -1288,8 +1363,10 @@ void ManagePendingOrders()
          // v1.27 B2: engine parity - the fill window is InpPendingExpiryBars BARS on
          // the symbol's own clock (placement bar = 1). Wall-clock aging expired
          // pendings mid-session-break after fewer tradable bars than validated.
+         // v1.32: InpPendingExpiryBars is denominated in ANCHOR bars; at factor 1
+         // this is the v1.31 expression exactly.
          int ageBars = Bars(symbol, InpTimeframe, ordInfo.TimeSetup(), TimeCurrent());
-         if(ageBars > InpPendingExpiryBars)
+         if(ageBars > InpPendingExpiryBars * EffAnchorFactor())
            {
             bool delOk = trade.OrderDelete(ticket);
             uint drc = trade.ResultRetcode();
@@ -1423,7 +1500,8 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
    g_posState[stateIdx].lastMgmtBarTime = curBarTime;
    UpdateBarsClosed(stateIdx, symbol);
 
-   if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+   // v1.32: InpMaxHoldingBars is denominated in ANCHOR bars (factor 1 = v1.31).
+   if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars * EffAnchorFactor())
      {
       trade.PositionClose(ticket);
       return;
@@ -1594,7 +1672,7 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
      {
       g_posState[stateIdx].lastMgmtBarTime = curBarTime;
       UpdateBarsClosed(stateIdx, symbol);
-      if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+      if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars * EffAnchorFactor())
         {
          trade.PositionClose(ticket);
          return;
@@ -2337,27 +2415,74 @@ bool WilderAtrForSymbol(string symbol, double &value)
       value = g_wAtrCache[idx];
       return(true);
      }
+   int factor = EffAnchorFactor();
    MqlRates rates[];
-   int need = 400;
+   int need = 400 * factor;   // same anchor-bar depth in both modes (seed decay parity)
    int got = CopyRates(symbol, InpTimeframe, 1, need, rates);   // shift 1 = closed bars only
-   if(got < InpAtrPeriod * 3)
+   if(got < InpAtrPeriod * 3 * factor)
       return(false);
    double atr = 0.0;
-   // seed: SMA of TR over bars 1..period (index 0 has no prev close -> excluded)
-   for(int k = 1; k <= InpAtrPeriod; k++)
+   if(factor == 1)
      {
-      double tr = MathMax(rates[k].high - rates[k].low,
-                  MathMax(MathAbs(rates[k].high - rates[k - 1].close),
-                          MathAbs(rates[k].low  - rates[k - 1].close)));
-      atr += tr;
+      // v1.31 path, unchanged: seed SMA of TR over bars 1..period, then RMA.
+      for(int k = 1; k <= InpAtrPeriod; k++)
+        {
+         double tr = MathMax(rates[k].high - rates[k].low,
+                     MathMax(MathAbs(rates[k].high - rates[k - 1].close),
+                             MathAbs(rates[k].low  - rates[k - 1].close)));
+         atr += tr;
+        }
+      atr /= InpAtrPeriod;
+      for(int k = InpAtrPeriod + 1; k < got; k++)
+        {
+         double tr = MathMax(rates[k].high - rates[k].low,
+                     MathMax(MathAbs(rates[k].high - rates[k - 1].close),
+                             MathAbs(rates[k].low  - rates[k - 1].close)));
+         atr += (tr - atr) / InpAtrPeriod;
+        }
      }
-   atr /= InpAtrPeriod;
-   for(int k = InpAtrPeriod + 1; k < got; k++)
+   else
      {
-      double tr = MathMax(rates[k].high - rates[k].low,
-                  MathMax(MathAbs(rates[k].high - rates[k - 1].close),
-                          MathAbs(rates[k].low  - rates[k - 1].close)));
-      atr += (tr - atr) / InpAtrPeriod;
+      // v1.32 anchor mode: aggregate trailing groups of `factor` working bars,
+      // aligned to the NEWEST bar so the last anchor bar ends at shift 1 (the
+      // sliding window); the incomplete oldest remainder is dropped. Same seed
+      // + RMA Wilder recursion, computed on the anchor series.
+      int nAnchor = got / factor;
+      if(nAnchor < InpAtrPeriod * 3)
+         return(false);
+      double ah[], al[], ac[];
+      ArrayResize(ah, nAnchor);
+      ArrayResize(al, nAnchor);
+      ArrayResize(ac, nAnchor);
+      int base = got - nAnchor * factor;
+      for(int a = 0; a < nAnchor; a++)
+        {
+         int lo = base + a * factor;
+         double hh = rates[lo].high, ll = rates[lo].low;
+         for(int k = lo + 1; k < lo + factor; k++)
+           {
+            if(rates[k].high > hh) hh = rates[k].high;
+            if(rates[k].low  < ll) ll = rates[k].low;
+           }
+         ah[a] = hh;
+         al[a] = ll;
+         ac[a] = rates[lo + factor - 1].close;
+        }
+      for(int k = 1; k <= InpAtrPeriod; k++)
+        {
+         double tr = MathMax(ah[k] - al[k],
+                     MathMax(MathAbs(ah[k] - ac[k - 1]),
+                             MathAbs(al[k] - ac[k - 1])));
+         atr += tr;
+        }
+      atr /= InpAtrPeriod;
+      for(int k = InpAtrPeriod + 1; k < nAnchor; k++)
+        {
+         double tr = MathMax(ah[k] - al[k],
+                     MathMax(MathAbs(ah[k] - ac[k - 1]),
+                             MathAbs(al[k] - ac[k - 1])));
+         atr += (tr - atr) / InpAtrPeriod;
+        }
      }
    if(atr <= 0.0)
       return(false);
@@ -2441,7 +2566,7 @@ bool DataReady(string symbol)
       SymbolSelect(symbol, true);
       return(false);
      }
-   return(Bars(symbol, InpTimeframe) > InpMomentumBars + InpAtrPeriod + 2);
+   return(Bars(symbol, InpTimeframe) > (InpMomentumBars + InpAtrPeriod + 2) * EffAnchorFactor());
   }
 
 bool SpreadTooWide(string symbol)
