@@ -129,6 +129,11 @@ def test_bar_opens_must_be_exact_quarter_hours() -> None:
         R.validate_exact_m15_opens(shifted)
 
 
+def test_candidate_dates_accept_numpy_string_dates() -> None:
+    data, _ = prepared_fixture(date="2025-03-10")
+    assert R.candidate_dates(data, set()) == ["2025-03-10"]
+
+
 def test_up_and_down_setups_match_exact_geometry() -> None:
     up, bars = prepared_fixture()
     setup, stage = R.detect_setup(up, "2025-03-10", bars)

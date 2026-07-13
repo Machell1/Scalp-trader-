@@ -328,3 +328,32 @@ pre-outcome files. After the independent code-review fixes, the pre-commit
 suite excluding that one provenance check ended
 `19 passed, 1 deselected in 14.43s`; the independent reviewer separately
 reported `19 passed, 1 deselected in 12.19s` and a no-blocker verdict.
+
+### First registered-command failure (no outcome produced)
+
+The first registered command stopped in date construction before setup
+enumeration. Canonical/hash checks had passed, but no signal, trade or statistic
+was produced. Output was:
+
+```text
+Traceback (most recent call last):
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\run_us100_m15_session_reversion.py", line 815, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\run_us100_m15_session_reversion.py", line 808, in main
+    result = run()
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\run_us100_m15_session_reversion.py", line 729, in run
+    eligible, funnel, setups, trades = enumerate_trades(data, exclusions)
+                                       ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\run_us100_m15_session_reversion.py", line 442, in enumerate_trades
+    candidates = candidate_dates(data, exclusions)
+  File "C:\Users\Sanique Richards\Downloads\codex-scalp\backtest\run_us100_m15_session_reversion.py", line 273, in candidate_dates
+    start = pd.Timestamp(data.local_date[0])
+  File "pandas/_libs/tslibs/timestamps.pyx", line 2738, in pandas._libs.tslibs.timestamps.Timestamp.__new__
+  File "pandas/_libs/tslibs/conversion.pyx", line 367, in pandas._libs.tslibs.conversion.convert_to_tsobject
+TypeError: Expected str, got numpy.str_
+```
+
+The only correction is explicit conversion of the NumPy string scalar to a
+built-in `str`, plus a synthetic regression test. No protocol threshold,
+signal, execution rule, frame, statistic or gate changed.

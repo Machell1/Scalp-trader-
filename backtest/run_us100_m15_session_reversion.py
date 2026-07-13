@@ -270,8 +270,9 @@ def load_input() -> Prepared:
 
 
 def candidate_dates(data: Prepared, exclusions: set[str]) -> list[str]:
-    start = pd.Timestamp(data.local_date[0])
-    end = pd.Timestamp(data.local_date[-1])
+    # Pandas 3 no longer accepts numpy.str_ directly in Timestamp().
+    start = pd.Timestamp(str(data.local_date[0]))
+    end = pd.Timestamp(str(data.local_date[-1]))
     out = []
     for day in pd.date_range(start, end, freq="D"):
         label = day.strftime("%Y-%m-%d")
