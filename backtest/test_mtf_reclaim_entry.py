@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import math
+import hashlib
+import tempfile
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -12,7 +15,10 @@ from mtf_reclaim_entry import (
     _find_entry,
     _resolve_v130,
     aggregate_h1,
+    prepare_frames,
+    promotion_verdict,
     summarize,
+    verify_m5_manifest,
 )
 
 
@@ -44,6 +50,9 @@ def assert_causal_aggregation():
     missing = raw.drop(index=2).reset_index(drop=True)
     h1_missing, starts_missing, _ = aggregate_h1(missing, 15)
     assert len(h1_missing) == 1 and tuple(starts_missing) == (3,)
+    accepted_execution, accepted_h1, accepted_starts, accepted_ends = prepare_frames(missing, 15)
+    assert len(accepted_execution) == 4 and len(accepted_h1) == 1
+    assert tuple(accepted_starts) == (0,) and tuple(accepted_ends) == (3,)
 
 
 def assert_reclaim_is_directional_and_bounded():
@@ -109,12 +118,70 @@ def assert_oos_denominator_is_honest():
     assert oos["expectancy"] == -1.0
 
 
+def assert_verdict_is_mechanical():
+    def result(value):
+        trade = EntryResult(2, 2, 2, 3, 2, 1, value, True, 0.1)
+        return RunResult(1, 1, (trade,))
+
+    touch = {symbol: result(0.1) for symbol in ("Wall_Street_30", "US_Tech_100", "Japan_225")}
+    reclaim = {symbol: result(0.2) for symbol in touch}
+    stressed_reclaim = {symbol: result(0.1) for symbol in touch}
+    passed, checks = promotion_verdict(
+        {"touch": touch, "reclaim": reclaim},
+        {"touch": touch, "reclaim": stressed_reclaim},
+    )
+    assert passed and all(check.startswith("PASS") for check in checks)
+
+    failed_stress = dict(stressed_reclaim)
+    failed_stress["Wall_Street_30"] = result(-1.0)
+    failed_stress["US_Tech_100"] = result(-1.0)
+    failed_stress["Japan_225"] = result(-1.0)
+    passed, checks = promotion_verdict(
+        {"touch": touch, "reclaim": reclaim},
+        {"touch": touch, "reclaim": failed_stress},
+    )
+    assert not passed and any(check.startswith("FAIL") for check in checks)
+
+
+def assert_m5_requires_matching_manifest():
+    with tempfile.TemporaryDirectory() as tmp:
+        data_root = Path(tmp) / "data"
+        m5 = data_root / "derivM5"
+        m5.mkdir(parents=True)
+        sample = m5 / "Sample.csv"
+        sample.write_bytes(b"sample")
+        digest = hashlib.sha256(sample.read_bytes()).hexdigest()
+        manifest = data_root / "MANIFEST.sha256"
+        manifest.write_text(f"{digest}  {sample}\n", encoding="utf-8")
+        verify_m5_manifest(m5, [sample])
+        missing = m5 / "Missing.csv"
+        manifest.write_text(
+            f"{digest}  {sample}\n{'0' * 64}  {missing}\n", encoding="utf-8"
+        )
+        try:
+            verify_m5_manifest(m5, [sample])
+        except ValueError as exc:
+            assert "canonical dataset mismatch" in str(exc)
+        else:
+            raise AssertionError("incomplete canonical M5 set passed validation")
+        manifest.write_text(f"{digest}  {sample}\n", encoding="utf-8")
+        sample.write_bytes(b"changed")
+        try:
+            verify_m5_manifest(m5, [sample])
+        except ValueError as exc:
+            assert "hash mismatch" in str(exc)
+        else:
+            raise AssertionError("modified M5 input passed manifest validation")
+
+
 def main():
     assert_causal_aggregation()
     assert_reclaim_is_directional_and_bounded()
     assert_v130_path_order_and_cost()
     assert_oos_denominator_is_honest()
-    print("MTF reclaim synthetic checks: 4 passed")
+    assert_verdict_is_mechanical()
+    assert_m5_requires_matching_manifest()
+    print("MTF reclaim synthetic checks: 6 passed")
 
 
 if __name__ == "__main__":

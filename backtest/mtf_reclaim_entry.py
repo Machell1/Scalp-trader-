@@ -9,6 +9,7 @@ bars are used only to resolve the pullback path and, for C1, confirm a reclaim.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import math
 import os
 from dataclasses import dataclass
@@ -104,6 +105,20 @@ def aggregate_h1(execution: pd.DataFrame, exec_minutes: int) -> tuple[pd.DataFra
     return pd.DataFrame(rows), np.asarray(starts), np.asarray(ends)
 
 
+def prepare_frames(
+    raw: pd.DataFrame, exec_minutes: int
+) -> tuple[pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray]:
+    """Drop rejected partial hours from both signal and executable paths."""
+    execution = normalize_ohlc(raw)
+    _, starts, ends = aggregate_h1(execution, exec_minutes)
+    accepted = np.concatenate([
+        np.arange(start, end + 1, dtype=np.int64) for start, end in zip(starts, ends)
+    ])
+    execution = execution.iloc[accepted].reset_index(drop=True)
+    h1, starts, ends = aggregate_h1(execution, exec_minutes)
+    return execution, h1, starts, ends
+
+
 def _execution_to_h1(n_exec: int, starts: np.ndarray, ends: np.ndarray) -> np.ndarray:
     mapping = np.full(n_exec, -1, dtype=np.int64)
     for h1_index, (start, end) in enumerate(zip(starts, ends)):
@@ -191,15 +206,13 @@ def run_symbol(
     """Run C0_TOUCH or C1_RECLAIM with causal one-symbol enumeration."""
     if mode not in {"touch", "reclaim"}:
         raise ValueError("mode must be 'touch' or 'reclaim'")
-    execution = normalize_ohlc(raw)
-    h1, starts, ends = aggregate_h1(execution, exec_minutes)
+    execution, h1, starts, ends = prepare_frames(raw, exec_minutes)
     base_cost = real_cost_per_side(h1)
     if not np.isfinite(base_cost):
         raise ValueError(f"{symbol}: spread cost unavailable")
     signal = prep_symbol(h1, base_cost * cost_mult, symbol)
     split = int(len(h1) * 0.70)
     exec_to_h1 = _execution_to_h1(len(execution), starts, ends)
-    hold_bars = HOLD_HOURS * 60 // exec_minutes
     trades: list[EntryResult] = []
     opportunities = 0
     oos_opportunities = 0
@@ -235,6 +248,11 @@ def run_symbol(
         resolve_start = entry_bar if mode == "touch" else entry_bar + 1
         if resolve_start >= len(execution):
             break
+        entry_h1 = int(exec_to_h1[entry_bar])
+        # Live counts the entry H1 bar's close as holding bar one. Resolve the
+        # remaining portion of that bar plus the next seven accepted H1 bars.
+        last_hold_h1 = min(entry_h1 + HOLD_HOURS - 1, len(ends) - 1)
+        hold_bars = max(1, int(ends[last_hold_h1]) - resolve_start + 1)
         exit_exec, result_r = _resolve_v130(
             execution, resolve_start, side, entry, atr, signal.cost, hold_bars
         )
@@ -290,6 +308,94 @@ def _print_summary(label: str, result: RunResult) -> None:
     print(label, {"full": summarize(result), "oos": summarize(result, oos_only=True)})
 
 
+def promotion_verdict(
+    measured: dict[str, dict[str, RunResult]],
+    stressed: dict[str, dict[str, RunResult]],
+) -> tuple[bool, tuple[str, ...]]:
+    """Apply every pre-registered promotion condition without discretion."""
+    c0_trio = _pooled([measured["touch"][symbol] for symbol in TRIO])
+    c1_trio = _pooled([measured["reclaim"][symbol] for symbol in TRIO])
+    c1_stress_trio = _pooled([stressed["reclaim"][symbol] for symbol in TRIO])
+    c1_breadth = _pooled(list(measured["reclaim"].values()))
+    c0_oos = summarize(c0_trio, oos_only=True)
+    c1_oos = summarize(c1_trio, oos_only=True)
+    stress_oos = summarize(c1_stress_trio, oos_only=True)
+    breadth_oos = summarize(c1_breadth, oos_only=True)
+    symbol_expectancies = [
+        summarize(measured["reclaim"][symbol], oos_only=True)["expectancy"]
+        for symbol in measured["reclaim"]
+    ]
+    positive_symbols = sum(np.isfinite(value) and value > 0.0 for value in symbol_expectancies)
+    trio_positive = sum(
+        np.isfinite(
+            summarize(measured["reclaim"][symbol], oos_only=True)["expectancy"]
+        )
+        and summarize(measured["reclaim"][symbol], oos_only=True)["expectancy"] > 0.0
+        for symbol in TRIO
+    )
+    checks = (
+        (
+            np.isfinite(c1_oos["expectancy"])
+            and c1_oos["expectancy"] > 0.0
+            and c1_oos["expectancy"] >= c0_oos["expectancy"],
+            "trio OOS expectancy positive and >= touch control",
+        ),
+        (
+            np.isfinite(stress_oos["expectancy"]) and stress_oos["expectancy"] > 0.0,
+            "trio OOS expectancy positive at 2x cost",
+        ),
+        (trio_positive >= 2, "at least two trio symbols OOS-positive"),
+        (
+            np.isfinite(breadth_oos["expectancy"])
+            and breadth_oos["expectancy"] > 0.0
+            and positive_symbols / len(symbol_expectancies) >= 0.60,
+            "breadth OOS positive with >=60% positive symbols",
+        ),
+        (
+            c1_oos["fills"] >= 0.60 * c0_oos["fills"],
+            "reclaim OOS fills >=60% of touch control",
+        ),
+    )
+    return all(passed for passed, _ in checks), tuple(
+        f"{'PASS' if passed else 'FAIL'}: {label}" for passed, label in checks
+    )
+
+
+def verify_m5_manifest(data_dir: Path, files: list[Path]) -> None:
+    """Require every M5 input to be present and byte-matched in MANIFEST.sha256."""
+    manifest = data_dir.parent / "MANIFEST.sha256"
+    if not manifest.is_file():
+        raise ValueError(f"M5 is blocked: {manifest} is missing")
+    repo_root = Path(__file__).resolve().parent.parent
+    registered: dict[Path, str] = {}
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        digest, relative = line.split(None, 1)
+        registered[(repo_root / relative).resolve()] = digest
+    supplied = {path.resolve() for path in files}
+    canonical = {
+        path for path in registered
+        if path.parent == data_dir.resolve() and path.suffix.lower() == ".csv"
+    }
+    if supplied != canonical:
+        missing = sorted(str(path) for path in canonical - supplied)
+        extra = sorted(str(path) for path in supplied - canonical)
+        detail = []
+        if missing:
+            detail.append("missing " + ", ".join(missing))
+        if extra:
+            detail.append("unregistered " + ", ".join(extra))
+        raise ValueError("M5 is blocked: canonical dataset mismatch (" + "; ".join(detail) + ")")
+    for path in files:
+        resolved = path.resolve()
+        expected = registered.get(resolved)
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual != expected:
+            raise ValueError(f"M5 is blocked: hash mismatch for {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     default_data = Path(__file__).resolve().parent / "data" / "derivM15_spreadgated"
@@ -299,12 +405,18 @@ def main() -> int:
     files = sorted(args.data_dir.glob("*.csv"))
     if not files:
         parser.error(f"no CSV files in {args.data_dir}")
+    if args.exec_minutes == 5:
+        try:
+            verify_m5_manifest(args.data_dir, files)
+        except ValueError as exc:
+            parser.error(str(exc))
 
     by_name = {path.stem: path for path in files}
     missing_trio = [symbol for symbol in TRIO if symbol not in by_name]
     if missing_trio:
         parser.error(f"primary trio missing: {', '.join(missing_trio)}")
 
+    snapshots: dict[float, dict[str, dict[str, RunResult]]] = {}
     for cost_mult in (1.0, 2.0):
         print(f"\nCOST x{cost_mult:.0f}")
         all_results: dict[str, dict[str, RunResult]] = {"touch": {}, "reclaim": {}}
@@ -321,6 +433,11 @@ def main() -> int:
             breadth = _pooled(list(all_results[mode].values()))
             _print_summary(f"TRIO {label}", trio)
             _print_summary(f"BREADTH {label}", breadth)
+        snapshots[cost_mult] = all_results
+    promoted, checks = promotion_verdict(snapshots[1.0], snapshots[2.0])
+    print("\nPRE-REGISTERED VERDICT:", "ADVANCE" if promoted else "KILL")
+    for check in checks:
+        print(" ", check)
     return 0
 
 
