@@ -1,0 +1,164 @@
+{
+  "block_length": 20,
+  "modes": {
+    "E1_MEASURED": {
+      "counts": {
+        "JP225.cash": 454,
+        "US100.cash": 273,
+        "US30.cash": 447
+      },
+      "paired": {
+        "C0": {
+          "lower": 0.008997713195907253,
+          "n01": 15487,
+          "n10": 16844
+        },
+        "C1": {
+          "lower": 0.003713517516916426,
+          "n01": 15521,
+          "n10": 16347
+        }
+      },
+      "summaries": {
+        "C0": {
+          "both_passes": 79033,
+          "both_probability": 0.79033,
+          "both_wilson_lower": 0.7882047752271124,
+          "both_wilson_upper": 0.7924395151892967,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.00576,
+          "hard_wilson_upper": 0.006167219550487088,
+          "median_total_days_success": 391.0,
+          "outcome_sha256": "d7bf11e5211ebbe5934020ce39593f0d842a90c21d352adbf4db4debe85ebd99",
+          "p90_total_days_success": 633.0,
+          "paths": 100000,
+          "phase1_passes": 88800,
+          "phase1_probability": 0.888,
+          "phase2_conditional_probability": 0.8900112612612613,
+          "timeout_probability": 0.20391,
+          "timeout_wilson_upper": 0.20601369030126848
+        },
+        "C1": {
+          "both_passes": 79564,
+          "both_probability": 0.79564,
+          "both_wilson_lower": 0.793534603829525,
+          "both_wilson_upper": 0.7977293992659429,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 6e-05,
+          "hard_wilson_upper": 0.00011602431709245134,
+          "median_total_days_success": 800.0,
+          "outcome_sha256": "c3314d5603a52e5458be75e2ca559e0cd78385493c786f2f1a6c730a9058369c",
+          "p90_total_days_success": 1139.0,
+          "paths": 100000,
+          "phase1_passes": 89167,
+          "phase1_probability": 0.89167,
+          "phase2_conditional_probability": 0.8923032063431539,
+          "timeout_probability": 0.2043,
+          "timeout_wilson_upper": 0.20640516895349997
+        },
+        "P1": {
+          "both_passes": 80390,
+          "both_probability": 0.8039,
+          "both_wilson_lower": 0.8018265661002608,
+          "both_wilson_upper": 0.8059569900515204,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.00113,
+          "hard_wilson_upper": 0.0013187663741042407,
+          "median_total_days_success": 1486.0,
+          "outcome_sha256": "6aea4f99bfc40a70b5b187344cd5d4cc2166ff4925c43fea1df162b10e2cd714",
+          "p90_total_days_success": 2207.0,
+          "paths": 100000,
+          "phase1_passes": 89613,
+          "phase1_probability": 0.89613,
+          "phase2_conditional_probability": 0.8970796647807796,
+          "timeout_probability": 0.19497,
+          "timeout_wilson_upper": 0.1970389525986313
+        }
+      }
+    },
+    "E2_STRESS": {
+      "counts": {
+        "JP225.cash": 454,
+        "US100.cash": 273,
+        "US30.cash": 447
+      },
+      "paired": {
+        "C0": {
+          "lower": 0.008312241026122796,
+          "n01": 15568,
+          "n10": 16857
+        },
+        "C1": {
+          "lower": -0.0014726961373360548,
+          "n01": 15745,
+          "n10": 16052
+        }
+      },
+      "summaries": {
+        "C0": {
+          "both_passes": 78887,
+          "both_probability": 0.78887,
+          "both_wilson_lower": 0.7867394192146389,
+          "both_wilson_upper": 0.7909849502015016,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.00908,
+          "hard_wilson_upper": 0.009586842774758944,
+          "median_total_days_success": 416.0,
+          "outcome_sha256": "60121a139b164e6c99f315b841744648a910047d21594b6c1d6ec09c34701357",
+          "p90_total_days_success": 684.0,
+          "paths": 100000,
+          "phase1_passes": 88692,
+          "phase1_probability": 0.88692,
+          "phase2_conditional_probability": 0.8894488792675777,
+          "timeout_probability": 0.20205,
+          "timeout_wilson_upper": 0.20414659655424708
+        },
+        "C1": {
+          "both_passes": 79869,
+          "both_probability": 0.79869,
+          "both_wilson_lower": 0.796596244971989,
+          "both_wilson_upper": 0.8007675930897933,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.00016,
+          "hard_wilson_upper": 0.00024068649435946959,
+          "median_total_days_success": 856.0,
+          "outcome_sha256": "e9836c563fd35dc2640d212b673696f1a8b107e727577e684a923558675b5be6",
+          "p90_total_days_success": 1234.0,
+          "paths": 100000,
+          "phase1_passes": 89400,
+          "phase1_probability": 0.894,
+          "phase2_conditional_probability": 0.8933892617449665,
+          "timeout_probability": 0.20115,
+          "timeout_wilson_upper": 0.2032431391933858
+        },
+        "P1": {
+          "both_passes": 80176,
+          "both_probability": 0.80176,
+          "both_wilson_lower": 0.7996781519345679,
+          "both_wilson_upper": 0.8038255200113407,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.00258,
+          "hard_wilson_upper": 0.0028576585178796765,
+          "median_total_days_success": 1636.0,
+          "outcome_sha256": "9d4efd8f87615a05eb634b4c8e49b4a286b8a39735f060e0a7d7895278cc0f7e",
+          "p90_total_days_success": 2474.0,
+          "paths": 100000,
+          "phase1_passes": 89313,
+          "phase1_probability": 0.89313,
+          "phase2_conditional_probability": 0.897696863838411,
+          "timeout_probability": 0.19566,
+          "timeout_wilson_upper": 0.19773169213140837
+        }
+      }
+    }
+  },
+  "npz_sha256": "f75f437f5f5f1cc2a977416c9a98e5623760b87491cf1ba60c4283156f9391d5",
+  "paths": 100000,
+  "seed": 13020260711
+}
