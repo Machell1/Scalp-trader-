@@ -41,7 +41,10 @@ behavior can be disabled with `InpRetryCrossedLimitV132`.
 If the intended limit has not traded but falls inside the broker's minimum stop
 distance, the EA now moves the pending one tick beyond that minimum instead of
 entering at market early. Market conversion remains reserved for a limit price
-the executable quote has actually crossed.
+the executable quote has actually crossed, and is also deviation-capped on
+request/instant execution. On market/exchange execution, a crossed limit is
+replaced by a valid deeper pending because those modes cannot guarantee a
+market fill no worse than the original limit.
 
 ### Fail-closed candle data
 

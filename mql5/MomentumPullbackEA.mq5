@@ -1146,6 +1146,10 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 
    double entry, sl, tp;
    bool sendMarket = false;
+   ulong marketCapPoints = InpDeviationPoints;
+   long executionMode = SymbolInfoInteger(symbol, SYMBOL_TRADE_EXEMODE);
+   bool priceCapSupported = (executionMode == SYMBOL_TRADE_EXECUTION_REQUEST ||
+                             executionMode == SYMBOL_TRADE_EXECUTION_INSTANT);
    if(isBuy)
      {
       // BUY_STOP sits above the ask; BUY_LIMIT sits below signal-bar close (pullback).
@@ -1157,8 +1161,25 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       // engine's assumed limit fill (ask < limit here by construction).
       if(isLimit && entry >= ask)
         {
-         entry = ask;
-         sendMarket = true;
+         double tickSize = MathMax(SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE), point);
+         if(priceCapSupported)
+           {
+            marketCapPoints = (point > 0.0)
+                              ? (ulong)MathMax(0.0, MathFloor((entry - ask) / point))
+                              : 0;
+            if(marketCapPoints > InpDeviationPoints)
+               marketCapPoints = InpDeviationPoints;
+            entry = ask;
+            sendMarket = true;
+           }
+         else
+           {
+            // MARKET/EXCHANGE execution cannot enforce a cap at the crossed
+            // limit. Keep a valid, better pending instead of accepting slippage.
+            entry = ask - stopsLevel - tickSize;
+            PrintFormat("%s crossed buy limit: uncapped market conversion skipped on %s execution",
+                        symbol, EnumToString((ENUM_SYMBOL_TRADE_EXECUTION)executionMode));
+           }
         }
       else if(isLimit && stopsLevel > 0.0 && entry >= ask - stopsLevel)
         {
@@ -1177,8 +1198,23 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       entry = isLimit ? (signalClose + offset) : (bid - offset);
       if(isLimit && entry <= bid)
         {
-         entry = bid;   // v1.27 B4: see BUY branch
-         sendMarket = true;
+         double tickSize = MathMax(SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE), point);
+         if(priceCapSupported)
+           {
+            marketCapPoints = (point > 0.0)
+                              ? (ulong)MathMax(0.0, MathFloor((bid - entry) / point))
+                              : 0;
+            if(marketCapPoints > InpDeviationPoints)
+               marketCapPoints = InpDeviationPoints;
+            entry = bid;
+            sendMarket = true;
+           }
+         else
+           {
+            entry = bid + stopsLevel + tickSize;
+            PrintFormat("%s crossed sell limit: uncapped market conversion skipped on %s execution",
+                        symbol, EnumToString((ENUM_SYMBOL_TRADE_EXECUTION)executionMode));
+           }
         }
       else if(isLimit && stopsLevel > 0.0 && entry <= bid + stopsLevel)
         {
@@ -1211,8 +1247,10 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    string tag = "";
    if(sendMarket)
      {
-      ok = isBuy ? trade.Buy (lots, symbol, 0.0, sl, tp, InpTradeComment)
-                 : trade.Sell(lots, symbol, 0.0, sl, tp, InpTradeComment);
+      trade.SetDeviationInPoints(marketCapPoints);
+      ok = isBuy ? trade.Buy (lots, symbol, entry, sl, tp, InpTradeComment)
+                 : trade.Sell(lots, symbol, entry, sl, tp, InpTradeComment);
+      trade.SetDeviationInPoints(InpDeviationPoints);
       tag = isBuy ? "BUY MARKET(retrace-done)" : "SELL MARKET(retrace-done)";
      }
    else
@@ -1243,12 +1281,9 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
            {
             double retryEntry = isBuy ? fresh.ask : fresh.bid;
             double cushion = isBuy ? (entry - retryEntry) : (retryEntry - entry);
-            long executionMode = SymbolInfoInteger(symbol, SYMBOL_TRADE_EXEMODE);
             // Deviation is not enforced under MARKET/EXCHANGE execution. In those
             // modes an uncapped market retry could fill beyond the original limit,
             // so retain the rejection instead of changing the validated geometry.
-            bool priceCapSupported = (executionMode == SYMBOL_TRADE_EXECUTION_REQUEST ||
-                                      executionMode == SYMBOL_TRADE_EXECUTION_INSTANT);
             ulong capPoints = (point > 0.0)
                               ? (ulong)MathMax(0.0, MathFloor(cushion / point))
                               : 0;
