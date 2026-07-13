@@ -1,4 +1,13 @@
 //+------------------------------------------------------------------+
+//|   v1.32 (2026-07-13): ENTRY-SAFETY + BROKER PORTABILITY.          |
+//|     * Fail closed when signal-candle OHLC is incomplete instead   |
+//|       of silently bypassing the load-bearing W2 filter.           |
+//|     * Gate cost with the conservative max of live bid/ask spread  |
+//|       and broker-reported spread, protecting floating-spread CFDs.|
+//|     * Resolve broker suffixes on confirmed whitelist symbols.     |
+//|     * Cap unconfirmed assets at probe risk and one shared cluster; |
+//|       this permits safer research without claiming a new edge.    |
+//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -92,9 +101,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.31"
+#property version   "1.32"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
+#property description "Multi-symbol H1 momentum pullback EA v1.32. Fail-closed entry data/cost gates; capped unconfirmed assets."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -112,6 +121,7 @@ input group "=== Symbol Universe ==="
 input bool   InpScanMarketWatch  = false;     // Scan Market Watch (used only when the whitelist below is empty)
 input string InpSymbolWhitelistV131 = "US30.cash,US100.cash,JP225.cash,USDJPY";  // v1.31 confirmed H1 portfolio. Versioned so saved trio-only input cannot survive.
 #define InpSymbolWhitelist InpSymbolWhitelistV131
+input bool   InpResolveBrokerSuffixesV132 = true; // Resolve e.g. USDJPY.a from USDJPY; ambiguous matches fail closed
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
@@ -145,6 +155,8 @@ input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop 
 input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.3;   // Corrected-engine MC sizing; current FTMO chart already uses 0.3%
 input double InpUSDJPYRiskPercentV131 = 0.05; // Confirmed USDJPY sleeve; dynamic cash risk, not a fixed lot size
+input bool   InpCapUnconfirmedAssetsV132 = true; // Symbols outside the confirmed H1 quartet are research sleeves, never full-risk
+input double InpUnconfirmedRiskPercentV132 = 0.05; // Probe risk for an explicitly added/Market-Watch symbol
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
 input double InpTakeProfitAtrMultV130 = 2.0; // v1.30 renamed intentionally: chart-saved TP3 must not survive this upgrade
 input bool   InpUsePartialCloseV130   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
@@ -175,6 +187,7 @@ input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spr
 input int    InpMaxPerCluster    = 1;     // Max open+pending per correlation cluster (0 = off, current behavior)
 input string InpClusterSpecV131  = "US30.cash|US100.cash;JP225.cash;USDJPY";  // US pair shares a seat; JP225 and USDJPY are independent
 #define InpClusterSpec InpClusterSpecV131
+input bool   InpGroupUnconfirmedAssetsV132 = true; // Put every unconfirmed symbol in one shared probe cluster
 
 //--- Execution -------------------------------------------------------
 input group "=== Execution ==="
@@ -279,9 +292,11 @@ int OnInit()
    trade.LogLevel(LOG_LEVEL_ERRORS);
 
    if(InpRiskPercent <= 0.0 || InpUSDJPYRiskPercentV131 <= 0.0 ||
-      InpUSDJPYRiskPercentV131 > InpRiskPercent)
+      InpUSDJPYRiskPercentV131 > InpRiskPercent ||
+      (InpCapUnconfirmedAssetsV132 &&
+       (InpUnconfirmedRiskPercentV132 <= 0.0 || InpUnconfirmedRiskPercentV132 > InpRiskPercent)))
      {
-      Print("v1.31 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
+      Print("v1.32 invalid risk inputs: every enabled sleeve must be positive and must not exceed base risk");
       return(INIT_PARAMETERS_INCORRECT);
      }
 
@@ -325,7 +340,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.32 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -352,14 +367,15 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.32 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%; unconfirmed cap=%s/%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131);
+               InpUSDJPYRiskPercentV131,
+               InpCapUnconfirmedAssetsV132 ? "on" : "off", InpUnconfirmedRiskPercentV132);
    return(INIT_SUCCEEDED);
   }
 
@@ -390,7 +406,11 @@ bool BuildSymbolUniverse()
         {
          string s = Trim(candidates[i]);
          if(StringLen(s) > 0)
-            AddSymbol(s);
+           {
+            string resolved = ResolveBrokerSymbol(s);
+            if(StringLen(resolved) > 0)
+               AddSymbol(resolved);
+           }
         }
      }
    else if(InpScanMarketWatch)
@@ -411,10 +431,71 @@ bool BuildSymbolUniverse()
   }
 
 //+------------------------------------------------------------------+
+//| Match a configured symbol key to a broker-suffixed symbol.        |
+//| Exact or delimiter suffixes only: USDJPY matches USDJPY.a, but    |
+//| does not accidentally match USDJPY2.                              |
+//+------------------------------------------------------------------+
+bool SymbolKeyMatch(string symbol, string key)
+  {
+   symbol = Trim(symbol);
+   key = Trim(key);
+   StringToUpper(symbol);
+   StringToUpper(key);
+   int keyLen = StringLen(key);
+   if(keyLen == 0 || StringLen(symbol) < keyLen ||
+      StringSubstr(symbol, 0, keyLen) != key)
+      return(false);
+   if(StringLen(symbol) == keyLen)
+      return(true);
+   ushort sep = (ushort)StringGetCharacter(symbol, keyLen);
+   return(sep == (ushort)StringGetCharacter(".", 0) ||
+          sep == (ushort)StringGetCharacter("_", 0) ||
+          sep == (ushort)StringGetCharacter("-", 0) ||
+          sep == (ushort)StringGetCharacter("#", 0));
+  }
+
+//+------------------------------------------------------------------+
+//| Resolve one configured key without guessing between broker names. |
+//+------------------------------------------------------------------+
+string ResolveBrokerSymbol(string requested)
+  {
+   if(SymbolSelect(requested, true))
+      return(requested);
+   if(!InpResolveBrokerSuffixesV132)
+     {
+      PrintFormat("SKIP configured symbol %s: exact broker symbol not found", requested);
+      return("");
+     }
+
+   string match = "";
+   int matches = 0;
+   int total = SymbolsTotal(false);
+   for(int i = 0; i < total; i++)
+     {
+      string candidate = SymbolName(i, false);
+      if(!SymbolKeyMatch(candidate, requested))
+         continue;
+      match = candidate;
+      matches++;
+     }
+   if(matches != 1)
+     {
+      PrintFormat("SKIP configured symbol %s: broker suffix resolution found %d matches",
+                  requested, matches);
+      return("");
+     }
+   PrintFormat("Resolved configured symbol %s -> %s", requested, match);
+   return(match);
+  }
+
+//+------------------------------------------------------------------+
 //| Add a symbol to the universe if it is real + tradable            |
 //+------------------------------------------------------------------+
 void AddSymbol(string symbol)
   {
+   for(int i = 0; i < ArraySize(g_symbols); i++)
+      if(g_symbols[i] == symbol)
+         return;
    if(IsSynthetic(symbol))
       return;
    if(!SymbolSelect(symbol, true))
@@ -735,6 +816,27 @@ bool QuotesFresh(string symbol)
    return(true);
   }
 
+//+------------------------------------------------------------------+
+//| Conservative current spread for floating-spread instruments.     |
+//| Some servers report SYMBOL_SPREAD late or as zero; bid/ask is the |
+//| executable truth. Taking the max avoids understating entry cost.  |
+//+------------------------------------------------------------------+
+bool CurrentSpreadPrice(string symbol, double &spreadPrice)
+  {
+   spreadPrice = 0.0;
+   MqlTick tick;
+   if(!SymbolInfoTick(symbol, tick) || tick.bid <= 0.0 ||
+      tick.ask <= 0.0 || tick.ask < tick.bid)
+      return(false);
+   double quoteSpread = tick.ask - tick.bid;
+   double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
+   double reportedSpread = 0.0;
+   if(point > 0.0)
+      reportedSpread = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * point;
+   spreadPrice = MathMax(quoteSpread, reportedSpread);
+   return(spreadPrice >= 0.0);
+  }
+
 bool BlockedByHour()
   {
    if(StringLen(InpBlockHours) == 0)
@@ -930,8 +1032,12 @@ void ScanSymbol(string symbol, int atrHandle)
    double spreadAtrSide = 0.0;
    if(InpMaxSpreadAtr > 0.0)
      {
-      double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
-      double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
+      double spreadPrice = 0.0;
+      if(!CurrentSpreadPrice(symbol, spreadPrice))
+        {
+         LogSkip(symbol, "live spread unavailable");
+         return;
+        }
       spreadAtrSide = 0.5 * spreadPrice / atr;
       if(spreadAtrSide > InpMaxSpreadAtr)
         {
@@ -984,18 +1090,21 @@ void ScanSymbol(string symbol, int atrHandle)
      {
       double high1 = iHigh(symbol, InpTimeframe, 1);
       double low1  = iLow(symbol, InpTimeframe, 1);
-      if(high1 > 0.0 && low1 > 0.0)
+      double bodyTop = MathMax(open1, close1);
+      double bodyBot = MathMin(open1, close1);
+      if(high1 <= 0.0 || low1 <= 0.0 || high1 < bodyTop || low1 > bodyBot)
         {
-         double bodyTop  = MathMax(open1, close1);
-         double bodyBot  = MathMin(open1, close1);
-         double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
-         double advWickAtr = advWick / atr;
-         if(advWickAtr < InpMinAdvWickAtr)
-           {
-            LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
-                    advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
-            return;
-           }
+         LogSkip(symbol, "candle filter: incomplete/inconsistent signal OHLC",
+                 atr, spreadAtrSide, -moveAtr);
+         return;
+        }
+      double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
+      double advWickAtr = advWick / atr;
+      if(advWickAtr < InpMinAdvWickAtr)
+        {
+         LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
+                 advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
+         return;
         }
      }
 
@@ -1156,10 +1265,21 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 //+------------------------------------------------------------------+
 //| Fixed-fractional lot size from the stop distance                 |
 //+------------------------------------------------------------------+
+bool IsConfirmedH1Symbol(string symbol)
+  {
+   return(SymbolKeyMatch(symbol, "US30.cash") ||
+          SymbolKeyMatch(symbol, "US100.cash") ||
+          SymbolKeyMatch(symbol, "JP225.cash") ||
+          SymbolKeyMatch(symbol, "USDJPY"));
+  }
+
+//+------------------------------------------------------------------+
 double RiskPercentForSymbol(string symbol)
   {
-   if(symbol == "USDJPY")
+   if(SymbolKeyMatch(symbol, "USDJPY"))
       return(InpUSDJPYRiskPercentV131);
+   if(InpCapUnconfirmedAssetsV132 && !IsConfirmedH1Symbol(symbol))
+      return(InpUnconfirmedRiskPercentV132);
    return(InpRiskPercent);
   }
 
@@ -2483,9 +2603,14 @@ int ClusterOf(string symbol)
       string members[];
       int nm = StringSplit(clusters[ci], StringGetCharacter("|", 0), members);
       for(int mi = 0; mi < nm; mi++)
-         if(Trim(members[mi]) == symbol)
+         if(SymbolKeyMatch(symbol, Trim(members[mi])))
             return(ci);
      }
+   // A user may deliberately add Market-Watch symbols for observation. Keep all
+   // such unconfirmed sleeves behind one seat so correlated unknowns cannot
+   // silently bypass the portfolio cap merely because their names are absent.
+   if(InpGroupUnconfirmedAssetsV132 && !IsConfirmedH1Symbol(symbol))
+      return(nc);
    return(-1);
   }
 
@@ -2795,7 +2920,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.32  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
