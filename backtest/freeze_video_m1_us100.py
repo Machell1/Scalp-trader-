@@ -1,6 +1,6 @@
 """Freeze an outcome-blind, immutable US100.cash M1 terminal snapshot.
 
-Protocol: docs/VIDEO_M1_FREEZE_SPEC_2026-07-13.md
+Protocol: docs/VIDEO_M1_FREEZE_AMENDMENT_2026-07-13.md
 """
 
 from __future__ import annotations
@@ -27,19 +27,19 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 OUT_DIR = HERE / "data" / "ftmoM1_us100_video_20260713"
 MANIFEST = HERE / "ftmo_m1_us100_video_20260713.manifest.sha256"
-SPEC = HERE.parent / "docs" / "VIDEO_M1_FREEZE_SPEC_2026-07-13.md"
+SPEC = HERE.parent / "docs" / "VIDEO_M1_FREEZE_AMENDMENT_2026-07-13.md"
 TERMINAL = Path(r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe")
 EXPECTED_SERVER = "FTMO-Demo"
 EXPECTED_COMPANY = "FTMO Global Markets Ltd"
 SYMBOL = "US100.cash"
 END_UTC = datetime(2026, 7, 10, 23, 59, tzinfo=timezone.utc)
-EXPECTED_ROWS = 99_999
-PROTOCOL_SHA256 = "df8e0cb677e696eb6a10bc9bd42aab68ebb5f10bb39639bb6095fb87b1bd57e1"
+EXPECTED_ROWS = 98_807
+PROTOCOL_SHA256 = "0dc3fd9521abfe00b7425c02191520bbf7440346267bd2a0b95a24f497a38e9c"
 INTERNAL_MANIFEST = "MANIFEST.sha256"
 DATA_FILES = frozenset(
     {
-        "US100_cash_M1_99999.npy",
-        "US100_cash_M1_99999.csv",
+        "US100_cash_M1_98807.npy",
+        "US100_cash_M1_98807.csv",
         "METADATA.json",
         "INTEGRITY.json",
     }
@@ -259,7 +259,7 @@ def freeze() -> None:
             "server": account.server, "company": account.company, "terminal_path": str(TERMINAL), "terminal_build": int(terminal.build), "mt5_version": list(mt5.version()), "metatrader5_python_version": getattr(mt5, "__version__", "unknown"), "python_version": sys.version, "platform": platform.platform(), "symbol": SYMBOL, "timeframe": "M1", "requested_end_utc": END_UTC.isoformat(), "requested_rows": EXPECTED_ROWS,
             "protocol_sha256": PROTOCOL_SHA256, "symbol_info": {field: json_value(getattr(info, field)) for field in SYMBOL_FIELDS},
         }
-        npy_path, csv_path = staging / "US100_cash_M1_99999.npy", staging / "US100_cash_M1_99999.csv"
+        npy_path, csv_path = staging / "US100_cash_M1_98807.npy", staging / "US100_cash_M1_98807.csv"
         np.save(npy_path, rates, allow_pickle=False)
         write_csv(csv_path, rates)
         verify_serialization(npy_path, csv_path, rates)
