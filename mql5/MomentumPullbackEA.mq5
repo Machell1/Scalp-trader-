@@ -1,4 +1,14 @@
 //+------------------------------------------------------------------+
+//|   v1.32 (2026-07-13): STRUCTURAL ABSOLUTE IMPULSE (SAI) ENTRY.    |
+//|     * Problem: native M15/M5 with the same bar-count params as H1 |
+//|       trades noise; cost/ATR worsens as the bar shrinks.         |
+//|     * Fix: keep the validated pullback LIMIT geometry, but when  |
+//|       the working TF differs from the risk TF (default H1),      |
+//|       measure the impulse in H1-ATR price units over a wall-     |
+//|       clock-scaled lookback, size stops/TP/pullback in that ATR, |
+//|       and deepen the LTF pullback (0.8). H1 defaults unchanged.  |
+//|     * Optional Stage-A extras (FRA40/XAUUSD) remain OFF.         |
+//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -92,9 +102,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.31"
+#property version   "1.32"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
+#property description "Multi-symbol momentum pullback EA v1.32. SAI entry for M15/M5; H1 defaults preserved; bank 50% at +1R."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -122,10 +132,21 @@ input double InpMinAdvWickAtr   = 0.30;  // Adverse-wick threshold in frozen sig
 input group "=== Momentum Strategy ==="
 input ENUM_TIMEFRAMES InpTimeframeV131 = PERIOD_H1; // Confirmed H1 working timeframe; versioned to supersede saved M15 values
 #define InpTimeframe InpTimeframeV131
-input int    InpMomentumBars     = 6;     // Lookback bars for the move
-input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
+input int    InpMomentumBars     = 6;     // Lookback bars for the move (wall-clock scaled when SAI is active)
+input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many RISK-TF ATRs to count as "rapid"
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
+
+//--- Structural Absolute Impulse (v1.32) — M15/M5 reliability ---------
+input group "=== Structural Absolute Impulse (v1.32) ==="
+input bool   InpStructuralImpulseV132 = true; // Preserve H1 economics on lower TFs: impulse/stops in risk-TF ATR, wall-clock lookback
+input ENUM_TIMEFRAMES InpRiskAtrTimeframeV132 = PERIOD_H1; // ATR used for impulse threshold, pullback, SL/TP when SAI active
+input bool   InpAutoScaleBarsV132 = true; // Scale lookback/pending/hold by PeriodSeconds(risk)/PeriodSeconds(work)
+input double InpPullbackAtrLtfV132 = 0.8; // Deeper pullback when SAI active and work TF != risk TF (Yahoo proxy plateau)
+input bool   InpAdmitStageAExtrasV132 = false; // OFF: append FRA40.cash,XAUUSD at sleeve risk (Stage-A H1 passers; account gate failed at full risk)
+input double InpExtraRiskPercentV132 = 0.05; // Dynamic cash risk for Stage-A extras when admitted
+input string InpExtraSymbolsV132 = "FRA40.cash,XAUUSD"; // Appended only when InpAdmitStageAExtrasV132=true
+input string InpExtraClusterSpecV132 = "FRA40.cash;XAUUSD"; // Independent cluster seats for extras
 
 //--- Anchored VWAP (discount/premium gate) --------------------------
 input group "=== Anchored VWAP (AVWAP) ==="
@@ -269,6 +290,91 @@ datetime g_noSignalUpTo[];
 // v1.28 panel: last scan verdict per symbol (display only)
 string   g_lastVerdict[];
 datetime g_lastVerdictT[];
+// v1.32: separate risk-TF Wilder ATR cache (H1 by default)
+double   g_wRiskAtrCache[];
+datetime g_wRiskAtrCacheBar[];
+// v1.32: when working TF is below M15, impulse is evaluated on M15 closes only
+datetime g_lastParentSigBar[];
+
+ENUM_TIMEFRAMES SignalBarTimeframe()
+  {
+   // Sub-M15 charts inherit the M15 abs-impulse clock (parent signal / child fill).
+   if(InpStructuralImpulseV132 && PeriodSeconds(InpTimeframe) < PeriodSeconds(PERIOD_M15))
+      return(PERIOD_M15);
+   return(InpTimeframe);
+  }
+
+int SignalMomentumBars()
+  {
+   ENUM_TIMEFRAMES sigTf = SignalBarTimeframe();
+   if(!(InpStructuralImpulseV132 && InpAutoScaleBarsV132))
+      return(InpMomentumBars);
+   int work = (int)PeriodSeconds(sigTf);
+   int risk = (int)PeriodSeconds(InpRiskAtrTimeframeV132);
+   if(work <= 0 || work == risk)
+      return(InpMomentumBars);
+   int scale = risk / work;
+   if(scale < 1) scale = 1;
+   return(InpMomentumBars * scale);
+  }
+
+//+------------------------------------------------------------------+
+//| v1.32 SAI helpers — preserve H1 economics on M15/M5               |
+//+------------------------------------------------------------------+
+bool StructuralImpulseActive()
+  {
+   if(!InpStructuralImpulseV132)
+      return(false);
+   return(PeriodSeconds(InpTimeframe) != PeriodSeconds(InpRiskAtrTimeframeV132));
+  }
+
+int TfScaleToRisk()
+  {
+   int work = (int)PeriodSeconds(InpTimeframe);
+   int risk = (int)PeriodSeconds(InpRiskAtrTimeframeV132);
+   if(work <= 0)
+      return(1);
+   int scale = risk / work;
+   return(scale < 1 ? 1 : scale);
+  }
+
+int EffectiveMomentumBars()
+  {
+   if(!(InpStructuralImpulseV132 && InpAutoScaleBarsV132))
+      return(InpMomentumBars);
+   if(PeriodSeconds(InpTimeframe) == PeriodSeconds(InpRiskAtrTimeframeV132))
+      return(InpMomentumBars);
+   return(InpMomentumBars * TfScaleToRisk());
+  }
+
+int EffectivePendingExpiryBars()
+  {
+   if(!(InpStructuralImpulseV132 && InpAutoScaleBarsV132))
+      return(InpPendingExpiryBars);
+   if(PeriodSeconds(InpTimeframe) == PeriodSeconds(InpRiskAtrTimeframeV132))
+      return(InpPendingExpiryBars);
+   if(InpPendingExpiryBars <= 0)
+      return(InpPendingExpiryBars);
+   return(InpPendingExpiryBars * TfScaleToRisk());
+  }
+
+int EffectiveMaxHoldingBars()
+  {
+   if(!(InpStructuralImpulseV132 && InpAutoScaleBarsV132))
+      return(InpMaxHoldingBars);
+   if(PeriodSeconds(InpTimeframe) == PeriodSeconds(InpRiskAtrTimeframeV132))
+      return(InpMaxHoldingBars);
+   if(InpMaxHoldingBars <= 0)
+      return(InpMaxHoldingBars);
+   return(InpMaxHoldingBars * TfScaleToRisk());
+  }
+
+double EffectivePullbackAtr()
+  {
+   if(StructuralImpulseActive())
+      return(InpPullbackAtrLtfV132);
+   return(InpPullbackAtr);
+  }
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -282,6 +388,17 @@ int OnInit()
       InpUSDJPYRiskPercentV131 > InpRiskPercent)
      {
       Print("v1.31 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
+      return(INIT_PARAMETERS_INCORRECT);
+     }
+   if(InpAdmitStageAExtrasV132 &&
+      (InpExtraRiskPercentV132 <= 0.0 || InpExtraRiskPercentV132 > InpRiskPercent))
+     {
+      Print("v1.32 invalid extra-sleeve risk: must be positive and not exceed base risk");
+      return(INIT_PARAMETERS_INCORRECT);
+     }
+   if(InpStructuralImpulseV132 && InpPullbackAtrLtfV132 <= 0.0)
+     {
+      Print("v1.32 invalid InpPullbackAtrLtfV132: must be > 0");
       return(INIT_PARAMETERS_INCORRECT);
      }
 
@@ -325,7 +442,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.32 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -352,14 +469,20 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.32 ready. Entry=%s. SAI=%s (riskTF=%s scale=%dx mb=%d pend=%d hold=%d pb=%.2f). Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%; extras=%s.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
+               (InpStructuralImpulseV132 ? (StructuralImpulseActive() ? "ACTIVE" : "armed/H1-noop") : "off"),
+               EnumToString(InpRiskAtrTimeframeV132),
+               (InpStructuralImpulseV132 && InpAutoScaleBarsV132 ? TfScaleToRisk() : 1),
+               SignalMomentumBars(), EffectivePendingExpiryBars(), EffectiveMaxHoldingBars(),
+               EffectivePullbackAtr(),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131);
+               InpUSDJPYRiskPercentV131,
+               (InpAdmitStageAExtrasV132 ? InpExtraSymbolsV132 : "off"));
    return(INIT_SUCCEEDED);
   }
 
@@ -407,6 +530,19 @@ bool BuildSymbolUniverse()
      {
       Print("InpScanMarketWatch is false and InpSymbolWhitelist is empty - no symbols to trade.");
      }
+
+   // v1.32: optional Stage-A extras (FRA40/XAUUSD sleeves) — OFF by default
+   if(InpAdmitStageAExtrasV132 && StringLen(InpExtraSymbolsV132) > 0)
+     {
+      string extras[];
+      int ne = StringSplit(InpExtraSymbolsV132, StringGetCharacter(",", 0), extras);
+      for(int i = 0; i < ne; i++)
+        {
+         string s = Trim(extras[i]);
+         if(StringLen(s) > 0)
+            AddSymbol(s);
+        }
+     }
    return(ArraySize(g_symbols) > 0);
   }
 
@@ -437,6 +573,9 @@ void AddSymbol(string symbol)
    ArrayResize(g_atrHandle, idx + 1);
    ArrayResize(g_wAtrCache, idx + 1);      // v1.27
    ArrayResize(g_wAtrCacheBar, idx + 1);
+   ArrayResize(g_wRiskAtrCache, idx + 1);  // v1.32
+   ArrayResize(g_wRiskAtrCacheBar, idx + 1);
+   ArrayResize(g_lastParentSigBar, idx + 1);
    ArrayResize(g_noSignalUpTo, idx + 1);
    ArrayResize(g_lastVerdict, idx + 1);    // v1.28 panel
    ArrayResize(g_lastVerdictT, idx + 1);
@@ -444,6 +583,9 @@ void AddSymbol(string symbol)
    g_atrHandle[idx] = h;   // retained for startup data-sync tracking only; ATR VALUES come from WilderAtrForSymbol (v1.27)
    g_wAtrCache[idx] = 0.0;
    g_wAtrCacheBar[idx] = 0;
+   g_wRiskAtrCache[idx] = 0.0;
+   g_wRiskAtrCacheBar[idx] = 0;
+   g_lastParentSigBar[idx] = 0;
    g_noSignalUpTo[idx] = 0;
    g_lastVerdict[idx] = "";     // v1.28 panel
    g_lastVerdictT[idx] = 0;
@@ -917,7 +1059,10 @@ void ScanSymbol(string symbol, int atrHandle)
      }
 
    double atr;
-   if(!WilderAtrForSymbol(symbol, atr) || atr <= 0.0)   // v1.27: validated-engine estimator
+   // v1.32: when SAI is active, atr is the RISK-TF Wilder ATR (H1 by default).
+   // Impulse threshold, wick filter, pullback, and SL/TP all use this atr so
+   // M15/M5 keep H1 cost/R economics. Working-TF bars still provide OHLC.
+   if(!RiskAtrForSymbol(symbol, atr) || atr <= 0.0)
      {
       LogSkip(symbol, "ATR unavailable");
       return;
@@ -941,9 +1086,24 @@ void ScanSymbol(string symbol, int atrHandle)
         }
      }
 
-   double close1    = iClose(symbol, InpTimeframe, 1);
-   double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
-   double open1     = iOpen(symbol, InpTimeframe, 1);
+   int mb = SignalMomentumBars();
+   ENUM_TIMEFRAMES sigTf = SignalBarTimeframe();
+   datetime parentBar = (datetime)iTime(symbol, sigTf, 1);
+   if(parentBar == 0)
+     {
+      LogSkip(symbol, "missing signal-TF bar");
+      return;
+     }
+   // Sub-M15: fire at most once per parent (M15) close.
+   if(sigTf != InpTimeframe && sidx >= 0)
+     {
+      if(g_lastParentSigBar[sidx] == parentBar)
+         return;
+     }
+
+   double close1    = iClose(symbol, sigTf, 1);
+   double closePast = iClose(symbol, sigTf, mb);
+   double open1     = iOpen(symbol, sigTf, 1);
    if(close1 == 0.0 || closePast == 0.0)
      {
       LogSkip(symbol, "missing bar data");
@@ -951,7 +1111,7 @@ void ScanSymbol(string symbol, int atrHandle)
      }
 
    double move = closePast - close1;            // positive => price fell
-   double moveAtr = move / atr;
+   double moveAtr = move / atr;                 // v1.32: absolute impulse vs risk ATR
 
    bool fallingFast = (moveAtr >= InpMomentumAtrMult) && (close1 < open1);
    bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
@@ -962,7 +1122,7 @@ void ScanSymbol(string symbol, int atrHandle)
    if(InpUseVwapGate)
      {
       int sessBars = 0;
-      double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
+      double vwap = AnchoredVwap(symbol, sigTf, 1, InpVwapMaxBars, sessBars);
       if(vwap <= 0.0 || sessBars < InpVwapMinBars)
         {
          LogSkip(symbol, "VWAP not calibrated");
@@ -982,8 +1142,8 @@ void ScanSymbol(string symbol, int atrHandle)
    // (buyers fought = still fuel); a BUY needs an UPPER wick. Skips only.
    if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))
      {
-      double high1 = iHigh(symbol, InpTimeframe, 1);
-      double low1  = iLow(symbol, InpTimeframe, 1);
+      double high1 = iHigh(symbol, sigTf, 1);
+      double low1  = iLow(symbol, sigTf, 1);
       if(high1 > 0.0 && low1 > 0.0)
         {
          double bodyTop  = MathMax(open1, close1);
@@ -1032,9 +1192,15 @@ void ScanSymbol(string symbol, int atrHandle)
    ENUM_ORDER_TYPE sellType = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_SELL_LIMIT : ORDER_TYPE_SELL_STOP;
 
    if(fallingFast)
+     {
+      if(sidx >= 0) g_lastParentSigBar[sidx] = parentBar;
       PlacePending(symbol, sellType, atr, close1, impulseAtr, spreadAtrSide);
+     }
    else if(risingFast && InpTradeBothSides)
+     {
+      if(sidx >= 0) g_lastParentSigBar[sidx] = parentBar;
       PlacePending(symbol, buyType, atr, close1, impulseAtr, spreadAtrSide);
+     }
   }
 
 //+------------------------------------------------------------------+
@@ -1056,9 +1222,9 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    bool isBuy   = (type == ORDER_TYPE_BUY_STOP  || type == ORDER_TYPE_BUY_LIMIT);
 
    // How far the pending sits from the anchor price.
-   //   PULLBACK (limit): InpPullbackAtr ATR back from the signal-bar CLOSE (validated harness).
+   //   PULLBACK (limit): EffectivePullbackAtr() ATR back from the signal-bar CLOSE.
    //   BREAKOUT (stop) : small InpEntryOffsetAtr ATR just beyond live bid/ask.
-   double offset = isLimit ? (InpPullbackAtr * atr) : (InpEntryOffsetAtr * atr);
+   double offset = isLimit ? (EffectivePullbackAtr() * atr) : (InpEntryOffsetAtr * atr);
    offset = MathMax(offset, stopsLevel);     // respect the broker minimum distance
    if(offset <= 0.0)
       offset = 10 * point;
@@ -1111,13 +1277,11 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 
    datetime expiry = 0;
    ENUM_ORDER_TYPE_TIME ttype = ORDER_TIME_GTC;
-   if(InpPendingExpiryBars > 0)
+   if(EffectivePendingExpiryBars() > 0)
      {
-      // v1.27 B2: the engine's 3-bar fill window is counted on the SYMBOL'S OWN
-      // clock (session breaks produce no bars). Precise expiry = the bar-counted
-      // check in ManagePendingOrders; the broker wall-clock expiry stays only as
-      // a +3-day backstop for when the EA itself is dead.
-      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe) + 259200);
+      // v1.27 B2 / v1.32: bar-counted expiry lives in ManagePendingOrders; broker
+      // wall-clock expiry is a +3-day backstop using the scaled pending window.
+      expiry = (datetime)(TimeCurrent() + (long)EffectivePendingExpiryBars() * PeriodSeconds(InpTimeframe) + 259200);
       ttype  = ORDER_TIME_SPECIFIED;
      }
 
@@ -1160,6 +1324,16 @@ double RiskPercentForSymbol(string symbol)
   {
    if(symbol == "USDJPY")
       return(InpUSDJPYRiskPercentV131);
+   if(InpAdmitStageAExtrasV132 && InpExtraRiskPercentV132 > 0.0)
+     {
+      string extras[];
+      int n = StringSplit(InpExtraSymbolsV132, StringGetCharacter(",", 0), extras);
+      for(int i = 0; i < n; i++)
+        {
+         if(Trim(extras[i]) == symbol)
+            return(InpExtraRiskPercentV132);
+        }
+     }
    return(InpRiskPercent);
   }
 
@@ -1283,13 +1457,12 @@ void ManagePendingOrders()
 
       // Manual expiry safety net for ANY of our pendings (in case the broker ignores
       // ORDER_TIME_SPECIFIED). Applies to both stop and limit orders.
-      if(InpPendingExpiryBars > 0)
+      if(EffectivePendingExpiryBars() > 0)
         {
-         // v1.27 B2: engine parity - the fill window is InpPendingExpiryBars BARS on
-         // the symbol's own clock (placement bar = 1). Wall-clock aging expired
-         // pendings mid-session-break after fewer tradable bars than validated.
+         // v1.27 B2 / v1.32: fill window is EffectivePendingExpiryBars on the
+         // symbol's own working-TF clock (placement bar = 1).
          int ageBars = Bars(symbol, InpTimeframe, ordInfo.TimeSetup(), TimeCurrent());
-         if(ageBars > InpPendingExpiryBars)
+         if(ageBars > EffectivePendingExpiryBars())
            {
             bool delOk = trade.OrderDelete(ticket);
             uint drc = trade.ResultRetcode();
@@ -1423,7 +1596,7 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
    g_posState[stateIdx].lastMgmtBarTime = curBarTime;
    UpdateBarsClosed(stateIdx, symbol);
 
-   if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+   if(EffectiveMaxHoldingBars() > 0 && g_posState[stateIdx].barsClosed >= EffectiveMaxHoldingBars())
      {
       trade.PositionClose(ticket);
       return;
@@ -1594,7 +1767,7 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
      {
       g_posState[stateIdx].lastMgmtBarTime = curBarTime;
       UpdateBarsClosed(stateIdx, symbol);
-      if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+      if(EffectiveMaxHoldingBars() > 0 && g_posState[stateIdx].barsClosed >= EffectiveMaxHoldingBars())
         {
          trade.PositionClose(ticket);
          return;
@@ -2327,23 +2500,24 @@ int SymbolIndex(string symbol)
 // MT5 built-in iATR is a sliding SIMPLE mean of TR (Examples/ATR.mq5 line 92)
 // and diverges 12-14% median; the impulse gate disagreed on ~1/5 of signals.
 // Seeded with SMA(period) then RMA over ~400 bars: seed influence (13/14)^386 ~ 0.
-bool WilderAtrForSymbol(string symbol, double &value)
+// v1.32: optional tf override for the structural risk ATR (default = working TF).
+bool WilderAtrOnTf(string symbol, ENUM_TIMEFRAMES tf, double &value,
+                   double &cache[], datetime &cacheBar[])
   {
    value = 0.0;
    int idx = SymbolIndex(symbol);
-   datetime bar1 = (datetime)iTime(symbol, InpTimeframe, 1);
-   if(idx >= 0 && bar1 > 0 && g_wAtrCacheBar[idx] == bar1 && g_wAtrCache[idx] > 0.0)
+   datetime bar1 = (datetime)iTime(symbol, tf, 1);
+   if(idx >= 0 && bar1 > 0 && ArraySize(cacheBar) > idx && cacheBar[idx] == bar1 && cache[idx] > 0.0)
      {
-      value = g_wAtrCache[idx];
+      value = cache[idx];
       return(true);
      }
    MqlRates rates[];
    int need = 400;
-   int got = CopyRates(symbol, InpTimeframe, 1, need, rates);   // shift 1 = closed bars only
+   int got = CopyRates(symbol, tf, 1, need, rates);   // shift 1 = closed bars only
    if(got < InpAtrPeriod * 3)
       return(false);
    double atr = 0.0;
-   // seed: SMA of TR over bars 1..period (index 0 has no prev close -> excluded)
    for(int k = 1; k <= InpAtrPeriod; k++)
      {
       double tr = MathMax(rates[k].high - rates[k].low,
@@ -2362,12 +2536,28 @@ bool WilderAtrForSymbol(string symbol, double &value)
    if(atr <= 0.0)
       return(false);
    value = atr;
-   if(idx >= 0 && bar1 > 0)
+   if(idx >= 0 && bar1 > 0 && ArraySize(cache) > idx)
      {
-      g_wAtrCache[idx] = atr;
-      g_wAtrCacheBar[idx] = bar1;
+      cache[idx] = atr;
+      cacheBar[idx] = bar1;
      }
    return(true);
+  }
+
+bool WilderAtrForSymbol(string symbol, double &value)
+  {
+   return(WilderAtrOnTf(symbol, InpTimeframe, value, g_wAtrCache, g_wAtrCacheBar));
+  }
+
+// v1.32: risk ATR used by SAI impulse / geometry. When SAI is off or work==risk,
+// this is identical to WilderAtrForSymbol.
+bool RiskAtrForSymbol(string symbol, double &value)
+  {
+   if(!InpStructuralImpulseV132 ||
+      PeriodSeconds(InpTimeframe) == PeriodSeconds(InpRiskAtrTimeframeV132))
+      return(WilderAtrForSymbol(symbol, value));
+   return(WilderAtrOnTf(symbol, InpRiskAtrTimeframeV132, value,
+                        g_wRiskAtrCache, g_wRiskAtrCacheBar));
   }
 
 // v1.27 B6: snap a price to the symbol's trade tick grid (servers reject off-grid
@@ -2441,7 +2631,17 @@ bool DataReady(string symbol)
       SymbolSelect(symbol, true);
       return(false);
      }
-   return(Bars(symbol, InpTimeframe) > InpMomentumBars + InpAtrPeriod + 2);
+   ENUM_TIMEFRAMES sigTf = SignalBarTimeframe();
+   int need = SignalMomentumBars() + InpAtrPeriod + 2;
+   if(Bars(symbol, sigTf) <= need)
+      return(false);
+   if(Bars(symbol, InpTimeframe) <= InpAtrPeriod + 2)
+      return(false);
+   if(InpStructuralImpulseV132 &&
+      PeriodSeconds(InpTimeframe) != PeriodSeconds(InpRiskAtrTimeframeV132) &&
+      Bars(symbol, InpRiskAtrTimeframeV132) <= InpAtrPeriod + 5)
+      return(false);
+   return(true);
   }
 
 bool SpreadTooWide(string symbol)
@@ -2477,7 +2677,10 @@ bool HasExposure(string symbol)
 int ClusterOf(string symbol)
   {
    string clusters[];
-   int nc = StringSplit(InpClusterSpec, StringGetCharacter(";", 0), clusters);
+   string spec = InpClusterSpec;
+   if(InpAdmitStageAExtrasV132 && StringLen(InpExtraClusterSpecV132) > 0)
+      spec = InpClusterSpec + ";" + InpExtraClusterSpecV132;
+   int nc = StringSplit(spec, StringGetCharacter(";", 0), clusters);
    for(int ci = 0; ci < nc; ci++)
      {
       string members[];
@@ -2795,7 +2998,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.32  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
@@ -2823,7 +3026,7 @@ void PanelUpdate()
                                             g_posState[si].partialLevel) : "UNKNOWN";
       PanelSet(ln++, StringFormat("POS %s %s %.2f @ %.2f | b%d/%d | MFE%+.2f MAE%+.2f | SO %s",
                 posInfo.Symbol(), posInfo.PositionType() == POSITION_TYPE_BUY ? "BUY " : "SELL",
-                posInfo.Volume(), posInfo.PriceOpen(), bars, InpMaxHoldingBars, mfe, mae, so),
+                posInfo.Volume(), posInfo.PriceOpen(), bars, EffectiveMaxHoldingBars(), mfe, mae, so),
                 clrDeepSkyBlue);
       shown++;
      }
