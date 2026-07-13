@@ -1,0 +1,219 @@
+{
+  "candidate": {
+    "accepted_attempts_by_symbol": {
+      "AUS200.cash": 209,
+      "EURUSD": 391,
+      "FRA40.cash": 276,
+      "JP225.cash": 318,
+      "LTCUSD": 365,
+      "US100.cash": 219,
+      "US30.cash": 378,
+      "US500.cash": 69,
+      "USDJPY": 322,
+      "XAUUSD": 370,
+      "XCUUSD": 36,
+      "XPTUSD": 225
+    },
+    "accepted_pending_lifecycles": 3178,
+    "account_tape_expectancy": 0.11823956093818873,
+    "actual_entries": 1939,
+    "calendar_days": 1087,
+    "cost_reconciliation_gap_r": 0.07503872243795157,
+    "entries_by_cluster": {
+      "ASIA_INDEX": 320,
+      "CRYPTO": 238,
+      "EU_INDEX": 163,
+      "FX": 430,
+      "METALS": 368,
+      "US_INDEX": 420
+    },
+    "fill_rate": 0.6101321585903083,
+    "max_fills_per_weekday": 7,
+    "mean_fills_per_calendar_day": 1.7838086476540937,
+    "mean_fills_per_weekday": 2.404118404118404,
+    "median_fills_per_weekday": 2.0,
+    "name": "CANDIDATE12",
+    "p10_fills_per_weekday": 1.0,
+    "p90_fills_per_weekday": 4.0,
+    "per_symbol": {
+      "AUS200.cash": {
+        "account_tape_expectancy": 0.050303646770663034,
+        "cluster": "ASIA_INDEX",
+        "entries": 139,
+        "registered_roundtrip_expectancy": -0.009696353229336943,
+        "win_rate_roundtrip": 0.4460431654676259
+      },
+      "EURUSD": {
+        "account_tape_expectancy": 0.09328800635697575,
+        "cluster": "FX",
+        "entries": 233,
+        "registered_roundtrip_expectancy": -0.00808850813676666,
+        "win_rate_roundtrip": 0.4334763948497854
+      },
+      "FRA40.cash": {
+        "account_tape_expectancy": 0.1667340756393497,
+        "cluster": "EU_INDEX",
+        "entries": 163,
+        "registered_roundtrip_expectancy": 0.08368440080346082,
+        "win_rate_roundtrip": 0.4294478527607362
+      },
+      "JP225.cash": {
+        "account_tape_expectancy": 0.07108454281691308,
+        "cluster": "ASIA_INDEX",
+        "entries": 181,
+        "registered_roundtrip_expectancy": 0.0038666154053917717,
+        "win_rate_roundtrip": 0.44751381215469616
+      },
+      "LTCUSD": {
+        "account_tape_expectancy": 0.04420153321828815,
+        "cluster": "CRYPTO",
+        "entries": 238,
+        "registered_roundtrip_expectancy": -0.08494733053205993,
+        "win_rate_roundtrip": 0.4117647058823529
+      },
+      "US100.cash": {
+        "account_tape_expectancy": 0.15195801133080983,
+        "cluster": "US_INDEX",
+        "entries": 137,
+        "registered_roundtrip_expectancy": 0.12682489747772152,
+        "win_rate_roundtrip": 0.39416058394160586
+      },
+      "US30.cash": {
+        "account_tape_expectancy": 0.20151250119699265,
+        "cluster": "US_INDEX",
+        "entries": 244,
+        "registered_roundtrip_expectancy": 0.17502367409621292,
+        "win_rate_roundtrip": 0.47950819672131145
+      },
+      "US500.cash": {
+        "account_tape_expectancy": -0.01190075467039177,
+        "cluster": "US_INDEX",
+        "entries": 39,
+        "registered_roundtrip_expectancy": -0.06058272456347686,
+        "win_rate_roundtrip": 0.38461538461538464
+      },
+      "USDJPY": {
+        "account_tape_expectancy": 0.13267284144325314,
+        "cluster": "FX",
+        "entries": 197,
+        "registered_roundtrip_expectancy": 0.03535866342502333,
+        "win_rate_roundtrip": 0.4467005076142132
+      },
+      "XAUUSD": {
+        "account_tape_expectancy": 0.17492858272268894,
+        "cluster": "METALS",
+        "entries": 223,
+        "registered_roundtrip_expectancy": 0.10364427697220767,
+        "win_rate_roundtrip": 0.4484304932735426
+      },
+      "XCUUSD": {
+        "account_tape_expectancy": -0.23013582852423237,
+        "cluster": "METALS",
+        "entries": 19,
+        "registered_roundtrip_expectancy": -0.30711302595091716,
+        "win_rate_roundtrip": 0.3157894736842105
+      },
+      "XPTUSD": {
+        "account_tape_expectancy": 0.15617510642905233,
+        "cluster": "METALS",
+        "entries": 126,
+        "registered_roundtrip_expectancy": 0.08662418374271348,
+        "win_rate_roundtrip": 0.5
+      }
+    },
+    "registered_roundtrip_expectancy": 0.04320083850023717,
+    "sources": [
+      "Wall_Street_30",
+      "US_Tech_100",
+      "Japan_225",
+      "USDJPY",
+      "US_SP_500",
+      "France_40",
+      "Australia_200",
+      "EURUSD",
+      "XAUUSD",
+      "XCUUSD",
+      "XPTUSD",
+      "LTCUSD"
+    ],
+    "unfilled_cancellations": 1239,
+    "weekday_entries": 1868,
+    "weekdays": 777,
+    "weekdays_ge_6_fraction": 0.023166023166023165,
+    "weekend_entries": 71,
+    "zero_fill_weekdays": 76
+  },
+  "candidate_frequency_gate": false,
+  "control": {
+    "accepted_attempts_by_symbol": {
+      "JP225.cash": 426,
+      "US100.cash": 271,
+      "US30.cash": 440,
+      "USDJPY": 508
+    },
+    "accepted_pending_lifecycles": 1645,
+    "account_tape_expectancy": 0.13634527082885803,
+    "actual_entries": 969,
+    "calendar_days": 1032,
+    "cost_reconciliation_gap_r": 0.05731467403453455,
+    "entries_by_cluster": {
+      "ASIA_INDEX": 238,
+      "FX": 288,
+      "US_INDEX": 443
+    },
+    "fill_rate": 0.5890577507598784,
+    "max_fills_per_weekday": 6,
+    "mean_fills_per_calendar_day": 0.938953488372093,
+    "mean_fills_per_weekday": 1.3102981029810299,
+    "median_fills_per_weekday": 1.0,
+    "name": "CONTROL4",
+    "p10_fills_per_weekday": 0.0,
+    "p90_fills_per_weekday": 3.0,
+    "per_symbol": {
+      "JP225.cash": {
+        "account_tape_expectancy": 0.09598566182466445,
+        "cluster": "ASIA_INDEX",
+        "entries": 238,
+        "registered_roundtrip_expectancy": 0.028767734413143148,
+        "win_rate_roundtrip": 0.453781512605042
+      },
+      "US100.cash": {
+        "account_tape_expectancy": 0.1343377349507409,
+        "cluster": "US_INDEX",
+        "entries": 163,
+        "registered_roundtrip_expectancy": 0.10920462109765255,
+        "win_rate_roundtrip": 0.3987730061349693
+      },
+      "US30.cash": {
+        "account_tape_expectancy": 0.20142886051600054,
+        "cluster": "US_INDEX",
+        "entries": 280,
+        "registered_roundtrip_expectancy": 0.17494003341522082,
+        "win_rate_roundtrip": 0.4785714285714286
+      },
+      "USDJPY": {
+        "account_tape_expectancy": 0.10755850061611934,
+        "cluster": "FX",
+        "entries": 288,
+        "registered_roundtrip_expectancy": 0.010244322597889512,
+        "win_rate_roundtrip": 0.4270833333333333
+      }
+    },
+    "registered_roundtrip_expectancy": 0.07903059679432348,
+    "sources": [
+      "Wall_Street_30",
+      "US_Tech_100",
+      "Japan_225",
+      "USDJPY"
+    ],
+    "unfilled_cancellations": 676,
+    "weekday_entries": 967,
+    "weekdays": 738,
+    "weekdays_ge_6_fraction": 0.0027100271002710027,
+    "weekend_entries": 2,
+    "zero_fill_weekdays": 211
+  },
+  "cost_reconciliation_exact": false,
+  "frequency_delta_per_weekday": 1.0938203011373742,
+  "spec_sha256": "ab5e4be70b5cd76cec22579a1e0839522365d41b946a3844cb35ff94e01b0872"
+}
