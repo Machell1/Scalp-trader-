@@ -24,15 +24,19 @@ broker then returns `TRADE_RETCODE_INVALID_PRICE` (10015), losing a signal that
 the parity engine counts as filled.
 
 v1.32 retries once as a market order only when a refreshed executable quote has
-already crossed the original limit at an equal-or-better price:
+already crossed the original limit at an equal-or-better price and the symbol
+uses MT5 request/instant execution:
 
 * buy: refreshed ask is at or below the buy limit;
 * sell: refreshed bid is at or above the sell limit.
 
-No retry occurs when price moved away, for other rejection codes, or after the
-single attempt. SL and TP are rebuilt around the refreshed entry while retaining
-the frozen ATR distances and risk-sized volume. The behavior can be disabled
-with `InpRetryCrossedLimitV132`.
+The retry sends the refreshed quote and caps deviation to the smaller of the
+configured deviation and the remaining price cushion to the original limit.
+Market/exchange execution modes are not retried because those modes do not
+enforce that cap. No retry occurs when price moved away, for other rejection
+codes, or after the single attempt. SL and TP are rebuilt around the refreshed
+entry while retaining the frozen ATR distances and risk-sized volume. The
+behavior can be disabled with `InpRetryCrossedLimitV132`.
 
 ### Fail-closed candle data
 
@@ -47,9 +51,10 @@ name when `InpResolveBrokerSuffixesV132` is enabled. For example, a canonical
 `USDJPY` configuration may resolve to `USDJPY.a`. Zero or multiple matches fail
 closed.
 
-Cluster membership and risk sleeves use the same canonical-prefix matching, so
-suffix resolution cannot accidentally remove a symbol from its correlation cap
-or promote reduced-risk USDJPY to base risk.
+Cluster membership and risk sleeves use the same canonical suffix matching. The
+longest matching token wins, so overlapping canonical names are deterministic
+and suffix resolution cannot accidentally remove a symbol from its correlation
+cap or promote reduced-risk USDJPY to base risk.
 
 ### Explicit risk sleeves
 
@@ -82,8 +87,9 @@ results are not relabeled. Required deployment checks remain:
 
 1. MetaEditor compile with zero errors and warnings.
 2. Demo journal confirms exact or unique-suffix symbol resolution.
-3. Force/test a crossed-limit 10015 path and confirm at most one retry, only at
-   an equal-or-better refreshed quote.
+3. Force/test a crossed-limit 10015 path and confirm at most one retry, only on
+   request/instant execution and with a deviation cap no worse than the original
+   limit.
 4. Confirm every resolved symbol retains its intended cluster and risk sleeve.
 5. Continue forward fill-reconciliation before increasing size or admitting a
    new asset.

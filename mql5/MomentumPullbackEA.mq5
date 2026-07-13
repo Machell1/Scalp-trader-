@@ -2,8 +2,7 @@
 //|   v1.32 (2026-07-13): ENTRY RELIABILITY + BROKER PORTABILITY.     |
 //|     * Preserve the validated H1 signal/limit geometry unchanged.  |
 //|     * Recover the known 10015 crossed-limit race with one bounded |
-//|       market retry, only while the fresh quote is at least as good|
-//|       as the original limit price.                                |
+//|       market retry where execution mode enforces a price cap.     |
 //|     * Fail closed when signal-candle OHLC is incomplete.          |
 //|     * Resolve unique broker suffixes and apply cluster/risk rules  |
 //|       to the resolved names, enabling portable multi-asset sets.  |
@@ -473,26 +472,22 @@ void AddSymbol(string symbol)
 
 //+------------------------------------------------------------------+
 //| Resolve an exact symbol first, then one unique broker suffix.     |
-//| Prefix matching is deliberately one-way: a configured canonical  |
-//| token may gain a suffix, but a shorter token cannot steal it.     |
+//| Prefix matching is one-way and digit-leading extensions are not   |
+//| suffixes (so US30 cannot resolve to the distinct symbol US300).   |
 //+------------------------------------------------------------------+
 string ResolveBrokerSymbol(string requested)
   {
-   if(SymbolSelect(requested, true))
+   if(IsTradableSymbol(requested))
       return(requested);
    if(!InpResolveBrokerSuffixesV132)
       return("");
 
-   string reqUp = requested;
-   StringToUpper(reqUp);
    string match = "";
    int total = SymbolsTotal(false);
    for(int i = 0; i < total; i++)
      {
       string candidate = SymbolName(i, false);
-      string candUp = candidate;
-      StringToUpper(candUp);
-      if(StringLen(candUp) <= StringLen(reqUp) || StringFind(candUp, reqUp) != 0)
+      if(!SymbolMatchesConfigToken(candidate, requested) || !IsTradableSymbol(candidate))
          continue;
       if(StringLen(match) > 0)
         {
@@ -502,12 +497,20 @@ string ResolveBrokerSymbol(string requested)
         }
       match = candidate;
      }
-   if(StringLen(match) > 0 && SymbolSelect(match, true))
+   if(StringLen(match) > 0)
      {
       PrintFormat("Resolved broker symbol '%s' -> '%s'", requested, match);
       return(match);
      }
    return("");
+  }
+
+//+------------------------------------------------------------------+
+bool IsTradableSymbol(string symbol)
+  {
+   if(!SymbolSelect(symbol, true))
+      return(false);
+   return(SymbolInfoInteger(symbol, SYMBOL_TRADE_MODE) == SYMBOL_TRADE_MODE_FULL);
   }
 
 //+------------------------------------------------------------------+
@@ -1211,7 +1214,7 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    // exactly once, and only when a refreshed executable quote is equal to or better
    // than the original limit. Never convert a limit that price moved away from.
    if(!sendMarket && isLimit && InpRetryCrossedLimitV132 &&
-      !(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED)) &&
+      !TradeRequestSucceeded(ok, rc) &&
       rc == TRADE_RETCODE_INVALID_PRICE)
      {
       MqlTick fresh;
@@ -1222,29 +1225,49 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
          if(crossedAtBetterPrice)
            {
             double retryEntry = isBuy ? fresh.ask : fresh.bid;
-            double retrySl = SnapPrice(symbol, isBuy ? retryEntry - stopDist
-                                                     : retryEntry + stopDist);
-            double retryTp = (tpDist > 0.0)
-                             ? SnapPrice(symbol, isBuy ? retryEntry + tpDist
-                                                       : retryEntry - tpDist)
-                             : 0.0;
-            PrintFormat("%s %s rejected 10015 after quote crossed; one market retry at %.5f vs limit %.5f",
-                        symbol, tag, retryEntry, entry);
-            ok = isBuy ? trade.Buy (lots, symbol, 0.0, retrySl, retryTp, InpTradeComment)
-                       : trade.Sell(lots, symbol, 0.0, retrySl, retryTp, InpTradeComment);
-            rc = trade.ResultRetcode();
-            if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))
+            double cushion = isBuy ? (entry - retryEntry) : (retryEntry - entry);
+            long executionMode = SymbolInfoInteger(symbol, SYMBOL_TRADE_EXEMODE);
+            // Deviation is not enforced under MARKET/EXCHANGE execution. In those
+            // modes an uncapped market retry could fill beyond the original limit,
+            // so retain the rejection instead of changing the validated geometry.
+            bool priceCapSupported = (executionMode == SYMBOL_TRADE_EXECUTION_REQUEST ||
+                                      executionMode == SYMBOL_TRADE_EXECUTION_INSTANT);
+            ulong capPoints = (point > 0.0)
+                              ? (ulong)MathMax(0.0, MathFloor(cushion / point))
+                              : 0;
+            if(capPoints > InpDeviationPoints)
+               capPoints = InpDeviationPoints;
+            if(priceCapSupported)
               {
-               entry = retryEntry;
-               sl = retrySl;
-               tp = retryTp;
-               tag = isBuy ? "BUY MARKET(crossed-limit retry)"
-                           : "SELL MARKET(crossed-limit retry)";
+               double retrySl = SnapPrice(symbol, isBuy ? retryEntry - stopDist
+                                                        : retryEntry + stopDist);
+               double retryTp = (tpDist > 0.0)
+                                ? SnapPrice(symbol, isBuy ? retryEntry + tpDist
+                                                          : retryEntry - tpDist)
+                                : 0.0;
+               PrintFormat("%s %s rejected 10015 after quote crossed; one market retry at %.5f vs limit %.5f",
+                           symbol, tag, retryEntry, entry);
+               trade.SetDeviationInPoints(capPoints);
+               ok = isBuy ? trade.Buy (lots, symbol, retryEntry, retrySl, retryTp, InpTradeComment)
+                          : trade.Sell(lots, symbol, retryEntry, retrySl, retryTp, InpTradeComment);
+               trade.SetDeviationInPoints(InpDeviationPoints);
+               rc = trade.ResultRetcode();
+               if(TradeRequestSucceeded(ok, rc))
+                 {
+                  entry = retryEntry;
+                  sl = retrySl;
+                  tp = retryTp;
+                  tag = isBuy ? "BUY MARKET(crossed-limit retry)"
+                              : "SELL MARKET(crossed-limit retry)";
+                 }
               }
+            else
+               PrintFormat("%s crossed-limit retry skipped: %s execution cannot cap fill at %.5f",
+                           symbol, EnumToString((ENUM_SYMBOL_TRADE_EXECUTION)executionMode), entry);
            }
         }
      }
-   if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))   // v1.26: bool alone only means "request passed basic checks"
+   if(TradeRequestSucceeded(ok, rc))   // v1.26: bool alone only means "request passed basic checks"
      {
       StorePendingSigAtr(trade.ResultOrder(), atr);   // v1.27 B3: fills are counted in OnTradeTransaction
       SetVerdict(symbol, StringFormat("SIGNAL %s %.2f lots @ %.2f (imp %.2f ATR)", tag, lots, entry, impulseAtr));   // v1.28
@@ -1257,21 +1280,36 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
   }
 
 //+------------------------------------------------------------------+
+bool TradeRequestSucceeded(bool methodOk, uint retcode)
+  {
+   return(methodOk && (retcode == TRADE_RETCODE_DONE ||
+                       retcode == TRADE_RETCODE_DONE_PARTIAL ||
+                       retcode == TRADE_RETCODE_PLACED));
+  }
+
+//+------------------------------------------------------------------+
 //| Fixed-fractional lot size from the stop distance                 |
 //+------------------------------------------------------------------+
 double RiskPercentForSymbol(string symbol)
   {
    string overrides[];
    int count = StringSplit(InpRiskOverridesV132, StringGetCharacter(",", 0), overrides);
+   double selectedRisk = 0.0;
+   int selectedLength = -1;
    for(int i = 0; i < count; i++)
      {
       string pair[];
       if(StringSplit(overrides[i], StringGetCharacter("=", 0), pair) != 2)
          continue;
       string token = Trim(pair[0]);
-      if(SymbolMatchesConfigToken(symbol, token))
-         return(StringToDouble(Trim(pair[1])));
+      if(SymbolMatchesConfigToken(symbol, token) && StringLen(token) > selectedLength)
+        {
+         selectedRisk = StringToDouble(Trim(pair[1]));
+         selectedLength = StringLen(token);
+        }
      }
+   if(selectedLength >= 0)
+      return(selectedRisk);
    // Preserve v1.31 behavior if an existing chart deliberately clears the new map.
    if(SymbolMatchesConfigToken(symbol, "USDJPY"))
       return(InpUSDJPYRiskPercentV131);
@@ -1295,8 +1333,10 @@ bool ValidateRiskOverrides()
          return(false);
         }
       string token = Trim(pair[0]);
-      double risk = StringToDouble(Trim(pair[1]));
-      if(StringLen(token) == 0 || risk <= 0.0 || risk > InpRiskPercent)
+      string valueText = Trim(pair[1]);
+      double risk = StringToDouble(valueText);
+      if(StringLen(token) == 0 || !IsStrictDecimal(valueText) ||
+         risk <= 0.0 || risk > InpRiskPercent)
         {
          PrintFormat("Invalid risk override '%s'; percent must be in (0, %.4f]",
                      Trim(overrides[i]), InpRiskPercent);
@@ -1315,9 +1355,42 @@ bool SymbolMatchesConfigToken(string symbol, string token)
    string tokUp = Trim(token);
    StringToUpper(symUp);
    StringToUpper(tokUp);
-   if(StringLen(tokUp) == 0 || StringLen(symUp) < StringLen(tokUp))
+   int tokenLength = StringLen(tokUp);
+   if(tokenLength == 0 || StringLen(symUp) < tokenLength ||
+      StringFind(symUp, tokUp) != 0)
       return(false);
-   return(StringFind(symUp, tokUp) == 0);
+   if(StringLen(symUp) == tokenLength)
+      return(true);
+   // A broker suffix may begin with punctuation or a letter, but not a digit.
+   // This prevents canonical US30 from matching a distinct instrument US300.
+   ushort firstSuffix = StringGetCharacter(symUp, tokenLength);
+   return(firstSuffix < StringGetCharacter("0", 0) ||
+          firstSuffix > StringGetCharacter("9", 0));
+  }
+
+//+------------------------------------------------------------------+
+bool IsStrictDecimal(string value)
+  {
+   if(StringLen(value) == 0)
+      return(false);
+   bool seenDigit = false;
+   bool seenDot = false;
+   for(int i = 0; i < StringLen(value); i++)
+     {
+      ushort ch = StringGetCharacter(value, i);
+      if(ch >= StringGetCharacter("0", 0) && ch <= StringGetCharacter("9", 0))
+        {
+         seenDigit = true;
+         continue;
+        }
+      if(ch == StringGetCharacter(".", 0) && !seenDot)
+        {
+         seenDot = true;
+         continue;
+        }
+      return(false);
+     }
+   return(seenDigit);
   }
 
 //+------------------------------------------------------------------+
@@ -2635,15 +2708,23 @@ int ClusterOf(string symbol)
   {
    string clusters[];
    int nc = StringSplit(InpClusterSpec, StringGetCharacter(";", 0), clusters);
+   int selectedCluster = -1;
+   int selectedLength = -1;
    for(int ci = 0; ci < nc; ci++)
      {
       string members[];
       int nm = StringSplit(clusters[ci], StringGetCharacter("|", 0), members);
       for(int mi = 0; mi < nm; mi++)
-         if(SymbolMatchesConfigToken(symbol, Trim(members[mi])))
-            return(ci);
+        {
+         string token = Trim(members[mi]);
+         if(SymbolMatchesConfigToken(symbol, token) && StringLen(token) > selectedLength)
+           {
+            selectedCluster = ci;
+            selectedLength = StringLen(token);
+           }
+        }
      }
-   return(-1);
+   return(selectedCluster);
   }
 
 //+------------------------------------------------------------------+
