@@ -1,0 +1,702 @@
+{
+  "edge": {
+    "E1_MEASURED": {
+      "complete_quarters": [
+        "2025Q3",
+        "2025Q4",
+        "2026Q1",
+        "2026Q2"
+      ],
+      "delete_symbol": {
+        "JP225.cash": {
+          "n": 916,
+          "weighted_expectancy": 0.024854009591779358,
+          "weighted_total_r": 11.770858942666704
+        },
+        "US100.cash": {
+          "n": 1134,
+          "weighted_expectancy": 0.041713236351124235,
+          "weighted_total_r": 28.848874260437523
+        },
+        "US30.cash": {
+          "n": 944,
+          "weighted_expectancy": 0.04538004797681619,
+          "weighted_total_r": 42.83876529011448
+        }
+      },
+      "failures": [],
+      "first_day": "2025-04-02",
+      "last_day": "2026-07-11",
+      "last_four": {
+        "n": 1183,
+        "weighted_expectancy": 0.03635271947513243,
+        "weighted_total_r": 30.616260341956536
+      },
+      "leave_one_quarter": {
+        "2025Q3": {
+          "n": 1196,
+          "weighted_expectancy": 0.038608141006580596,
+          "weighted_total_r": 32.36906541991717
+        },
+        "2025Q4": {
+          "n": 1200,
+          "weighted_expectancy": 0.034583483446818726,
+          "weighted_total_r": 29.133126455600095
+        },
+        "2026Q1": {
+          "n": 1200,
+          "weighted_expectancy": 0.03420719301168825,
+          "weighted_total_r": 28.870870901864887
+        },
+        "2026Q2": {
+          "n": 1209,
+          "weighted_expectancy": 0.05394370902877465,
+          "weighted_total_r": 45.92767386709873
+        }
+      },
+      "n": 1497,
+      "pass": true,
+      "per_symbol": {
+        "JP225.cash": {
+          "n": 581,
+          "raw_expectancy": 0.051563494499040706,
+          "weighted_expectancy": 0.051563494499040706,
+          "weighted_total_r": 29.95839030394265
+        },
+        "US100.cash": {
+          "n": 363,
+          "raw_expectancy": 0.03548312668366895,
+          "weighted_expectancy": 0.03548312668366895,
+          "weighted_total_r": 12.88037498617183
+        },
+        "US30.cash": {
+          "n": 553,
+          "raw_expectancy": -0.010031790628436942,
+          "weighted_expectancy": -0.010031790628436944,
+          "weighted_total_r": -1.1095160435051261
+        }
+      },
+      "pooled": {
+        "n": 1497,
+        "weighted_expectancy": 0.03956879314110503,
+        "weighted_total_r": 41.729249246609356
+      },
+      "weights": {
+        "JP225.cash": 1.0,
+        "US100.cash": 1.0,
+        "US30.cash": 0.2
+      }
+    },
+    "E2_STRESS": {
+      "complete_quarters": [
+        "2025Q3",
+        "2025Q4",
+        "2026Q1",
+        "2026Q2"
+      ],
+      "delete_symbol": {
+        "JP225.cash": {
+          "n": 916,
+          "weighted_expectancy": 0.0020812599310295454,
+          "weighted_total_r": 0.9856847033355927
+        },
+        "US100.cash": {
+          "n": 1134,
+          "weighted_expectancy": 0.01990169837616872,
+          "weighted_total_r": 13.764014596958287
+        },
+        "US30.cash": {
+          "n": 944,
+          "weighted_expectancy": 0.023128070259588723,
+          "weighted_total_r": 21.832898325051755
+        }
+      },
+      "failures": [],
+      "first_day": "2025-04-02",
+      "last_day": "2026-07-11",
+      "last_four": {
+        "n": 1183,
+        "weighted_expectancy": 0.01363829043270238,
+        "weighted_total_r": 11.486168202421945
+      },
+      "leave_one_quarter": {
+        "2025Q3": {
+          "n": 1196,
+          "weighted_expectancy": 0.017718366655973716,
+          "weighted_total_r": 14.855078604368362
+        },
+        "2025Q4": {
+          "n": 1200,
+          "weighted_expectancy": 0.01211636640064307,
+          "weighted_total_r": 10.206827055901723
+        },
+        "2026Q1": {
+          "n": 1200,
+          "weighted_expectancy": 0.011536392709905679,
+          "weighted_total_r": 9.736715447160393
+        },
+        "2026Q2": {
+          "n": 1209,
+          "weighted_expectancy": 0.03157200603810059,
+          "weighted_total_r": 26.880405940838845
+        }
+      },
+      "n": 1497,
+      "pass": true,
+      "per_symbol": {
+        "JP225.cash": {
+          "n": 581,
+          "raw_expectancy": 0.02978591068732741,
+          "weighted_expectancy": 0.02978591068732741,
+          "weighted_total_r": 17.305614109337224
+        },
+        "US100.cash": {
+          "n": 363,
+          "raw_expectancy": 0.0124718573435662,
+          "weighted_expectancy": 0.0124718573435662,
+          "weighted_total_r": 4.5272842157145305
+        },
+        "US30.cash": {
+          "n": 553,
+          "raw_expectancy": -0.032021695410297805,
+          "weighted_expectancy": -0.032021695410297805,
+          "weighted_total_r": -3.5415995123789377
+        }
+      },
+      "pooled": {
+        "n": 1497,
+        "weighted_expectancy": 0.017344300030981242,
+        "weighted_total_r": 18.291298812672817
+      },
+      "weights": {
+        "JP225.cash": 1.0,
+        "US100.cash": 1.0,
+        "US30.cash": 0.2
+      }
+    }
+  },
+  "edge_gate": {
+    "failures": [],
+    "pass": true
+  },
+  "ledger": {
+    "charged_cells": [
+      "repair_same_development_cells"
+    ],
+    "end": 211,
+    "start": 211
+  },
+  "mc": {
+    "E1_MEASURED": {
+      "divergence": {
+        "C0": {
+          "p1_min_lot_rejections": 0,
+          "p1_min_lot_substitutions": 0,
+          "p1_partial_skipped_rounding": 0,
+          "p2_min_lot_rejections": 0,
+          "p2_min_lot_substitutions": 0,
+          "p2_partial_skipped_rounding": 0
+        },
+        "C1": {
+          "p1_min_lot_rejections": 0,
+          "p1_min_lot_substitutions": 0,
+          "p1_partial_skipped_rounding": 0,
+          "p2_min_lot_rejections": 0,
+          "p2_min_lot_substitutions": 0,
+          "p2_partial_skipped_rounding": 0
+        },
+        "P1": {
+          "p1_min_lot_rejections": 0,
+          "p1_min_lot_substitutions": 0,
+          "p1_partial_skipped_rounding": 0,
+          "p2_min_lot_rejections": 0,
+          "p2_min_lot_substitutions": 0,
+          "p2_partial_skipped_rounding": 0
+        }
+      },
+      "hashes": {
+        "C0": "82dc769ede627bd7936aa816134d03416a2025b4cb23aef10b5cf5533f35a7b0",
+        "C1": "d14dbbb8258a304dac7fd950b367f67cedc60d252def46c1a32a635787a8c0ae",
+        "P1": "277bc8af303cec52c5860936166ee1e9b92b61fc7a7c4b495ff6723aca9a1628"
+      },
+      "paired": {
+        "C0": {
+          "lower": 0.3874965856435957,
+          "n01": 6645,
+          "n10": 45860
+        },
+        "C1": {
+          "lower": 0.14946905963676455,
+          "n01": 11042,
+          "n10": 26458
+        }
+      },
+      "summaries": {
+        "C0": {
+          "both_passes": 36837,
+          "both_probability": 0.36837,
+          "both_wilson_lower": 0.36586459206255073,
+          "both_wilson_upper": 0.3708825303584463,
+          "counter_totals": {
+            "p1_completed": 51066259,
+            "p1_entries": 51111852,
+            "p1_min_lot_rejections": 0,
+            "p1_min_lot_substitutions": 0,
+            "p1_partial_executed": 26564454,
+            "p1_partial_skipped_rounding": 0,
+            "p1_skipped_consecutive": 6928,
+            "p1_skipped_daily_halt": 0,
+            "p1_skipped_fill_cap": 555,
+            "p2_completed": 15714343,
+            "p2_entries": 15728194,
+            "p2_min_lot_rejections": 0,
+            "p2_min_lot_substitutions": 0,
+            "p2_partial_executed": 8171547,
+            "p2_partial_skipped_rounding": 0,
+            "p2_skipped_consecutive": 2150,
+            "p2_skipped_daily_halt": 0,
+            "p2_skipped_fill_cap": 204
+          },
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.54319,
+          "hard_wilson_upper": 0.5457798177695894,
+          "median_total_days_success": 225.0,
+          "outcome_sha256": "82dc769ede627bd7936aa816134d03416a2025b4cb23aef10b5cf5533f35a7b0",
+          "p90_total_days_success": 402.0,
+          "path_rows": 100000,
+          "paths": 100000,
+          "phase1_passes": 53080,
+          "phase1_probability": 0.5308,
+          "phase2_conditional_probability": 0.6939902034664657,
+          "timeout_probability": 0.08844,
+          "timeout_wilson_upper": 0.08992803337880828
+        },
+        "C1": {
+          "both_passes": 60636,
+          "both_probability": 0.60636,
+          "both_wilson_lower": 0.603815935935411,
+          "both_wilson_upper": 0.6088983089882595,
+          "counter_totals": {
+            "p1_completed": 111545096,
+            "p1_entries": 111572898,
+            "p1_min_lot_rejections": 0,
+            "p1_min_lot_substitutions": 0,
+            "p1_partial_executed": 58063048,
+            "p1_partial_skipped_rounding": 0,
+            "p1_skipped_consecutive": 15613,
+            "p1_skipped_daily_halt": 0,
+            "p1_skipped_fill_cap": 1338,
+            "p2_completed": 110088339,
+            "p2_entries": 110089746,
+            "p2_min_lot_rejections": 0,
+            "p2_min_lot_substitutions": 0,
+            "p2_partial_executed": 57299873,
+            "p2_partial_skipped_rounding": 0,
+            "p2_skipped_consecutive": 15091,
+            "p2_skipped_daily_halt": 0,
+            "p2_skipped_fill_cap": 1372
+          },
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.26653,
+          "hard_wilson_upper": 0.2688361015152532,
+          "median_total_days_success": 749.0,
+          "outcome_sha256": "d14dbbb8258a304dac7fd950b367f67cedc60d252def46c1a32a635787a8c0ae",
+          "p90_total_days_success": 1392.0,
+          "path_rows": 100000,
+          "paths": 100000,
+          "phase1_passes": 67870,
+          "phase1_probability": 0.6787,
+          "phase2_conditional_probability": 0.8934138794754678,
+          "timeout_probability": 0.12711,
+          "timeout_wilson_upper": 0.12885268863752447
+        },
+        "P1": {
+          "both_passes": 76052,
+          "both_probability": 0.76052,
+          "both_wilson_lower": 0.75829315340297,
+          "both_wilson_upper": 0.762732750014806,
+          "counter_totals": {
+            "p1_completed": 132463483,
+            "p1_entries": 132472686,
+            "p1_min_lot_rejections": 0,
+            "p1_min_lot_substitutions": 0,
+            "p1_partial_executed": 68977522,
+            "p1_partial_skipped_rounding": 0,
+            "p1_skipped_consecutive": 18650,
+            "p1_skipped_daily_halt": 0,
+            "p1_skipped_fill_cap": 1596,
+            "p2_completed": 126647947,
+            "p2_entries": 126648045,
+            "p2_min_lot_rejections": 0,
+            "p2_min_lot_substitutions": 0,
+            "p2_partial_executed": 65914178,
+            "p2_partial_skipped_rounding": 0,
+            "p2_skipped_consecutive": 17630,
+            "p2_skipped_daily_halt": 0,
+            "p2_skipped_fill_cap": 1606
+          },
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.07917,
+          "hard_wilson_upper": 0.08058583356414023,
+          "median_total_days_success": 805.0,
+          "outcome_sha256": "277bc8af303cec52c5860936166ee1e9b92b61fc7a7c4b495ff6723aca9a1628",
+          "p90_total_days_success": 1357.0,
+          "path_rows": 100000,
+          "paths": 100000,
+          "phase1_passes": 83820,
+          "phase1_probability": 0.8382,
+          "phase2_conditional_probability": 0.9073252207110475,
+          "timeout_probability": 0.16031,
+          "timeout_wilson_upper": 0.16222757618334901
+        }
+      }
+    },
+    "E2_STRESS": {
+      "divergence": {
+        "C0": {
+          "p1_min_lot_rejections": 0,
+          "p1_min_lot_substitutions": 0,
+          "p1_partial_skipped_rounding": 0,
+          "p2_min_lot_rejections": 0,
+          "p2_min_lot_substitutions": 0,
+          "p2_partial_skipped_rounding": 0
+        },
+        "C1": {
+          "p1_min_lot_rejections": 0,
+          "p1_min_lot_substitutions": 0,
+          "p1_partial_skipped_rounding": 0,
+          "p2_min_lot_rejections": 0,
+          "p2_min_lot_substitutions": 0,
+          "p2_partial_skipped_rounding": 0
+        },
+        "P1": {
+          "p1_min_lot_rejections": 0,
+          "p1_min_lot_substitutions": 0,
+          "p1_partial_skipped_rounding": 0,
+          "p2_min_lot_rejections": 0,
+          "p2_min_lot_substitutions": 0,
+          "p2_partial_skipped_rounding": 0
+        }
+      },
+      "hashes": {
+        "C0": "32acceb206d028d0cf83f9ae38f35c9ac582b92d25d0bf83aa6b10004dfdf1bf",
+        "C1": "5474d52e7dba3568d03734dfdafeef1586324c3e6be32a25e4a2ff2dea223240",
+        "P1": "9ef3522fed219748355e0cbeb273f18b8d7d4612108583852f06408b32dc55c0"
+      },
+      "paired": {
+        "C0": {
+          "lower": 0.3808724074109364,
+          "n01": 3858,
+          "n10": 42373
+        },
+        "C1": {
+          "lower": 0.31254257041463623,
+          "n01": 4468,
+          "n10": 36150
+        }
+      },
+      "summaries": {
+        "C0": {
+          "both_passes": 16448,
+          "both_probability": 0.16448,
+          "both_wilson_lower": 0.16256083703770277,
+          "both_wilson_upper": 0.1664173177499059,
+          "counter_totals": {
+            "p1_completed": 49889429,
+            "p1_entries": 49961462,
+            "p1_min_lot_rejections": 0,
+            "p1_min_lot_substitutions": 0,
+            "p1_partial_executed": 25924454,
+            "p1_partial_skipped_rounding": 0,
+            "p1_skipped_consecutive": 7734,
+            "p1_skipped_daily_halt": 0,
+            "p1_skipped_fill_cap": 526,
+            "p2_completed": 10056323,
+            "p2_entries": 10070538,
+            "p2_min_lot_rejections": 0,
+            "p2_min_lot_substitutions": 0,
+            "p2_partial_executed": 5221837,
+            "p2_partial_skipped_rounding": 0,
+            "p2_skipped_consecutive": 1716,
+            "p2_skipped_daily_halt": 0,
+            "p2_skipped_fill_cap": 151
+          },
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.78834,
+          "hard_wilson_upper": 0.7904569130809884,
+          "median_total_days_success": 235.0,
+          "outcome_sha256": "32acceb206d028d0cf83f9ae38f35c9ac582b92d25d0bf83aa6b10004dfdf1bf",
+          "p90_total_days_success": 422.0,
+          "path_rows": 100000,
+          "paths": 100000,
+          "phase1_passes": 30983,
+          "phase1_probability": 0.30983,
+          "phase2_conditional_probability": 0.5308717683891166,
+          "timeout_probability": 0.04718,
+          "timeout_wilson_upper": 0.04829514187133637
+        },
+        "C1": {
+          "both_passes": 23281,
+          "both_probability": 0.23281,
+          "both_wilson_lower": 0.23061898416042223,
+          "both_wilson_upper": 0.23501547333153402,
+          "counter_totals": {
+            "p1_completed": 118015415,
+            "p1_entries": 118081829,
+            "p1_min_lot_rejections": 0,
+            "p1_min_lot_substitutions": 0,
+            "p1_partial_executed": 61387487,
+            "p1_partial_skipped_rounding": 0,
+            "p1_skipped_consecutive": 18893,
+            "p1_skipped_daily_halt": 0,
+            "p1_skipped_fill_cap": 1444,
+            "p2_completed": 102935250,
+            "p2_entries": 102946130,
+            "p2_min_lot_rejections": 0,
+            "p2_min_lot_substitutions": 0,
+            "p2_partial_executed": 53562533,
+            "p2_partial_skipped_rounding": 0,
+            "p2_skipped_consecutive": 16918,
+            "p2_skipped_daily_halt": 0,
+            "p2_skipped_fill_cap": 1304
+          },
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.70561,
+          "hard_wilson_upper": 0.7079750819758173,
+          "median_total_days_success": 1031.0,
+          "outcome_sha256": "5474d52e7dba3568d03734dfdafeef1586324c3e6be32a25e4a2ff2dea223240",
+          "p90_total_days_success": 2128.0,
+          "path_rows": 100000,
+          "paths": 100000,
+          "phase1_passes": 35672,
+          "phase1_probability": 0.35672,
+          "phase2_conditional_probability": 0.6526407266203185,
+          "timeout_probability": 0.06158,
+          "timeout_wilson_upper": 0.06284229134260494
+        },
+        "P1": {
+          "both_passes": 54963,
+          "both_probability": 0.54963,
+          "both_wilson_lower": 0.5470407936759704,
+          "both_wilson_upper": 0.552216520874253,
+          "counter_totals": {
+            "p1_completed": 169908781,
+            "p1_entries": 169944655,
+            "p1_min_lot_rejections": 0,
+            "p1_min_lot_substitutions": 0,
+            "p1_partial_executed": 88432950,
+            "p1_partial_skipped_rounding": 0,
+            "p1_skipped_consecutive": 27296,
+            "p1_skipped_daily_halt": 0,
+            "p1_skipped_fill_cap": 2103,
+            "p2_completed": 171658448,
+            "p2_entries": 171660977,
+            "p2_min_lot_rejections": 0,
+            "p2_min_lot_substitutions": 0,
+            "p2_partial_executed": 89335671,
+            "p2_partial_skipped_rounding": 0,
+            "p2_skipped_consecutive": 27285,
+            "p2_skipped_daily_halt": 0,
+            "p2_skipped_fill_cap": 2163
+          },
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 2.7054702564219857e-05,
+          "hard_probability": 0.32752,
+          "hard_wilson_upper": 0.32996573943573987,
+          "median_total_days_success": 1204.0,
+          "outcome_sha256": "9ef3522fed219748355e0cbeb273f18b8d7d4612108583852f06408b32dc55c0",
+          "p90_total_days_success": 2268.0,
+          "path_rows": 100000,
+          "paths": 100000,
+          "phase1_passes": 62982,
+          "phase1_probability": 0.62982,
+          "phase2_conditional_probability": 0.8726779079737068,
+          "timeout_probability": 0.12285,
+          "timeout_wilson_upper": 0.12456767591798301
+        }
+      }
+    }
+  },
+  "mc_failures": [
+    "E1_MEASURED/P1 Wilson lower <= 88%",
+    "E1_MEASURED/P1 timeout upper > 1%",
+    "E2_STRESS/P1 Wilson lower <= 88%",
+    "E2_STRESS/P1 timeout upper > 1%",
+    "E2_STRESS/P1 P90 completion > 1825 days"
+  ],
+  "mc_gate": false,
+  "npz_sha256": "07057d254cc7c6bcf49e94eefce45aff73082cc39cbc41a1b8be673ddff3fcd9",
+  "preflight": {
+    "adapter_synthetic_checks": {
+      "checks": [
+        "owner_is_pending_placement_day",
+        "entry_occurs_next_prague_day",
+        "unfilled_pending_retained",
+        "completed_lifecycle_retained",
+        "actual_timed_swap_inserted_once",
+        "timed_swap_balance_component",
+        "fixed_slippage_debited_at_entry",
+        "partial_classifier_slippage_allocated",
+        "final_classifier_carries_swap",
+        "balance_cashflows_reconcile",
+        "classifier_cashflows_reconcile",
+        "pending_spanning_midnight_is_not_flat",
+        "spanning_boundary_excluded_from_blocks",
+        "block_eligibility_recomputes",
+        "compiled_hash_deterministic",
+        "compiled_bytes_deterministic",
+        "policy_mapping_retains_hash",
+        "policy_tape_event_count",
+        "policy_tape_owner_is_pending_day",
+        "policy_tape_block_eligibility",
+        "policy_swap_raw_cadence",
+        "policy_symbol_meta_conversion",
+        "diagnostic_join_failure_detected"
+      ],
+      "passed": 23
+    },
+    "blind_verify_stdout": "verified FTMO blind freeze 9 OK, 0 missing, 0 mismatched, 0 extra",
+    "canonical_verify_stdout": "verified 46 OK, 0 missing, 0 mismatched",
+    "policy_synthetic_checks": [
+      "complete_symbol_policy_and_scalar_compatibility",
+      "prague_dst_and_fold",
+      "entry_slip_actual_partial_swap_realization_and_cross_day_classifier",
+      "friday_triple_stress_and_positive_swap_suppression",
+      "pending_aware_target_freeze_cancel_and_pass",
+      "final_event_exactly_at_midnight_is_not_flat",
+      "pending_flat_boundary_cached_mbb_crn",
+      "sequential_phases_min_days_next_day_same_stream",
+      "monolithic_equals_path_id_chunks",
+      "compact_determinism_wilson_and_paired_bounds"
+    ],
+    "protocol_sha256": "f364738910824cc5bf249a9958d8ad25a3defced2e881b7af31ecb889d896465"
+  },
+  "provenance": {
+    "classification": "MEASURED",
+    "command": "python backtest/run_v130_pass_policy.py --development",
+    "commit": "cf4dcee3f84002c9cf08b7a061bc02adcc61175d",
+    "confirmation_accessed": false,
+    "created_utc": "2026-07-12T22:29:32.405281+00:00",
+    "frame": "mined",
+    "holdout_accessed": false,
+    "paths_run": 100000,
+    "protocol_sha256": "f364738910824cc5bf249a9958d8ad25a3defced2e881b7af31ecb889d896465",
+    "registered_paths": 100000
+  },
+  "source": {
+    "E1_MEASURED": {
+      "compiled_sha256": "8737b28454821e2744eeb41b07f9775e7e5dea0a62d06125cd88e8dccdc57485",
+      "diagnostics_sha256": "412d0970118ef7493abc01b72c12a2fc76e02f2e0ffc4dbc995ce5922e968217",
+      "eligible_blocks": 318,
+      "event_sha256": "0c4444421d354c3f24f019a0fe8fa3984dea4340ac84ecd3d0b9eb88d830a4a8",
+      "pre_account_summary": {
+        "completed": 1497,
+        "eligible_20_day_starts": 318,
+        "entry_slippage_r": -29.94,
+        "event_kinds": {
+          "bar_mark": 9268,
+          "entry_fill": 1497,
+          "final_exit": 1497,
+          "partial_fill": 779,
+          "pending_cancellation": 758,
+          "pending_placement": 2255,
+          "swap_rollover": 35
+        },
+        "lifecycles": 2255,
+        "nonempty_owner_days": 338,
+        "owner_days": 466,
+        "per_symbol": {
+          "JP225.cash": {
+            "completed": 581,
+            "lifecycles": 892,
+            "total_r": 29.958390303942654,
+            "unfilled": 311,
+            "wins": 244
+          },
+          "US100.cash": {
+            "completed": 363,
+            "lifecycles": 565,
+            "total_r": 12.880374986171825,
+            "unfilled": 202,
+            "wins": 142
+          },
+          "US30.cash": {
+            "completed": 553,
+            "lifecycles": 798,
+            "total_r": -5.547580217525626,
+            "unfilled": 245,
+            "wins": 207
+          }
+        },
+        "preserved_events": 16089,
+        "source_completed_trades": 1497,
+        "source_events": 24565,
+        "timed_swap_r": -3.226284309431764,
+        "total_r": 37.29118507258885,
+        "unfilled": 758,
+        "win_rate": 0.39612558450233804,
+        "wins": 593
+      }
+    },
+    "E2_STRESS": {
+      "compiled_sha256": "2298145ccece2f49f537b2fefa4c135b93a4e82ef659f87ad236de98703c0905",
+      "diagnostics_sha256": "835a67241e433fe9a1a6abbb2b6e1a5575f419ab54d04d65bf0bcab78154b8d5",
+      "eligible_blocks": 318,
+      "event_sha256": "eee99da264ed36680db5d6b080e291071849dc0bd78f0144ddb81eac3544d1c1",
+      "pre_account_summary": {
+        "completed": 1497,
+        "eligible_20_day_starts": 318,
+        "entry_slippage_r": -59.88,
+        "event_kinds": {
+          "bar_mark": 9268,
+          "entry_fill": 1497,
+          "final_exit": 1497,
+          "partial_fill": 779,
+          "pending_cancellation": 758,
+          "pending_placement": 2255,
+          "swap_rollover": 35
+        },
+        "lifecycles": 2255,
+        "nonempty_owner_days": 338,
+        "owner_days": 466,
+        "per_symbol": {
+          "JP225.cash": {
+            "completed": 581,
+            "lifecycles": 892,
+            "total_r": 17.30561410933725,
+            "unfilled": 311,
+            "wins": 240
+          },
+          "US100.cash": {
+            "completed": 363,
+            "lifecycles": 565,
+            "total_r": 4.527284215714532,
+            "unfilled": 202,
+            "wins": 141
+          },
+          "US30.cash": {
+            "completed": 553,
+            "lifecycles": 798,
+            "total_r": -17.707997561894707,
+            "unfilled": 245,
+            "wins": 207
+          }
+        },
+        "preserved_events": 16089,
+        "source_completed_trades": 1497,
+        "source_events": 24565,
+        "timed_swap_r": -6.452568618863528,
+        "total_r": 4.1249007631570676,
+        "unfilled": 758,
+        "win_rate": 0.3927855711422846,
+        "wins": 588
+      }
+    }
+  },
+  "verdict": "KILLED_AT_MC_GATE"
+}

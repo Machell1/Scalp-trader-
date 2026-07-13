@@ -16,3 +16,8 @@ Thumbs.db
 backtest/wfo_tapes.pkl
 backtest/data/*.csv
 backtest/data_crypto/
+
+# Generated v1.30 pass-policy execution artifacts
+backtest/v130_pass_policy_kernel.exe
+backtest/v130_numba_reference_*.npz
+backtest/v130_pass_policy_chunk_*.npz
