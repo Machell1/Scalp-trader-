@@ -36,3 +36,8 @@ The corrected scheduler still allowed a same-epoch terminal/placement tie;
 path 0 failed again with `BootstrapOverlapError: source cluster overlap: 0`
 (`H1:US30.cash:1999` versus `H1:US100.cash:1998`). Equality is now retained as
 occupied through the terminal epoch; no account result was used.
+
+The full E2 runner later exited with code `1` immediately after
+`CHUNK_DONE E2_STRESS 85500 500`, with no traceback or result file. Checkpoints
+through path 85,999 remain present and path-ID validated; the run is resumed
+from those checkpoints.
