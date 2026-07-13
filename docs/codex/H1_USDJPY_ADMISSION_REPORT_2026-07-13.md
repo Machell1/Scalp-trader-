@@ -142,3 +142,44 @@ Base risk=0.30%; USDJPY risk=0.05%.`
 **Deployment verdict: VERIFIED.** The forward demo remains the validation of
 live fills and behavior; the 85.474% figure is a stress-model estimate, not a
 guarantee of passing any individual challenge.
+
+## v1.31 verdict-wording correction
+
+At 2026-07-13 09:45 local time, a read-only health audit found that an impulse
+whose magnitude exceeded 2 ATR could still be labelled `no impulse (... need
+2.0)` when the signal candle's direction was not aligned with the multi-bar
+move. The trading condition itself was correct; only the reason text was
+incomplete. [MEASURED: decision telemetry and `ScanSymbol` @ main `90b446c`]
+
+PR #34 separates all rejection messages into: absolute impulse below the
+threshold, qualifying impulse with a misaligned signal candle, or a qualifying
+long impulse while long-side trading is disabled. It also replaces two stale
+M15 comments with working-timeframe wording. No entry boolean, order call,
+position size, risk gate, or exit path changed. MetaEditor compiled the patch
+with `Result: 0 errors, 0 warnings`. [MEASURED: compile log and diff @ main
+`8fa8f96`]
+
+The account was checked immediately before deployment and returned zero
+positions and zero orders. PID 3928 closed through `CloseMainWindow`; the old
+deployed MQ5/EX5 hashes were
+`230d40193bbf099e4e7293a20adb40062f53e9a7545b1a4aef4c3d143ff04c1b` and
+`c21f03a322d1a5adf7d8cdec7b096bcc6b845391e2252b88aa1ec1fdfa890fa1`.
+They were backed up outside the terminal at
+`backtest/deploy_backups/v131-before-verdict-wording-20260713-094609/`.
+
+Only `MQL5/Experts/MomentumPullbackEA.mq5` and `.ex5` were replaced, with new
+hashes `0c6d42e3cb2ed896ffc44664aee5c4f68d4f19207811b32cd93c81982107ea13`
+and `d8a58e10f0f3edd4a06e8c67469b2147f6229fd6e7940ee806aa917961dd8a6b`.
+The same terminal restarted hidden as PID 12096, loaded the EA successfully,
+and restored the four-symbol H1 chart configuration. No order, position, chart
+input, account setting, or unrelated terminal file was written.
+
+The first natural post-restart H1 scan at server time 18:00:03 verified the new
+wording on every symbol:
+
+`US30.cash: no impulse: |-0.86| ATR < 2.0 ATR threshold; US100.cash: no
+impulse: |-0.47| ATR < 2.0 ATR threshold; JP225.cash: no impulse: |0.42| ATR
+< 2.0 ATR threshold; USDJPY: no impulse: |1.96| ATR < 2.0 ATR threshold`.
+
+The same row reported `halted=n`, `hard=n`, zero positions, and zero pendings.
+[MEASURED: live decision telemetry @ deployed main `8fa8f96`]
