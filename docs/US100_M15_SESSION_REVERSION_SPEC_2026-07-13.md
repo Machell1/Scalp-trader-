@@ -357,3 +357,121 @@ TypeError: Expected str, got numpy.str_
 The only correction is explicit conversion of the NumPy string scalar to a
 built-in `str`, plus a synthetic regression test. No protocol threshold,
 signal, execution rule, frame, statistic or gate changed.
+
+### Final pre-outcome gate
+
+`[MEASURED: python -m pytest -q backtest/test_us100_m15_session_reversion.py @ 5b354762ca2b437bda0d3682215ff1a7092607b6]`
+
+```text
+.....................                                                    [100%]
+21 passed in 17.88s
+```
+
+### Provenance and deterministic rerun
+
+`[MEASURED: python backtest/run_us100_m15_session_reversion.py --output backtest/us100_m15_session_reversion_results.json, executed twice @ 5b354762ca2b437bda0d3682215ff1a7092607b6]`
+
+```text
+verified 46 OK, 0 missing, 0 mismatched
+```
+
+* Input rows: 57,689; first UTC bar 2024-01-22 10:30:00; last UTC bar
+  2026-07-03 00:00:00.
+* Protocol SHA256:
+  `26810e10f82d65bc2c68a284e8acb663bb6f9cac1d95d8ffec489d3ce338b2f1`.
+* Data SHA256:
+  `f62bf95c4a7a6ef1e3cd56582db24d5f6a713815647b1beda4098b91dfd946d9`.
+* Calendar SHA256:
+  `a019c12412906f681b7d5fd9279f30ac850548f1acd21c24ca5fdf6f87f89791`.
+* First and second result SHA256:
+  `a7522e857ab074c95feb5e5da14af4985de50fcb19791dd93fdb585a4358164c`.
+* Byte-identical rerun: `True`.
+
+### Frame census
+
+`[MEASURED: result JSON frame census @ 5b354762ca2b437bda0d3682215ff1a7092607b6]`
+
+| Frame | Complete eligible dates | First | Last |
+|---|---:|---|---|
+| Full | 608 | 2024-01-22 | 2026-07-02 |
+| Development | 358 | 2024-01-22 | 2025-06-30 |
+| Binding OOS | 248 | 2025-07-01 | 2026-06-30 |
+| Diagnostic 70% | 425 | 2024-01-22 | 2025-10-06 |
+| Diagnostic 30% | 183 | 2025-10-07 | 2026-07-02 |
+| Post-OOS partial quarter | 2 | 2026-07-01 | 2026-07-02 |
+
+### Setup funnel and frequency
+
+`[MEASURED: result JSON funnel/frequency @ 5b354762ca2b437bda0d3682215ff1a7092607b6]`
+
+| Cumulative stage | Sessions |
+|---|---:|
+| Candidate weekday/non-excluded session | 608 |
+| Complete 19-bar session | 608 |
+| Valid frozen ATR | 608 |
+| Opening displacement at least 1 ATR | 386 |
+| Three-bar consolidation box | 0 |
+| Tick-volume fade | 0 |
+| Structure trigger | 0 |
+| Positive executable reward | 0 |
+| Completed paired trade | 0 |
+
+Qualifying sessions were 0/608. Long trades, short trades and qualifying
+sessions were each 0. Trades per eligible session, per five eligible sessions,
+and per eligible calendar week were each 0.0. Risk-distance, entry-spread/R and
+holding-bar distributions are empty.
+
+### Every registered cell and cost view
+
+`[MEASURED: result JSON cells @ 5b354762ca2b437bda0d3682215ff1a7092607b6]`
+
+The table below applies to **each** of the six registered cell/cost pairs:
+`MR3/E0_EXEC`, `MR3/E1_MEASURED`, `MR3/E2_STRESS`, `C1/E0_EXEC`,
+`C1/E1_MEASURED`, and `C1/E2_STRESS`.
+
+| Frame | n | Expectancy | Win rate | Profit factor | Total R | Max DD R | Median R | Longest loss streak |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full | 0 | N/A | N/A | N/A | 0.0 | 0.0 | N/A | 0 |
+| Development | 0 | N/A | N/A | N/A | 0.0 | 0.0 | N/A | 0 |
+| Binding OOS | 0 | N/A | N/A | N/A | 0.0 | 0.0 | N/A | 0 |
+| Diagnostic 70% | 0 | N/A | N/A | N/A | 0.0 | 0.0 | N/A | 0 |
+| Diagnostic 30% | 0 | N/A | N/A | N/A | 0.0 | 0.0 | N/A | 0 |
+| Post-OOS partial | 0 | N/A | N/A | N/A | 0.0 | 0.0 | N/A | 0 |
+
+For every one of those six cell/cost pairs, each of 2025Q3, 2025Q4,
+2026Q1 and 2026Q2 also had n=0, expectancy/win rate/profit factor/median N/A,
+total R=0.0, max drawdown=0.0 and longest loss streak=0.
+
+### Inference and gates
+
+`[MEASURED: result JSON inference/gates @ 5b354762ca2b437bda0d3682215ff1a7092607b6]`
+
+OOS pairs and positive binding quarters were both 0. MR3 E2 expectancy,
+bootstrap lower bound, paired delta, paired lower bound, sign-flip p-value and
+DSR were all undefined because there were no trades. Latest-quarter-positive
+was `False`. The registered machinery remained seed `13020260713`, 20,000
+bootstrap/sign-flip replicates, five-trade blocks and DSR ledger 278.
+
+| Gate | Result |
+|---|---|
+| G1 OOS n at least 50 | FAIL |
+| G2 E1 and E2 expectancy positive | FAIL |
+| G3 E2 bootstrap lower bound above zero | FAIL |
+| G4 paired delta at least +0.03R and lower bound above zero | FAIL |
+| G5 sign-flip p at most 0.05 | FAIL |
+| G6 quarter sample/sign stability | FAIL |
+| G7 DSR at least 0.95 | FAIL |
+
+### Verdict and ledger
+
+**KILL — NO ACCOUNT TEST.** `[DERIVED]` The frozen M15 translation is too
+selective to trade: all 386 opening-impulse sessions fail at the combined
+three-bar consolidation-box stage. With zero trades it cannot improve win rate,
+frequency, expectancy or FTMO pass probability. The thresholds are not relaxed
+and no subset is salvaged. This result says nothing definitive about the
+video's original discretionary M1 method because no frozen M1 data exists.
+
+`[DERIVED]` Ledger charge is +2 (`MR3` and `C1`) even though both produced no
+trades: conservative global ledger 276 -> 278. No account cell was opened.
+There was no MT5/API access, EA edit, compile, deployment, terminal write,
+order operation or live-system change.
