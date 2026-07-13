@@ -1,0 +1,2510 @@
+{
+  "base_sources": [
+    "Wall_Street_30",
+    "US_Tech_100",
+    "Japan_225"
+  ],
+  "metadata_sha256": "ba1f3cdeaca429764129685f79a4267e1bbc55b2fead70c8187db431fd828928",
+  "symbols": {
+    "AUDJPY": {
+      "cost_e1_per_side_atr": 0.053651738455756465,
+      "cost_parts": {
+        "commission_per_side_atr": 0.023651738455756462,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.1712485112913218,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "AUDJPY",
+      "h1_bars": 17499,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.015296235028586638,
+          "n": 304,
+          "oos_expectancy": -0.032137552744691204,
+          "oos_n": 100,
+          "oos_quarters": [
+            {
+              "expectancy": -0.11019156155592895,
+              "n": 10,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.03824370138514717,
+              "n": 28,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.014911889397476863,
+              "n": 34,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.09555925207784778,
+              "n": 28,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4,
+          "win_rate": 0.4276315789473684
+        },
+        "E2_STRESS": {
+          "expectancy": -0.12259971194009961,
+          "n": 304,
+          "oos_expectancy": -0.13944102965620414,
+          "oos_n": 100,
+          "oos_quarters": [
+            {
+              "expectancy": -0.21749503846744195,
+              "n": 10,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.06905977552636579,
+              "n": 28,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.12221536630898984,
+              "n": 34,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.20286272898936072,
+              "n": 28,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4,
+          "win_rate": 0.4144736842105263
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\AUDJPY.csv",
+      "stage_a_pass": false
+    },
+    "Australia_200": {
+      "cost_e1_per_side_atr": 0.03,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.0274252249566573,
+        "median_h1_atr": 18.231391020135575,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [],
+      "ftmo_symbol": "AUS200.cash",
+      "h1_bars": 14176,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.0536269074889763,
+          "n": 219,
+          "oos_expectancy": 0.07394841813590357,
+          "oos_n": 68,
+          "oos_quarters": [
+            {
+              "expectancy": 0.06697819749062545,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.12251788540904217,
+              "n": 21,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.03928385979431173,
+              "n": 25,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.47058823529411764,
+          "win_rate": 0.4429223744292237
+        },
+        "E2_STRESS": {
+          "expectancy": -0.006373092511023676,
+          "n": 219,
+          "oos_expectancy": 0.01394841813590356,
+          "oos_n": 68,
+          "oos_quarters": [
+            {
+              "expectancy": 0.006978197490625529,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.0625178854090422,
+              "n": 21,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.020716140205688228,
+              "n": 25,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.47058823529411764,
+          "win_rate": 0.4429223744292237
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\Australia_200.csv",
+      "stage_a_pass": true
+    },
+    "BCHUSD": {
+      "cost_e1_per_side_atr": 0.06236916638157136,
+      "cost_parts": {
+        "commission_per_side_atr": 0.03236916638157136,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 4.456269379928269,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "BCHUSD",
+      "h1_bars": 17495,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.004884935590526353,
+          "n": 359,
+          "oos_expectancy": 0.0343938170396278,
+          "oos_n": 104,
+          "oos_quarters": [
+            {
+              "expectancy": -0.1509591007034417,
+              "n": 20,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.19171993806541163,
+              "n": 43,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.040190691478599376,
+              "n": 41,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4519230769230769,
+          "win_rate": 0.43454038997214484
+        },
+        "E2_STRESS": {
+          "expectancy": -0.12962326835366908,
+          "n": 359,
+          "oos_expectancy": -0.09034451572351491,
+          "oos_n": 104,
+          "oos_quarters": [
+            {
+              "expectancy": -0.27569743346658443,
+              "n": 20,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.06698160530226893,
+              "n": 43,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.16492902424174213,
+              "n": 41,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4423076923076923,
+          "win_rate": 0.4178272980501393
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\BCHUSD.csv",
+      "stage_a_pass": false
+    },
+    "BTCUSD": {
+      "cost_e1_per_side_atr": 0.05636397904287083,
+      "cost_parts": {
+        "commission_per_side_atr": 0.05408301145953163,
+        "ftmo_snapshot_spread_per_side_atr": 0.0009409932274501669,
+        "median_h1_atr": 531.3534523036501,
+        "source_spread_per_side_atr": 0.0022809675833392043
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "BTCUSD",
+      "h1_bars": 17495,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.03899766243019047,
+          "n": 348,
+          "oos_expectancy": 0.03746818293843775,
+          "oos_n": 117,
+          "oos_quarters": [
+            {
+              "expectancy": -0.07995872799013418,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.11522968197557013,
+              "n": 52,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.02943681154913663,
+              "n": 42,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 1.387272041914259,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4444444444444444,
+          "win_rate": 0.4051724137931034
+        },
+        "E2_STRESS": {
+          "expectancy": -0.1517256205159321,
+          "n": 348,
+          "oos_expectancy": -0.07525977514730393,
+          "oos_n": 117,
+          "oos_quarters": [
+            {
+              "expectancy": -0.19268668607587577,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.0025017238898284787,
+              "n": 52,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.14216476963487829,
+              "n": 42,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 1.2745440838285174,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4358974358974359,
+          "win_rate": 0.3994252873563218
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\BTCUSD.csv",
+      "stage_a_pass": false
+    },
+    "ETHUSD": {
+      "cost_e1_per_side_atr": 0.04497724067581662,
+      "cost_parts": {
+        "commission_per_side_atr": 0.033353992017774114,
+        "ftmo_snapshot_spread_per_side_atr": 0.011623248658042507,
+        "median_h1_atr": 25.810340019906583,
+        "source_spread_per_side_atr": 0.011235807036107758
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "ETHUSD",
+      "h1_bars": 17495,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.020934948605028262,
+          "n": 351,
+          "oos_expectancy": -0.07885515550193126,
+          "oos_n": 112,
+          "oos_quarters": [
+            {
+              "expectancy": -0.35362885480761513,
+              "n": 21,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.11541280598966745,
+              "n": 45,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.15725542663836709,
+              "n": 44,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 0.16004551864836625,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.38392857142857145,
+          "win_rate": 0.42165242165242167
+        },
+        "E2_STRESS": {
+          "expectancy": -0.0690195327466049,
+          "n": 351,
+          "oos_expectancy": -0.1688096368535644,
+          "oos_n": 112,
+          "oos_quarters": [
+            {
+              "expectancy": -0.4435833361592483,
+              "n": 21,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.025458324638034303,
+              "n": 45,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.24720990799000023,
+              "n": 44,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 0.07009103729673316,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.38392857142857145,
+          "win_rate": 0.4188034188034188
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\ETHUSD.csv",
+      "stage_a_pass": false
+    },
+    "EURGBP": {
+      "cost_e1_per_side_atr": 0.05807045640644551,
+      "cost_parts": {
+        "commission_per_side_atr": 0.028070456406445506,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.0006656074775953387,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "EURGBP",
+      "h1_bars": 17499,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.11984414703472117,
+          "n": 300,
+          "oos_expectancy": -0.11571893523168755,
+          "oos_n": 80,
+          "oos_quarters": [
+            {
+              "expectancy": -0.5108411411452823,
+              "n": 12,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.011517048279710321,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.015569068651546936,
+              "n": 21,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.1097418054085254,
+              "n": 23,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.35,
+          "win_rate": 0.36666666666666664
+        },
+        "E2_STRESS": {
+          "expectancy": -0.23598505984761223,
+          "n": 300,
+          "oos_expectancy": -0.2318598480445786,
+          "oos_n": 80,
+          "oos_quarters": [
+            {
+              "expectancy": -0.6269820539581735,
+              "n": 12,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.12765796109260133,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.13170998146443794,
+              "n": 21,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.22588271822141642,
+              "n": 23,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.325,
+          "win_rate": 0.35333333333333333
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\EURGBP.csv",
+      "stage_a_pass": false
+    },
+    "EURJPY": {
+      "cost_e1_per_side_atr": 0.04825721419844359,
+      "cost_parts": {
+        "commission_per_side_atr": 0.01825721419844359,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.22184792027829126,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "EURJPY",
+      "h1_bars": 17496,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.11338976648137909,
+          "n": 288,
+          "oos_expectancy": -0.3467151977908027,
+          "oos_n": 78,
+          "oos_quarters": [
+            {
+              "expectancy": -0.4886200822402083,
+              "n": 12,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.22210242381040893,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.414781997886943,
+              "n": 18,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.3493254294743884,
+              "n": 24,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.2692307692307692,
+          "win_rate": 0.3888888888888889
+        },
+        "E2_STRESS": {
+          "expectancy": -0.20990419487826628,
+          "n": 288,
+          "oos_expectancy": -0.44322962618768985,
+          "oos_n": 78,
+          "oos_quarters": [
+            {
+              "expectancy": -0.5851345106370954,
+              "n": 12,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.31861685220729613,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.5112964262838301,
+              "n": 18,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.4458398578712755,
+              "n": 24,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.2692307692307692,
+          "win_rate": 0.375
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\EURJPY.csv",
+      "stage_a_pass": false
+    },
+    "EURUSD": {
+      "cost_e1_per_side_atr": 0.05068825724687122,
+      "cost_parts": {
+        "commission_per_side_atr": 0.020688257246871223,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.0012084149815848246,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_POSITIVE_QUARTERS_LT_60PCT"
+      ],
+      "ftmo_symbol": "EURUSD",
+      "h1_bars": 17499,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.022077947816782295,
+          "n": 326,
+          "oos_expectancy": 0.1653949827715887,
+          "oos_n": 84,
+          "oos_quarters": [
+            {
+              "expectancy": 0.08118639769503017,
+              "n": 17,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.012437243590191412,
+              "n": 23,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.28461323268292965,
+              "n": 25,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.26903275643948915,
+              "n": 19,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4642857142857143,
+          "win_rate": 0.4263803680981595
+        },
+        "E2_STRESS": {
+          "expectancy": -0.07929856667696011,
+          "n": 326,
+          "oos_expectancy": 0.06401846827784625,
+          "oos_n": 84,
+          "oos_quarters": [
+            {
+              "expectancy": -0.020190116798712254,
+              "n": 17,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.08893927090355103,
+              "n": 23,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.18323671818918727,
+              "n": 25,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.1676562419457467,
+              "n": 19,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4523809523809524,
+          "win_rate": 0.4171779141104294
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\EURUSD.csv",
+      "stage_a_pass": false
+    },
+    "France_40": {
+      "cost_e1_per_side_atr": 0.04152483741794445,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.04152483741794445,
+        "median_h1_atr": 19.385988002739996,
+        "source_spread_per_side_atr": 0.02063345958655625
+      },
+      "failures": [],
+      "ftmo_symbol": "FRA40.cash",
+      "h1_bars": 14185,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.1526224020039524,
+          "n": 255,
+          "oos_expectancy": 0.1706767390237708,
+          "oos_n": 81,
+          "oos_quarters": [
+            {
+              "expectancy": 0.18553091583229608,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.1958134615803624,
+              "n": 31,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.1761469658688751,
+              "n": 27,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -1.0830496748359368,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4691358024691358,
+          "win_rate": 0.4588235294117647
+        },
+        "E2_STRESS": {
+          "expectancy": 0.0695727271680635,
+          "n": 255,
+          "oos_expectancy": 0.08762706418788198,
+          "oos_n": 81,
+          "oos_quarters": [
+            {
+              "expectancy": 0.10248124099640724,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.11276378674447346,
+              "n": 31,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.0930972910329862,
+              "n": 27,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -1.1660993496718257,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4567901234567901,
+          "win_rate": 0.4549019607843137
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\France_40.csv",
+      "stage_a_pass": true
+    },
+    "GBPJPY": {
+      "cost_e1_per_side_atr": 0.04458757877579487,
+      "cost_parts": {
+        "commission_per_side_atr": 0.014587578775794871,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.2776557413846288,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "GBPJPY",
+      "h1_bars": 17499,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.08836068166633385,
+          "n": 277,
+          "oos_expectancy": -0.30185267719574566,
+          "oos_n": 73,
+          "oos_quarters": [
+            {
+              "expectancy": -0.3148102759210295,
+              "n": 8,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.6080125000447811,
+              "n": 21,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.2595448845668399,
+              "n": 25,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.013677821726831433,
+              "n": 19,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.3150684931506849,
+          "win_rate": 0.3862815884476534
+        },
+        "E2_STRESS": {
+          "expectancy": -0.1775358392179236,
+          "n": 277,
+          "oos_expectancy": -0.39102783474733543,
+          "oos_n": 73,
+          "oos_quarters": [
+            {
+              "expectancy": -0.40398543347261917,
+              "n": 8,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.6971876575963707,
+              "n": 21,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.3487200421184296,
+              "n": 25,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.10285297927842119,
+              "n": 19,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.3150684931506849,
+          "win_rate": 0.37906137184115524
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\GBPJPY.csv",
+      "stage_a_pass": false
+    },
+    "GBPUSD": {
+      "cost_e1_per_side_atr": 0.04610754267949428,
+      "cost_parts": {
+        "commission_per_side_atr": 0.016107542679494283,
+        "ftmo_snapshot_spread_per_side_atr": 0.009664525607696572,
+        "median_h1_atr": 0.0015520679036800731,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "GBPUSD",
+      "h1_bars": 17499,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.06455624777108349,
+          "n": 326,
+          "oos_expectancy": 0.07349464524023762,
+          "oos_n": 86,
+          "oos_quarters": [
+            {
+              "expectancy": 0.5695526601864708,
+              "n": 11,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.32572014477069994,
+              "n": 25,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.019368804273685977,
+              "n": 29,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.41715043675303076,
+              "n": 21,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.47674418604651164,
+          "win_rate": 0.3987730061349693
+        },
+        "E2_STRESS": {
+          "expectancy": -0.1567713331300721,
+          "n": 326,
+          "oos_expectancy": -0.018720440118751007,
+          "oos_n": 86,
+          "oos_quarters": [
+            {
+              "expectancy": 0.4773375748274821,
+              "n": 11,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.4179352301296885,
+              "n": 25,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.11158388963267464,
+              "n": 29,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.324935351394042,
+              "n": 21,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.46511627906976744,
+          "win_rate": 0.39263803680981596
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\GBPUSD.csv",
+      "stage_a_pass": false
+    },
+    "Germany_40": {
+      "cost_e1_per_side_atr": 0.03167152666694803,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.03167152666694803,
+        "median_h1_atr": 50.99217404273068,
+        "source_spread_per_side_atr": 0.004902713106338705
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "GER40.cash",
+      "h1_bars": 14205,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.04446242791410353,
+          "n": 270,
+          "oos_expectancy": -0.002015013625637708,
+          "oos_n": 75,
+          "oos_quarters": [
+            {
+              "expectancy": -0.325140756016447,
+              "n": 25,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.07109276353073721,
+              "n": 26,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.25537420944538236,
+              "n": 24,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4266666666666667,
+          "win_rate": 0.4185185185185185
+        },
+        "E2_STRESS": {
+          "expectancy": -0.018880625419792515,
+          "n": 270,
+          "oos_expectancy": -0.06535806695953374,
+          "oos_n": 75,
+          "oos_quarters": [
+            {
+              "expectancy": -0.388483809350343,
+              "n": 25,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.0077497101968411666,
+              "n": 26,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.19203115611148633,
+              "n": 24,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.41333333333333333,
+          "win_rate": 0.4148148148148148
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\Germany_40.csv",
+      "stage_a_pass": false
+    },
+    "Hong_Kong_50": {
+      "cost_e1_per_side_atr": 0.03984722011730215,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.03984722011730215,
+        "median_h1_atr": 75.28756061699178,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "HK50.cash",
+      "h1_bars": 13384,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.008184872864963305,
+          "n": 290,
+          "oos_expectancy": 0.008977377322866808,
+          "oos_n": 79,
+          "oos_quarters": [
+            {
+              "expectancy": 0.02141324305024649,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.1677696256799921,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.18121646275334594,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4050632911392405,
+          "win_rate": 0.4068965517241379
+        },
+        "E2_STRESS": {
+          "expectancy": -0.08787931309956759,
+          "n": 290,
+          "oos_expectancy": -0.07071706291173747,
+          "oos_n": 79,
+          "oos_quarters": [
+            {
+              "expectancy": -0.05828119718435782,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.24746406591459635,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.10152202251874166,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.3924050632911392,
+          "win_rate": 0.39655172413793105
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\Hong_Kong_50.csv",
+      "stage_a_pass": false
+    },
+    "Japan_225": {
+      "cost_e1_per_side_atr": 0.033608963705760685,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.033608963705760685,
+        "median_h1_atr": 148.76983544550598,
+        "source_spread_per_side_atr": 0.016804481852880342
+      },
+      "failures": [],
+      "ftmo_symbol": "JP225.cash",
+      "h1_bars": 14440,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.06111683248693351,
+          "n": 254,
+          "oos_expectancy": 0.10887754950689671,
+          "oos_n": 87,
+          "oos_quarters": [
+            {
+              "expectancy": -0.2956132521995419,
+              "n": 26,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.17728808757923228,
+              "n": 34,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.469142858230989,
+              "n": 26,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -1.0672179274115121,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.47126436781609193,
+          "win_rate": 0.46062992125984253
+        },
+        "E2_STRESS": {
+          "expectancy": -0.006101094924587808,
+          "n": 254,
+          "oos_expectancy": 0.04165962209537539,
+          "oos_n": 87,
+          "oos_quarters": [
+            {
+              "expectancy": -0.36283117961106315,
+              "n": 26,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.11007016016771097,
+              "n": 34,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.4019249308194677,
+              "n": 26,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -1.1344358548230333,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.45977011494252873,
+          "win_rate": 0.452755905511811
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\Japan_225.csv",
+      "stage_a_pass": false
+    },
+    "LTCUSD": {
+      "cost_e1_per_side_atr": 0.06457443187517406,
+      "cost_parts": {
+        "commission_per_side_atr": 0.03457443187517406,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.7779448147436723,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [],
+      "ftmo_symbol": "LTCUSD",
+      "h1_bars": 17492,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.004683436885521662,
+          "n": 323,
+          "oos_expectancy": 0.1521601104395183,
+          "oos_n": 101,
+          "oos_quarters": [
+            {
+              "expectancy": -0.30082491523386345,
+              "n": 18,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.24728723572170205,
+              "n": 40,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.2532913999937862,
+              "n": 43,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.5148514851485149,
+          "win_rate": 0.44272445820433437
+        },
+        "E2_STRESS": {
+          "expectancy": -0.13383230063586976,
+          "n": 323,
+          "oos_expectancy": 0.02301124668917019,
+          "oos_n": 101,
+          "oos_quarters": [
+            {
+              "expectancy": -0.4299737789842116,
+              "n": 18,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.11813837197135393,
+              "n": 40,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.12414253624343806,
+              "n": 43,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.49504950495049505,
+          "win_rate": 0.4148606811145511
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\LTCUSD.csv",
+      "stage_a_pass": true
+    },
+    "NGAS": {
+      "cost_e1_per_side_atr": 0.12295517358105636,
+      "cost_parts": {
+        "commission_per_side_atr": 0.09295517358105636,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.026894683788848125,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "NATGAS.cash",
+      "h1_bars": 17483,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.2024395801716284,
+          "n": 318,
+          "oos_expectancy": -0.34396454605672533,
+          "oos_n": 97,
+          "oos_quarters": [
+            {
+              "expectancy": -0.12021485680871777,
+              "n": 18,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.11913803515976411,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.5939851510458413,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.43369616562324226,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.29896907216494845,
+          "win_rate": 0.37735849056603776
+        },
+        "E2_STRESS": {
+          "expectancy": -0.4483499273337412,
+          "n": 318,
+          "oos_expectancy": -0.589874893218838,
+          "oos_n": 97,
+          "oos_quarters": [
+            {
+              "expectancy": -0.3661252039708305,
+              "n": 18,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.3650483823218768,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.8398954982079537,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.679606512785355,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.29896907216494845,
+          "win_rate": 0.3584905660377358
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\NGAS.csv",
+      "stage_a_pass": false
+    },
+    "NZDUSD": {
+      "cost_e1_per_side_atr": 0.055987556604604305,
+      "cost_parts": {
+        "commission_per_side_atr": 0.025987556604604306,
+        "ftmo_snapshot_spread_per_side_atr": 0.025987556604604306,
+        "median_h1_atr": 0.0009619988666256783,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "NZDUSD",
+      "h1_bars": 17497,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.058467400163285645,
+          "n": 310,
+          "oos_expectancy": 0.05698453440758963,
+          "oos_n": 94,
+          "oos_quarters": [
+            {
+              "expectancy": 0.4473835557127936,
+              "n": 6,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.02761563087848496,
+              "n": 30,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.020596326447919453,
+              "n": 27,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.0774153802508367,
+              "n": 31,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.44680851063829785,
+          "win_rate": 0.4129032258064516
+        },
+        "E2_STRESS": {
+          "expectancy": -0.17044251337249425,
+          "n": 310,
+          "oos_expectancy": -0.054990578801618985,
+          "oos_n": 94,
+          "oos_quarters": [
+            {
+              "expectancy": 0.33540844250358504,
+              "n": 6,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.08435948233072366,
+              "n": 30,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.13257143965712806,
+              "n": 27,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.03455973295837183,
+              "n": 31,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.44680851063829785,
+          "win_rate": 0.4129032258064516
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\NZDUSD.csv",
+      "stage_a_pass": false
+    },
+    "SOLUSD": {
+      "cost_e1_per_side_atr": 0.03683217323623357,
+      "cost_parts": {
+        "commission_per_side_atr": 0.028017942415072314,
+        "ftmo_snapshot_spread_per_side_atr": 0.008814230821161258,
+        "median_h1_atr": 1.7017934184328267,
+        "source_spread_per_side_atr": 0.008814230821161258
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "SOLUSD",
+      "h1_bars": 17495,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.07494261684504847,
+          "n": 320,
+          "oos_expectancy": -0.055279695018145183,
+          "oos_n": 114,
+          "oos_quarters": [
+            {
+              "expectancy": 0.0009390635727581796,
+              "n": 18,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.02319122399441199,
+              "n": 47,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.0979958219396397,
+              "n": 46,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.24033101313913577,
+              "n": 3,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.42105263157894735,
+          "win_rate": 0.45
+        },
+        "E2_STRESS": {
+          "expectancy": 0.0012782703725813527,
+          "n": 320,
+          "oos_expectancy": -0.1289440414906123,
+          "oos_n": 114,
+          "oos_quarters": [
+            {
+              "expectancy": -0.07272528289970895,
+              "n": 18,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.0968555704668791,
+              "n": 47,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.17166016841210682,
+              "n": 46,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.3139953596116029,
+              "n": 3,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.40350877192982454,
+          "win_rate": 0.44375
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\SOLUSD.csv",
+      "stage_a_pass": false
+    },
+    "UK_100": {
+      "cost_e1_per_side_atr": 0.10710008982345798,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.10710008982345798,
+        "median_h1_atr": 17.04013510173801,
+        "source_spread_per_side_atr": 0.017605494217554734
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "UK100.cash",
+      "h1_bars": 14140,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.16425430704539368,
+          "n": 229,
+          "oos_expectancy": -0.36296161028750573,
+          "oos_n": 68,
+          "oos_quarters": [
+            {
+              "expectancy": -0.7492394824222702,
+              "n": 16,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.07502551530127922,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.44136847301492715,
+              "n": 24,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.3235294117647059,
+          "win_rate": 0.39737991266375544
+        },
+        "E2_STRESS": {
+          "expectancy": -0.37845448669230963,
+          "n": 229,
+          "oos_expectancy": -0.5771617899344217,
+          "oos_n": 68,
+          "oos_quarters": [
+            {
+              "expectancy": -0.9634396620691862,
+              "n": 16,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.28922569494819517,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.655568652661843,
+              "n": 24,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.29411764705882354,
+          "win_rate": 0.36681222707423583
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\UK_100.csv",
+      "stage_a_pass": false
+    },
+    "UK_Brent_Oil": {
+      "cost_e1_per_side_atr": 0.1021078655299057,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0721078655299057,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.3467028155150648,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "UKOIL.cash",
+      "h1_bars": 13069,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.017463677095337166,
+          "n": 255,
+          "oos_expectancy": 0.029777477670733826,
+          "oos_n": 91,
+          "oos_quarters": [
+            {
+              "expectancy": -0.21219230975327394,
+              "n": 35,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.17549748538580687,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.18651970423567057,
+              "n": 28,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.5054945054945055,
+          "win_rate": 0.4823529411764706
+        },
+        "E2_STRESS": {
+          "expectancy": -0.22167940815514856,
+          "n": 255,
+          "oos_expectancy": -0.1744382533890775,
+          "oos_n": 91,
+          "oos_quarters": [
+            {
+              "expectancy": -0.41640804081308536,
+              "n": 35,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.028718245674004512,
+              "n": 28,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.017696026824140825,
+              "n": 28,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4725274725274725,
+          "win_rate": 0.45098039215686275
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\UK_Brent_Oil.csv",
+      "stage_a_pass": false
+    },
+    "USDCAD": {
+      "cost_e1_per_side_atr": 0.05968622239971867,
+      "cost_parts": {
+        "commission_per_side_atr": 0.02968622239971867,
+        "ftmo_snapshot_spread_per_side_atr": 0.01677483872136672,
+        "median_h1_atr": 0.0011922618352524174,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT"
+      ],
+      "ftmo_symbol": "USDCAD",
+      "h1_bars": 17499,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.003287218036573409,
+          "n": 317,
+          "oos_expectancy": -0.061956504647770694,
+          "oos_n": 85,
+          "oos_quarters": [
+            {
+              "expectancy": -0.13102138990013898,
+              "n": 5,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.21872475766480057,
+              "n": 29,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.1453946333747336,
+              "n": 24,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.06509811756571125,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4235294117647059,
+          "win_rate": 0.444794952681388
+        },
+        "E2_STRESS": {
+          "expectancy": -0.12265966283601074,
+          "n": 317,
+          "oos_expectancy": -0.18132894944720798,
+          "oos_n": 85,
+          "oos_quarters": [
+            {
+              "expectancy": -0.2503938346995763,
+              "n": 5,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.3380972024642379,
+              "n": 29,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.026022188575296257,
+              "n": 24,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.18447056236514855,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4235294117647059,
+          "win_rate": 0.43217665615141954
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\USDCAD.csv",
+      "stage_a_pass": false
+    },
+    "USDCHF": {
+      "cost_e1_per_side_atr": 0.048867939582712364,
+      "cost_parts": {
+        "commission_per_side_atr": 0.018867939582712368,
+        "ftmo_snapshot_spread_per_side_atr": 0.018644209073826454,
+        "median_h1_atr": 0.0010727191440948207,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT"
+      ],
+      "ftmo_symbol": "USDCHF",
+      "h1_bars": 17498,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.0815786682911998,
+          "n": 317,
+          "oos_expectancy": 0.06314637806484343,
+          "oos_n": 84,
+          "oos_quarters": [
+            {
+              "expectancy": 0.6769406365070811,
+              "n": 11,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.3390213868740667,
+              "n": 28,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.42393066052366174,
+              "n": 22,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.08590986709468405,
+              "n": 23,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4642857142857143,
+          "win_rate": 0.40063091482649843
+        },
+        "E2_STRESS": {
+          "expectancy": -0.17931454745662442,
+          "n": 317,
+          "oos_expectancy": -0.03458950110058122,
+          "oos_n": 84,
+          "oos_quarters": [
+            {
+              "expectancy": 0.5792047573416566,
+              "n": 11,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.4367572660394914,
+              "n": 28,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.3261947813582371,
+              "n": 22,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.1836457462601087,
+              "n": 23,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4642857142857143,
+          "win_rate": 0.39747634069400634
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\USDCHF.csv",
+      "stage_a_pass": false
+    },
+    "USDJPY": {
+      "cost_e1_per_side_atr": 0.04865708900911491,
+      "cost_parts": {
+        "commission_per_side_atr": 0.018657089009114912,
+        "ftmo_snapshot_spread_per_side_atr": 0.00690947850201462,
+        "median_h1_atr": 0.2170930844582033,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [],
+      "ftmo_symbol": "USDJPY",
+      "h1_bars": 17498,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.09166876606184046,
+          "n": 322,
+          "oos_expectancy": 0.16634745638747286,
+          "oos_n": 78,
+          "oos_quarters": [
+            {
+              "expectancy": 0.3078186049226632,
+              "n": 14,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.11229882320771553,
+              "n": 23,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.3175600294446978,
+              "n": 24,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.09051014771438855,
+              "n": 17,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.47435897435897434,
+          "win_rate": 0.453416149068323
+        },
+        "E2_STRESS": {
+          "expectancy": -0.005645411956389376,
+          "n": 322,
+          "oos_expectancy": 0.06903327836924301,
+          "oos_n": 78,
+          "oos_quarters": [
+            {
+              "expectancy": 0.21050442690443344,
+              "n": 14,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.014984645189485685,
+              "n": 23,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.22024585142646794,
+              "n": 24,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.18782432573261842,
+              "n": 17,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.46153846153846156,
+          "win_rate": 0.4440993788819876
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\USDJPY.csv",
+      "stage_a_pass": true
+    },
+    "US_Oil": {
+      "cost_e1_per_side_atr": 0.10324877552733204,
+      "cost_parts": {
+        "commission_per_side_atr": 0.07324877552733204,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 0.34130263366206715,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "USOIL.cash",
+      "h1_bars": 14358,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.03511834942934466,
+          "n": 263,
+          "oos_expectancy": -0.04659071103235368,
+          "oos_n": 85,
+          "oos_quarters": [
+            {
+              "expectancy": -0.43051365394472807,
+              "n": 26,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.08310948258769661,
+              "n": 31,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.16631252159265258,
+              "n": 28,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4470588235294118,
+          "win_rate": 0.45627376425855515
+        },
+        "E2_STRESS": {
+          "expectancy": -0.24161590048400872,
+          "n": 263,
+          "oos_expectancy": -0.2530882620870178,
+          "oos_n": 85,
+          "oos_quarters": [
+            {
+              "expectancy": -0.6370112049993921,
+              "n": 26,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.12338806846696751,
+              "n": 31,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.04018502946201149,
+              "n": 28,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.43529411764705883,
+          "win_rate": 0.4296577946768061
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\US_Oil.csv",
+      "stage_a_pass": false
+    },
+    "US_SP_500": {
+      "cost_e1_per_side_atr": 0.024340984946542552,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.024340984946542552,
+        "median_h1_atr": 12.324891562886927,
+        "source_spread_per_side_atr": 0.012576175555713652
+      },
+      "failures": [
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "US500.cash",
+      "h1_bars": 14383,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.06742123749069776,
+          "n": 274,
+          "oos_expectancy": 0.1516952293974032,
+          "oos_n": 84,
+          "oos_quarters": [
+            {
+              "expectancy": 0.33893465855846927,
+              "n": 27,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.17746127560787592,
+              "n": 29,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.05607113709765507,
+              "n": 26,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.04868196989308272,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4166666666666667,
+          "win_rate": 0.4233576642335766
+        },
+        "E2_STRESS": {
+          "expectancy": 0.01873926759761263,
+          "n": 274,
+          "oos_expectancy": 0.10301325950431812,
+          "oos_n": 84,
+          "oos_quarters": [
+            {
+              "expectancy": 0.2902526886653841,
+              "n": 27,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.12877930571479082,
+              "n": 29,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.10475310699074017,
+              "n": 26,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.09736393978616782,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4166666666666667,
+          "win_rate": 0.4233576642335766
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\US_SP_500.csv",
+      "stage_a_pass": false
+    },
+    "US_Small_Cap_2000": {
+      "cost_e1_per_side_atr": 0.06814963253745465,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.06814963253745465,
+        "median_h1_atr": 7.4835326473654415,
+        "source_spread_per_side_atr": 0.013362673046559735
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "US2000.cash",
+      "h1_bars": 14427,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.0005258886481640509,
+          "n": 307,
+          "oos_expectancy": -0.0735166753630068,
+          "oos_n": 92,
+          "oos_quarters": [
+            {
+              "expectancy": 0.07854677585706937,
+              "n": 25,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.06660394823318336,
+              "n": 32,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.3393683868868217,
+              "n": 32,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 0.00041950236435532123,
+              "n": 3,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.40217391304347827,
+          "win_rate": 0.43322475570032576
+        },
+        "E2_STRESS": {
+          "expectancy": -0.13577337642674528,
+          "n": 307,
+          "oos_expectancy": -0.20981594043791613,
+          "oos_n": 92,
+          "oos_quarters": [
+            {
+              "expectancy": -0.0577524892178399,
+              "n": 25,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.06969531684172595,
+              "n": 32,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.475667651961731,
+              "n": 32,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.135879762710554,
+              "n": 3,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.358695652173913,
+          "win_rate": 0.40716612377850164
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\US_Small_Cap_2000.csv",
+      "stage_a_pass": false
+    },
+    "US_Tech_100": {
+      "cost_e1_per_side_atr": 0.012566556926544159,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.012566556926544159,
+        "median_h1_atr": 61.671626089002835,
+        "source_spread_per_side_atr": 0.005675219257148975
+      },
+      "failures": [],
+      "ftmo_symbol": "US100.cash",
+      "h1_bars": 14383,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.1256484387320849,
+          "n": 287,
+          "oos_expectancy": 0.2457145490631987,
+          "oos_n": 78,
+          "oos_quarters": [
+            {
+              "expectancy": 0.24041969871876726,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.19411946732206373,
+              "n": 29,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.3398462492628441,
+              "n": 23,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.02513311385308654,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.47435897435897434,
+          "win_rate": 0.42857142857142855
+        },
+        "E2_STRESS": {
+          "expectancy": 0.10051532487899657,
+          "n": 287,
+          "oos_expectancy": 0.22058143521011048,
+          "oos_n": 78,
+          "oos_quarters": [
+            {
+              "expectancy": 0.21528658486567895,
+              "n": 24,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.1689863534689754,
+              "n": 29,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.3147131354097558,
+              "n": 23,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": -0.05026622770617486,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.47435897435897434,
+          "win_rate": 0.42857142857142855
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\US_Tech_100.csv",
+      "stage_a_pass": false
+    },
+    "Wall_Street_30": {
+      "cost_e1_per_side_atr": 0.013244413550389873,
+      "cost_parts": {
+        "commission_per_side_atr": 0.0,
+        "ftmo_snapshot_spread_per_side_atr": 0.013244413550389873,
+        "median_h1_atr": 86.07402628004183,
+        "source_spread_per_side_atr": 0.007551639305046857
+      },
+      "failures": [
+        "E2_POSITIVE_QUARTERS_LT_60PCT"
+      ],
+      "ftmo_symbol": "US30.cash",
+      "h1_bars": 14383,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.19317412348652502,
+          "n": 322,
+          "oos_expectancy": 0.21145795794756878,
+          "oos_n": 115,
+          "oos_quarters": [
+            {
+              "expectancy": 0.4706071421710175,
+              "n": 34,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.032587836908109555,
+              "n": 39,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.19791309260177675,
+              "n": 41,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 1.4735111728992356,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.5391304347826087,
+          "win_rate": 0.5062111801242236
+        },
+        "E2_STRESS": {
+          "expectancy": 0.1666852963857453,
+          "n": 322,
+          "oos_expectancy": 0.18496913084678904,
+          "oos_n": 115,
+          "oos_quarters": [
+            {
+              "expectancy": 0.4441183150702378,
+              "n": 34,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.0590766640088893,
+              "n": 39,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.171424265500997,
+              "n": 41,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 1.447022345798456,
+              "n": 1,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.5391304347826087,
+          "win_rate": 0.5
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\Wall_Street_30.csv",
+      "stage_a_pass": false
+    },
+    "XAGUSD": {
+      "cost_e1_per_side_atr": 0.15664063737213263,
+      "cost_parts": {
+        "commission_per_side_atr": 0.003132812747442653,
+        "ftmo_snapshot_spread_per_side_atr": 0.15350782462468998,
+        "median_h1_atr": 0.15960098490028016,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E1_OOS_NONPOSITIVE",
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "XAGUSD",
+      "h1_bars": 17377,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": -0.15131163121131108,
+          "n": 290,
+          "oos_expectancy": -0.18718293009416448,
+          "oos_n": 102,
+          "oos_quarters": [
+            {
+              "expectancy": -0.07200266376967192,
+              "n": 20,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.33371895125146805,
+              "n": 30,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.269520571465922,
+              "n": 25,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.03344528777849062,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4411764705882353,
+          "win_rate": 0.44482758620689655
+        },
+        "E2_STRESS": {
+          "expectancy": -0.46459290595557634,
+          "n": 290,
+          "oos_expectancy": -0.5004642048384297,
+          "oos_n": 102,
+          "oos_quarters": [
+            {
+              "expectancy": -0.3852839385139372,
+              "n": 20,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.6470002259957333,
+              "n": 30,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.5828018462101872,
+              "n": 25,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.34672656252275585,
+              "n": 27,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.39215686274509803,
+          "win_rate": 0.3793103448275862
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\XAGUSD.csv",
+      "stage_a_pass": false
+    },
+    "XAUUSD": {
+      "cost_e1_per_side_atr": 0.03564215287524062,
+      "cost_parts": {
+        "commission_per_side_atr": 0.003427130084157752,
+        "ftmo_snapshot_spread_per_side_atr": 0.03221502279108287,
+        "median_h1_atr": 7.294733315074609,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [],
+      "ftmo_symbol": "XAUUSD",
+      "h1_bars": 17376,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.061207362271563835,
+          "n": 347,
+          "oos_expectancy": 0.18148661416170653,
+          "oos_n": 107,
+          "oos_quarters": [
+            {
+              "expectancy": 0.10114728853109016,
+              "n": 19,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.37568694274823355,
+              "n": 29,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.3324507385994521,
+              "n": 36,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.23329907374205058,
+              "n": 23,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.4953271028037383,
+          "win_rate": 0.4438040345821326
+        },
+        "E2_STRESS": {
+          "expectancy": -0.010076943478917466,
+          "n": 347,
+          "oos_expectancy": 0.11020230841122523,
+          "oos_n": 107,
+          "oos_quarters": [
+            {
+              "expectancy": 0.029862982780608883,
+              "n": 19,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": 0.3044026369977523,
+              "n": 29,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.26116643284897084,
+              "n": 36,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.30458337949253184,
+              "n": 23,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.48598130841121495,
+          "win_rate": 0.43804034582132567
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\XAUUSD.csv",
+      "stage_a_pass": true
+    },
+    "XCUUSD": {
+      "cost_e1_per_side_atr": 0.03848859871334242,
+      "cost_parts": {
+        "commission_per_side_atr": 0.00848859871334242,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 2.945126851232216,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_OOS_N_LT_50"
+      ],
+      "ftmo_symbol": "XCUUSD",
+      "h1_bars": 2431,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.0913678745353122,
+          "n": 50,
+          "oos_expectancy": 0.33801982842756506,
+          "oos_n": 17,
+          "oos_quarters": [
+            {
+              "expectancy": 0.33801982842756506,
+              "n": 17,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.5882352941176471,
+          "win_rate": 0.46
+        },
+        "E2_STRESS": {
+          "expectancy": 0.014390677108627363,
+          "n": 50,
+          "oos_expectancy": 0.2610426310008802,
+          "oos_n": 17,
+          "oos_quarters": [
+            {
+              "expectancy": 0.2610426310008802,
+              "n": 17,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.5882352941176471,
+          "win_rate": 0.46
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\XCUUSD.csv",
+      "stage_a_pass": false
+    },
+    "XPTUSD": {
+      "cost_e1_per_side_atr": 0.03477546134316945,
+      "cost_parts": {
+        "commission_per_side_atr": 0.00477546134316945,
+        "ftmo_snapshot_spread_per_side_atr": 0.0,
+        "median_h1_atr": 5.235096298236941,
+        "source_spread_per_side_atr": 0.03
+      },
+      "failures": [
+        "E2_POSITIVE_QUARTERS_LT_60PCT"
+      ],
+      "ftmo_symbol": "XPTUSD",
+      "h1_bars": 17374,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.08428174004847575,
+          "n": 248,
+          "oos_expectancy": 0.11331203485761428,
+          "oos_n": 82,
+          "oos_quarters": [
+            {
+              "expectancy": 0.014848892459535855,
+              "n": 7,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.12311836223081535,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.22469229142046795,
+              "n": 27,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.2242137196858816,
+              "n": 26,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.45121951219512196,
+          "win_rate": 0.4637096774193548
+        },
+        "E2_STRESS": {
+          "expectancy": 0.014730817362136843,
+          "n": 248,
+          "oos_expectancy": 0.04376111217127538,
+          "oos_n": 82,
+          "oos_quarters": [
+            {
+              "expectancy": -0.05470203022680304,
+              "n": 7,
+              "quarter": "2025Q3"
+            },
+            {
+              "expectancy": -0.1926692849171542,
+              "n": 22,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.15514136873412904,
+              "n": 27,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.15466279699954272,
+              "n": 26,
+              "quarter": "2026Q2"
+            }
+          ],
+          "oos_win_rate": 0.45121951219512196,
+          "win_rate": 0.4596774193548387
+        }
+      },
+      "source_file": "data\\derivM15_diverse\\XPTUSD.csv",
+      "stage_a_pass": false
+    },
+    "XRPUSD": {
+      "cost_e1_per_side_atr": 0.07584856056744751,
+      "cost_parts": {
+        "commission_per_side_atr": 0.03583862924721912,
+        "ftmo_snapshot_spread_per_side_atr": 0.0400099313202284,
+        "median_h1_atr": 0.01874534584918949,
+        "source_spread_per_side_atr": 0.008001986264045679
+      },
+      "failures": [
+        "E2_OOS_NONPOSITIVE",
+        "E2_POSITIVE_QUARTERS_LT_60PCT",
+        "E2_LATEST_COMPLETE_QUARTER_NONPOSITIVE"
+      ],
+      "ftmo_symbol": "XRPUSD",
+      "h1_bars": 17495,
+      "modes": {
+        "E1_MEASURED": {
+          "expectancy": 0.058947318998026396,
+          "n": 364,
+          "oos_expectancy": 0.013462713276458073,
+          "oos_n": 108,
+          "oos_quarters": [
+            {
+              "expectancy": -0.25078079858672725,
+              "n": 17,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": 0.06495402454656907,
+              "n": 53,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": 0.04006256278362324,
+              "n": 36,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 0.4162155243266172,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4537037037037037,
+          "win_rate": 0.4642857142857143
+        },
+        "E2_STRESS": {
+          "expectancy": -0.09274980213686865,
+          "n": 364,
+          "oos_expectancy": -0.13823440785843702,
+          "oos_n": 108,
+          "oos_quarters": [
+            {
+              "expectancy": -0.4024779197216222,
+              "n": 17,
+              "quarter": "2025Q4"
+            },
+            {
+              "expectancy": -0.08674309658832596,
+              "n": 53,
+              "quarter": "2026Q1"
+            },
+            {
+              "expectancy": -0.1116345583512718,
+              "n": 36,
+              "quarter": "2026Q2"
+            },
+            {
+              "expectancy": 0.26451840319172204,
+              "n": 2,
+              "quarter": "2026Q3"
+            }
+          ],
+          "oos_win_rate": 0.4351851851851852,
+          "win_rate": 0.43956043956043955
+        }
+      },
+      "source_file": "data\\derivM15_spreadgated\\XRPUSD.csv",
+      "stage_a_pass": false
+    }
+  }
+}

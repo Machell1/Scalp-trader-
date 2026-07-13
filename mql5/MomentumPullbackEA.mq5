@@ -1,4 +1,11 @@
 //+------------------------------------------------------------------+
+//|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
+//|     * H1 is now the versioned default working timeframe.         |
+//|     * Add USDJPY after a 100,000-path stress confirmation.       |
+//|     * Keep the validated trio at 0.30% dynamic cash risk and     |
+//|       size USDJPY independently at 0.05%; no fixed lots.         |
+//|     * Give USDJPY its own FX cluster seat under the global cap.  |
+//|                                                                  |
 //|   v1.30 (2026-07-13): CORRECTED-ENGINE EARLY BANKING.             |
 //|     * Bank 50% once at +1R using the frozen signal-bar Wilder ATR |
 //|       and initial stop multiple; the remainder keeps its bracket. |
@@ -10,7 +17,7 @@
 //|       cooldown, trade-final logging, or consecutive-loss logic.   |
 //|                                                                  |
 //|                                            MomentumPullbackEA.mq5 |
-//|   Multi-symbol M15 momentum-continuation EA (pullback entry).     |
+//|   Multi-symbol H1 momentum-continuation EA (pullback entry).      |
 //|                                                                  |
 //|   v1.1 -- backtest-driven entry rework (2026-06):                 |
 //|     * The original entry "chase a STOP order just beyond an       |
@@ -85,9 +92,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.30"
+#property version   "1.31"
 #property strict
-#property description "Multi-symbol M15 momentum pullback EA v1.30. Bank 50% at +1R, TP2 remainder, fixed SL/time exit."
+#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -103,7 +110,8 @@ enum ENUM_ENTRY_MODE
 //--- Symbol universe -------------------------------------------------
 input group "=== Symbol Universe ==="
 input bool   InpScanMarketWatch  = false;     // Scan Market Watch (used only when the whitelist below is empty)
-input string InpSymbolWhitelist  = "US30.cash,US100.cash,JP225.cash";  // v1.30 corrected-engine trio. Empty = scan Market Watch.
+input string InpSymbolWhitelistV131 = "US30.cash,US100.cash,JP225.cash,USDJPY";  // v1.31 confirmed H1 portfolio. Versioned so saved trio-only input cannot survive.
+#define InpSymbolWhitelist InpSymbolWhitelistV131
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
@@ -112,7 +120,8 @@ input bool   InpCandleFilter    = true;  // W2 remains the forward-test signal d
 input double InpMinAdvWickAtr   = 0.30;  // Adverse-wick threshold in frozen signal ATR (0.30 = W2; 0 = off)
 
 input group "=== Momentum Strategy ==="
-input ENUM_TIMEFRAMES InpTimeframe   = PERIOD_M15; // Working timeframe
+input ENUM_TIMEFRAMES InpTimeframeV131 = PERIOD_H1; // Confirmed H1 working timeframe; versioned to supersede saved M15 values
+#define InpTimeframe InpTimeframeV131
 input int    InpMomentumBars     = 6;     // Lookback bars for the move
 input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
 input int    InpAtrPeriod        = 14;    // ATR period
@@ -135,6 +144,7 @@ input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop 
 //--- Risk / exits ----------------------------------------------------
 input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.3;   // Corrected-engine MC sizing; current FTMO chart already uses 0.3%
+input double InpUSDJPYRiskPercentV131 = 0.05; // Confirmed USDJPY sleeve; dynamic cash risk, not a fixed lot size
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
 input double InpTakeProfitAtrMultV130 = 2.0; // v1.30 renamed intentionally: chart-saved TP3 must not survive this upgrade
 input bool   InpUsePartialCloseV130   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
@@ -163,7 +173,8 @@ input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spr
 // acceptance study (lower drawdown at equal pooled expectancy). Day-1 saw 4 same-direction
 // Tech-100-cluster entries in 70 min stacking ~1.5% correlated heat.
 input int    InpMaxPerCluster    = 1;     // Max open+pending per correlation cluster (0 = off, current behavior)
-input string InpClusterSpec      = "US30.cash|US100.cash;JP225.cash";  // v1.30 clusters: one US-index seat; JP225 independent
+input string InpClusterSpecV131  = "US30.cash|US100.cash;JP225.cash;USDJPY";  // US pair shares a seat; JP225 and USDJPY are independent
+#define InpClusterSpec InpClusterSpecV131
 
 //--- Execution -------------------------------------------------------
 input group "=== Execution ==="
@@ -267,6 +278,13 @@ int OnInit()
    trade.SetMarginMode();
    trade.LogLevel(LOG_LEVEL_ERRORS);
 
+   if(InpRiskPercent <= 0.0 || InpUSDJPYRiskPercentV131 <= 0.0 ||
+      InpUSDJPYRiskPercentV131 > InpRiskPercent)
+     {
+      Print("v1.31 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
+      return(INIT_PARAMETERS_INCORRECT);
+     }
+
    if(InpUsePartialCloseV130)
      {
       if(InpPartialCloseFractionV130 <= 0.0 || InpPartialCloseFractionV130 >= 1.0 ||
@@ -307,7 +325,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.30 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -334,13 +352,14 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.30 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Risk/trade=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
-               ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent);
+               ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
+               InpUSDJPYRiskPercentV131);
    return(INIT_SUCCEEDED);
   }
 
@@ -1121,12 +1140,21 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 //+------------------------------------------------------------------+
 //| Fixed-fractional lot size from the stop distance                 |
 //+------------------------------------------------------------------+
+double RiskPercentForSymbol(string symbol)
+  {
+   if(symbol == "USDJPY")
+      return(InpUSDJPYRiskPercentV131);
+   return(InpRiskPercent);
+  }
+
+//+------------------------------------------------------------------+
 double CalculateLotSize(string symbol, double stopDistancePrice)
   {
    if(stopDistancePrice <= 0.0)
       return(0.0);
    double balance    = AccountInfoDouble(ACCOUNT_BALANCE);
-   double riskAmount = balance * (InpRiskPercent / 100.0);
+   double riskPct    = RiskPercentForSymbol(symbol);
+   double riskAmount = balance * (riskPct / 100.0);
    if(riskAmount <= 0.0)
       return(0.0);
 
@@ -1155,7 +1183,7 @@ double CalculateLotSize(string symbol, double stopDistancePrice)
       if(lossPerLot * minVol > riskAmount * 1.5)
          return(0.0);
       PrintFormat("%s: MIN-LOT substitution - risking %.2f (%.3f%% of balance) vs %.2f budget (%.2f%%)",
-                  symbol, lossPerLot * minVol, 100.0 * lossPerLot * minVol / balance, riskAmount, InpRiskPercent);
+                  symbol, lossPerLot * minVol, 100.0 * lossPerLot * minVol / balance, riskAmount, riskPct);
       lots = minVol;
      }
    if(lots > maxVol)
@@ -2751,7 +2779,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.30  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
