@@ -1,4 +1,11 @@
 //+------------------------------------------------------------------+
+//|   v1.32 (2026-07-13): SCALE-INVARIANT LOWER-TF RESEARCH PATH.     |
+//|     * H1 defaults and signal/execution semantics remain exact.    |
+//|     * Optional M5/M15 mode keeps the H1 momentum, pending,        |
+//|       stop/target and holding horizons instead of shrinking them. |
+//|     * Lower bars refine the contested-candle trigger while H1     |
+//|       Wilder ATR remains the volatility/risk ruler.               |
+//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -92,9 +99,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.31"
+#property version   "1.32"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
+#property description "Multi-symbol momentum pullback EA v1.32. H1 unchanged; optional scale-invariant M5/M15 research entry."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -126,6 +133,10 @@ input int    InpMomentumBars     = 6;     // Lookback bars for the move
 input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
+
+input group "=== v1.32 Scale-Invariant Lower-TF Entry (RESEARCH) ==="
+input bool   InpUseScaleInvariantLowerTfV132 = false; // Default OFF until canonical M5/M15 OOS validation. H1 is bit-for-bit unaffected.
+input ENUM_TIMEFRAMES InpReferenceTimeframeV132 = PERIOD_H1; // Preserve this timeframe's momentum/risk clock on M5/M15.
 
 //--- Anchored VWAP (discount/premium gate) --------------------------
 input group "=== Anchored VWAP (AVWAP) ==="
@@ -285,6 +296,17 @@ int OnInit()
       return(INIT_PARAMETERS_INCORRECT);
      }
 
+   if(InpUseScaleInvariantLowerTfV132)
+     {
+      int workSec = PeriodSeconds(InpTimeframe);
+      int refSec  = PeriodSeconds(InpReferenceTimeframeV132);
+      if(workSec <= 0 || refSec <= workSec || InpTimeframe == PERIOD_H1)
+        {
+         Print("v1.32 adaptive entry requires a working timeframe below its reference timeframe (intended: M5/M15 -> H1)");
+         return(INIT_PARAMETERS_INCORRECT);
+        }
+     }
+
    if(InpUsePartialCloseV130)
      {
       if(InpPartialCloseFractionV130 <= 0.0 || InpPartialCloseFractionV130 >= 1.0 ||
@@ -325,7 +347,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.32 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -352,14 +374,16 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.32 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. ScaleInvariant=%s (reference=%s, momentum=%d bars).",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131);
+               InpUSDJPYRiskPercentV131,
+               InpUseScaleInvariantLowerTfV132 ? "RESEARCH-ON" : "off",
+               EnumToString(InpReferenceTimeframeV132), EffectiveMomentumBars());
    return(INIT_SUCCEEDED);
   }
 
@@ -916,11 +940,29 @@ void ScanSymbol(string symbol, int atrHandle)
       return;
      }
 
-   double atr;
-   if(!WilderAtrForSymbol(symbol, atr) || atr <= 0.0)   // v1.27: validated-engine estimator
+   double localAtr;
+   if(!WilderAtrForSymbol(symbol, localAtr) || localAtr <= 0.0)   // v1.27: validated-engine estimator
      {
       LogSkip(symbol, "ATR unavailable");
       return;
+     }
+
+   // v1.32 research path: do not make an H1 strategy 4x/12x faster merely by
+   // changing the chart clock. M5/M15 preserve the H1 six-bar geometry
+   // (five close-to-close intervals)
+   // and retain H1 volatility/risk geometry; only the candle trigger is refined
+   // on the working timeframe.  With the flag OFF (and always on H1), atr is
+   // exactly the original local Wilder ATR.
+   double atr = localAtr;
+   int momentumBars = InpMomentumBars;
+   if(UseScaleInvariantEntry())
+     {
+      momentumBars = EffectiveMomentumBars();
+      if(!WilderAtrForTimeframe(symbol, InpReferenceTimeframeV132, atr) || atr <= 0.0)
+        {
+         LogSkip(symbol, "reference-timeframe ATR unavailable");
+         return;
+        }
      }
 
    // v1.2 spread/ATR gate (the key cost filter). The edge survives only where the
@@ -942,7 +984,7 @@ void ScanSymbol(string symbol, int atrHandle)
      }
 
    double close1    = iClose(symbol, InpTimeframe, 1);
-   double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
+   double closePast = iClose(symbol, InpTimeframe, momentumBars);
    double open1     = iOpen(symbol, InpTimeframe, 1);
    if(close1 == 0.0 || closePast == 0.0)
      {
@@ -989,7 +1031,9 @@ void ScanSymbol(string symbol, int atrHandle)
          double bodyTop  = MathMax(open1, close1);
          double bodyBot  = MathMin(open1, close1);
          double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
-         double advWickAtr = advWick / atr;
+         // The trigger remains local: a meaningful M5/M15 rejection wick would
+         // disappear if divided by H1 ATR. Risk and cost below still use H1 ATR.
+         double advWickAtr = advWick / localAtr;
          if(advWickAtr < InpMinAdvWickAtr)
            {
             LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
@@ -1111,13 +1155,14 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 
    datetime expiry = 0;
    ENUM_ORDER_TYPE_TIME ttype = ORDER_TIME_GTC;
-   if(InpPendingExpiryBars > 0)
+   int expiryBars = EffectivePendingExpiryBars();
+   if(expiryBars > 0)
      {
       // v1.27 B2: the engine's 3-bar fill window is counted on the SYMBOL'S OWN
       // clock (session breaks produce no bars). Precise expiry = the bar-counted
       // check in ManagePendingOrders; the broker wall-clock expiry stays only as
       // a +3-day backstop for when the EA itself is dead.
-      expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe) + 259200);
+      expiry = (datetime)(TimeCurrent() + (long)expiryBars * PeriodSeconds(InpTimeframe) + 259200);
       ttype  = ORDER_TIME_SPECIFIED;
      }
 
@@ -1283,13 +1328,14 @@ void ManagePendingOrders()
 
       // Manual expiry safety net for ANY of our pendings (in case the broker ignores
       // ORDER_TIME_SPECIFIED). Applies to both stop and limit orders.
-      if(InpPendingExpiryBars > 0)
+      int expiryBars = EffectivePendingExpiryBars();
+      if(expiryBars > 0)
         {
          // v1.27 B2: engine parity - the fill window is InpPendingExpiryBars BARS on
          // the symbol's own clock (placement bar = 1). Wall-clock aging expired
          // pendings mid-session-break after fewer tradable bars than validated.
          int ageBars = Bars(symbol, InpTimeframe, ordInfo.TimeSetup(), TimeCurrent());
-         if(ageBars > InpPendingExpiryBars)
+         if(ageBars > expiryBars)
            {
             bool delOk = trade.OrderDelete(ticket);
             uint drc = trade.ResultRetcode();
@@ -1423,7 +1469,8 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
    g_posState[stateIdx].lastMgmtBarTime = curBarTime;
    UpdateBarsClosed(stateIdx, symbol);
 
-   if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+   int maxHoldingBars = EffectiveMaxHoldingBars();
+   if(maxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= maxHoldingBars)
      {
       trade.PositionClose(ticket);
       return;
@@ -1594,7 +1641,8 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
      {
       g_posState[stateIdx].lastMgmtBarTime = curBarTime;
       UpdateBarsClosed(stateIdx, symbol);
-      if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+      int maxHoldingBars = EffectiveMaxHoldingBars();
+      if(maxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= maxHoldingBars)
         {
          trade.PositionClose(ticket);
          return;
@@ -2322,6 +2370,46 @@ int SymbolIndex(string symbol)
    return(-1);
   }
 
+// v1.32: Scale bar-count parameters by wall-clock duration when the optional
+// lower-timeframe research path is enabled. Integer reference/work ratios are
+// exact for the intended H1->M15 and H1->M5 configurations. Returning the
+// original value in every other case is what protects the shipped H1 engine.
+bool UseScaleInvariantEntry()
+  {
+   if(!InpUseScaleInvariantLowerTfV132)
+      return(false);
+   int workSec = PeriodSeconds(InpTimeframe);
+   int refSec  = PeriodSeconds(InpReferenceTimeframeV132);
+   return(workSec > 0 && refSec > workSec);
+  }
+
+int ScaleReferenceBars(int referenceBars)
+  {
+   if(referenceBars <= 0 || !UseScaleInvariantEntry())
+      return(referenceBars);
+   int workSec = PeriodSeconds(InpTimeframe);
+   int refSec  = PeriodSeconds(InpReferenceTimeframeV132);
+   return((referenceBars * refSec + workSec - 1) / workSec);
+  }
+
+int EffectiveMomentumBars()
+  {
+   if(InpMomentumBars <= 1 || !UseScaleInvariantEntry())
+      return(InpMomentumBars);
+   // Existing geometry compares shift 1 with shift N, i.e. N-1 intervals.
+   return(1 + ScaleReferenceBars(InpMomentumBars - 1));
+  }
+
+int EffectivePendingExpiryBars()
+  {
+   return(ScaleReferenceBars(InpPendingExpiryBars));
+  }
+
+int EffectiveMaxHoldingBars()
+  {
+   return(ScaleReferenceBars(InpMaxHoldingBars));
+  }
+
 // v1.27 B1: Wilder ATR (RMA, alpha=1/period) computed from closed bars - the
 // exact estimator of the validated engine (scalper_backtest.py::wilder_atr).
 // MT5 built-in iATR is a sliding SIMPLE mean of TR (Examples/ATR.mq5 line 92)
@@ -2337,6 +2425,7 @@ bool WilderAtrForSymbol(string symbol, double &value)
       value = g_wAtrCache[idx];
       return(true);
      }
+
    MqlRates rates[];
    int need = 400;
    int got = CopyRates(symbol, InpTimeframe, 1, need, rates);   // shift 1 = closed bars only
@@ -2367,6 +2456,39 @@ bool WilderAtrForSymbol(string symbol, double &value)
       g_wAtrCache[idx] = atr;
       g_wAtrCacheBar[idx] = bar1;
      }
+   return(true);
+  }
+
+// Same closed-bar Wilder estimator as WilderAtrForSymbol, generalized for the
+// v1.32 reference clock. It is called only once per working-timeframe signal
+// scan, so a separate persistent indicator handle is neither needed nor used.
+bool WilderAtrForTimeframe(string symbol, ENUM_TIMEFRAMES tf, double &value)
+  {
+   value = 0.0;
+   MqlRates rates[];
+   int need = 400;
+   int got = CopyRates(symbol, tf, 1, need, rates);
+   if(got < InpAtrPeriod * 3)
+      return(false);
+   double atr = 0.0;
+   for(int k = 1; k <= InpAtrPeriod; k++)
+     {
+      double tr = MathMax(rates[k].high - rates[k].low,
+                  MathMax(MathAbs(rates[k].high - rates[k - 1].close),
+                          MathAbs(rates[k].low  - rates[k - 1].close)));
+      atr += tr;
+     }
+   atr /= InpAtrPeriod;
+   for(int k = InpAtrPeriod + 1; k < got; k++)
+     {
+      double tr = MathMax(rates[k].high - rates[k].low,
+                  MathMax(MathAbs(rates[k].high - rates[k - 1].close),
+                          MathAbs(rates[k].low  - rates[k - 1].close)));
+      atr += (tr - atr) / InpAtrPeriod;
+     }
+   if(atr <= 0.0)
+      return(false);
+   value = atr;
    return(true);
   }
 
@@ -2441,7 +2563,12 @@ bool DataReady(string symbol)
       SymbolSelect(symbol, true);
       return(false);
      }
-   return(Bars(symbol, InpTimeframe) > InpMomentumBars + InpAtrPeriod + 2);
+   if(Bars(symbol, InpTimeframe) <= EffectiveMomentumBars() + InpAtrPeriod + 2)
+      return(false);
+   if(UseScaleInvariantEntry() &&
+      Bars(symbol, InpReferenceTimeframeV132) <= InpAtrPeriod * 3)
+      return(false);
+   return(true);
   }
 
 bool SpreadTooWide(string symbol)
@@ -2795,7 +2922,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.32  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
@@ -2823,7 +2950,7 @@ void PanelUpdate()
                                             g_posState[si].partialLevel) : "UNKNOWN";
       PanelSet(ln++, StringFormat("POS %s %s %.2f @ %.2f | b%d/%d | MFE%+.2f MAE%+.2f | SO %s",
                 posInfo.Symbol(), posInfo.PositionType() == POSITION_TYPE_BUY ? "BUY " : "SELL",
-                posInfo.Volume(), posInfo.PriceOpen(), bars, InpMaxHoldingBars, mfe, mae, so),
+                posInfo.Volume(), posInfo.PriceOpen(), bars, EffectiveMaxHoldingBars(), mfe, mae, so),
                 clrDeepSkyBlue);
       shown++;
      }

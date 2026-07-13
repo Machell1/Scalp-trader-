@@ -101,6 +101,19 @@ Clear that input to scan all non-synthetics.
 attach to any M15 chart. The EA scans its own symbol list — the chart symbol only drives
 the bar clock. **Demo / minimum size first.**
 
+### v1.32 lower-timeframe research path
+
+`mql5/MomentumPullbackEA.mq5` now has a default-off
+`InpUseScaleInvariantLowerTfV132` mode for M5/M15 research. It does not compress
+the H1 strategy into six short bars: it preserves the H1 momentum span, H1
+Wilder-ATR risk geometry, pending lifetime, and holding horizon, while using
+the lower-timeframe contested candle as the entry trigger. See
+`docs/ADAPTIVE_LOWER_TIMEFRAME_ENTRY_SPEC_2026-07-13.md`.
+
+This is test infrastructure, not a profitability claim. Keep it off for live
+trading until native M5/M15 data clear the documented OOS, real-cost,
+trade-through-fill, and coupled-portfolio gates.
+
 > This EA places orders on whatever account it is attached to. The author of this repo
 > does not place trades on your behalf; you choose when (and whether) to run it.
 
