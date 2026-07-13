@@ -294,3 +294,37 @@ OOS split, inference, or gates. All are new researcher choices frozen here.
 ## Results
 
 Not run at pre-registration time.
+
+### Pre-outcome implementation clarifications
+
+These choices were recorded before any strategy outcome command:
+
+* The diagnostic 70/30 date cut uses `floor(0.70 * N)` complete eligible
+  dates in the first segment and all remaining dates in the second.
+* Dates after 2026-06-30 are full-sample-only and cannot enter development or
+  binding OOS gates.
+* Holding bars count the entry bar as bar one.
+* Profit factor is JSON `null` when there is no strictly negative return.
+* Both inference procedures use NumPy `default_rng` (PCG64); each procedure
+  separately reinitializes the stream with seed `13020260713`.
+* A duplicated source timestamp is a fatal global data-integrity error. A
+  missing/non-contiguous required session bar rejects that date.
+* Mean trades per calendar week includes zero-trade weeks that contain at least
+  one complete eligible session.
+
+### Pre-outcome synthetic-test record
+
+The first test invocation exposed five test/implementation-fixture defects
+before any outcome run: Pandas datetime integer units were not portable across
+versions; two spread-trap fixtures had inconsistent OHLC; and one frame fixture
+omitted June 30. Output ended `5 failed, 12 passed in 19.64s`. Epoch conversion
+was changed to explicit UTC epoch seconds and the synthetic fixtures were
+corrected without consulting strategy outcomes. The next invocation ended
+`17 passed in 17.11s`. A later pre-commit invocation ended
+`1 failed, 17 passed in 24.08s` solely because the newly appended clarification
+made the protocol working copy differ from committed `HEAD`, which is the
+intended hash guard. The final synthetic gate is run only after committing all
+pre-outcome files. After the independent code-review fixes, the pre-commit
+suite excluding that one provenance check ended
+`19 passed, 1 deselected in 14.43s`; the independent reviewer separately
+reported `19 passed, 1 deselected in 12.19s` and a no-blocker verdict.
