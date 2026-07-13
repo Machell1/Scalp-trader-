@@ -154,6 +154,28 @@ def build_h1_tape(*, stress: bool = False) -> tuple[PassTape, dict[str, object]]
             n_trades += 1
             i = exit_bar + 1
         counts[symbol] = n_trades
+    # Apply the live portfolio seats after the per-symbol H1 enumeration.  The
+    # screen is per-symbol; the account tape must enforce one US-index cluster
+    # seat and two global seats in deterministic whitelist order.
+    grouped = {}
+    for event in events:
+        grouped.setdefault(event.trade_id, []).append(event)
+    order = {"US30.cash": 0, "US100.cash": 1, "JP225.cash": 2}
+    intervals = []
+    for trade_id, rows in grouped.items():
+        opening = next(row for row in rows if row.kind == "pending_open")
+        ending = max(row.epoch for row in rows if row.kind in {"pending_cancel", "final"})
+        intervals.append((opening.epoch, order[opening.symbol], trade_id, opening.symbol, opening.cluster, ending))
+    active = []
+    accepted = set()
+    for placement, _, trade_id, symbol, cluster, ending in sorted(intervals):
+        active = [x for x in active if x[5] > placement]
+        if any(x[3] == symbol for x in active) or any(x[4] == cluster for x in active) or len(active) >= 2:
+            continue
+        accepted.add(trade_id)
+        active.append((placement, 0, trade_id, symbol, cluster, ending))
+    events = [event for event in events if event.trade_id in accepted]
+    counts = {symbol: sum(1 for trade_id in accepted if trade_id.startswith(f"H1:{symbol}:")) for symbol in MAP.values()}
     first_day = datetime.fromtimestamp(first_epoch, timezone.utc).astimezone(PRAGUE).date()
     last_day = datetime.fromtimestamp(last_epoch, timezone.utc).astimezone(PRAGUE).date()
     tape = PassTape.from_events(events, first_day=first_day, last_day=last_day)

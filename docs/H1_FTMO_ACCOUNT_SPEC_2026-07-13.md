@@ -23,3 +23,11 @@ pending owner review. No entry parameter sweep is permitted.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `de199c9c8f9cebb2810da2a3490c681788d37f7ce67b01c962c07df2b87fecc6`
+
+## Execution record
+
+The first path-0 attempt failed before producing an outcome with
+`BootstrapOverlapError: source cluster overlap: 0`. The independent per-symbol
+H1 enumeration had not yet applied the registered one-seat US30/US100 cluster
+and two-seat global scheduler. The tape builder was corrected to apply that
+scheduler; no account result was used from the failed attempt.
