@@ -254,7 +254,8 @@ class Census:
 
 def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False,
              window=EXPIRY, replace_on_signal=False, execution=None,
-             event_sink=None, day_key=None):
+             event_sink=None, day_key=None, entry_style="limit",
+             bar_seconds=BAR_SEC):
     """thr: None (no engine W2) | dict name->min adverse wick (pre-entry predicate).
     caps: None (per-symbol only) | dict(global=2, cluster=1, fills_day=8, consec=4).
     window: pending fill window in bars. 3 = validated-engine intent; 4 = live
@@ -274,7 +275,18 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
     supplies the account-day bucket used by fill and day-stop gates; its default
     remains the historical UTC ``epoch // 86400`` behavior.
 
+    ``entry_style`` is additive and defaults to the historical pullback limit.
+    ``market`` enters at the next bar open while preserving the same causal
+    scan, occupancy, caps, and custom-execution lifecycle. ``bar_seconds`` is
+    likewise default-preserving and permits the engine to replay aggregated
+    timeframes without pretending they are M15 bars.
+
     Returns (trades, census)."""
+    if entry_style not in {"limit", "market"}:
+        raise ValueError(f"unknown entry_style: {entry_style}")
+    if int(bar_seconds) <= 0:
+        raise ValueError("bar_seconds must be positive")
+    bar_seconds = int(bar_seconds)
     ns = len(symbols)
     st = [SymState() for _ in range(ns)]
     census = Census()
@@ -362,9 +374,10 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
         s = symbols[si]
         side = int(s.side[i])
         a = s.atr[i]
-        price = s.c[i] - OFFSET * a * side
+        price = (s.o[i + 1] if entry_style == "market" and i + 1 < len(s.o)
+                 else s.c[i] - OFFSET * a * side)
         snap = snapshot(si)
-        event_ep = s.ep[i + 1] if i + 1 < len(s.ep) else s.ep[i] + BAR_SEC
+        event_ep = s.ep[i + 1] if i + 1 < len(s.ep) else s.ep[i] + bar_seconds
         emit("signal_rejection", si, epoch=event_ep, bar=i, sig_i=i,
              side=side, price=price, reason=reason, before=snap, after=snap)
 
@@ -389,7 +402,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
         """Arm a pending: schedule fill/exit or cancel. w_start=first fill bar."""
         s = symbols[si]
         before = snapshot(si)
-        place_ep = s.ep[w_start] if w_start < len(s.ep) else s.ep[-1] + BAR_SEC
+        place_ep = s.ep[w_start] if w_start < len(s.ep) else s.ep[-1] + bar_seconds
         if st[si].status == BUSY and st[si].phase == 1 and st[si].active is not None:
             old = st[si].active
             emit("pending_cancellation", si, epoch=place_ep, bar=w_start,
@@ -428,7 +441,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
              before=before, after=snapshot(si), trade_key=active["trade_key"])
         if j < 0:
             cb = sig_i + window + 1
-            cancel_ep = s.ep[cb] if cb < len(s.c) else s.ep[-1] + BAR_SEC
+            cancel_ep = s.ep[cb] if cb < len(s.c) else s.ep[-1] + bar_seconds
             push(cancel_ep, P_MGMT, 0, "cancel", (si, tok, cb, active))
             return
         # fill happens intrabar of bar j: day-gate visibility from close of j
@@ -438,7 +451,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
             if reason == "TIME" and xb + 1 < len(s.c):
                 free_ep = s.ep[xb + 1]      # EA closes at next bar's open, seat frees then
             else:
-                free_ep = s.ep[xb] + BAR_SEC  # broker exit; seat free by bar close
+                free_ep = s.ep[xb] + bar_seconds  # broker exit; seat free by bar close
             plan = ExecutionPlan(xb, xp, reason, total_r, int(free_ep))
         else:
             plan = execution.resolve(s, sig_i, j, side, entry, atr_sig)
@@ -449,7 +462,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
                 f"execution exit bar {plan.exit_bar} outside [{j}, {len(s.c) - 1}] "
                 f"for {s.name}"
             )
-        fill_scheduler_ep = int(s.ep[j]) + BAR_SEC
+        fill_scheduler_ep = int(s.ep[j]) + bar_seconds
         previous_mark = None
         for mark in plan.marks:
             if not isinstance(mark, LifecycleMark):
@@ -459,14 +472,14 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
                     f"lifecycle mark bar {mark.bar} outside [{j}, {plan.exit_bar}]"
                 )
             bar_open = int(s.ep[mark.bar])
-            if not (bar_open <= int(mark.epoch) < bar_open + BAR_SEC):
+            if not (bar_open <= int(mark.epoch) < bar_open + bar_seconds):
                 raise ValueError("lifecycle mark epoch must fall inside its modeled bar")
             mark_order = (int(mark.bar), int(mark.epoch))
             if previous_mark is not None and mark_order < previous_mark:
                 raise ValueError("lifecycle marks must be ordered by bar and epoch")
             previous_mark = mark_order
         last_scheduler_ep = (fill_scheduler_ep if not plan.marks else
-                             int(s.ep[plan.marks[-1].bar]) + BAR_SEC)
+                             int(s.ep[plan.marks[-1].bar]) + bar_seconds)
         if int(plan.free_epoch) < last_scheduler_ep:
             raise ValueError("execution free_epoch precedes its lifecycle")
         active["plan"] = plan
@@ -474,7 +487,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
                    plan.reason, int(s.ep[sig_i]), s.cost, queued=queued)
         push(fill_scheduler_ep, P_MGMT, 0, "fill", (si, j, tok, active))
         for mark in plan.marks:
-            mark_scheduler_ep = int(s.ep[mark.bar]) + BAR_SEC
+            mark_scheduler_ep = int(s.ep[mark.bar]) + bar_seconds
             push(mark_scheduler_ep, P_MGMT, 0, "mark", (si, mark, tok, active))
         push(plan.free_epoch, P_MGMT, 0, "exit", (si, tr, tok, active))
 
@@ -507,7 +520,9 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
                 reject(si, i, "cluster_cap")
                 return "blocked_cap"
         a = s.atr[i]
-        place(si, i, sd, s.c[i] - OFFSET * a * sd, a, i + 1)
+        entry = (s.o[i + 1] if entry_style == "market"
+                 else s.c[i] - OFFSET * a * sd)
+        place(si, i, sd, entry, a, i + 1)
         return "placed"
 
     while heap:
@@ -532,7 +547,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
             st[si].phase = 2
             d = account_day(symbols[si].ep[j])
             fills_day[d] = fills_day.get(d, 0) + 1
-            modeled_epoch = int(symbols[si].ep[j]) + BAR_SEC - 1
+            modeled_epoch = int(symbols[si].ep[j]) + bar_seconds - 1
             emit("entry_fill", si, epoch=modeled_epoch, scheduler_epoch=epoch, bar=j,
                  sig_i=active["sig_i"], side=active["side"],
                  price=active["entry"], r_component=active["plan"].entry_r_component,
@@ -561,7 +576,7 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
             st[si].no_sig_upto = max(st[si].no_sig_upto, tr.exit_bar)
             plan = active["plan"]
             modeled_epoch = (int(plan.free_epoch) if plan.reason == "TIME" else
-                             int(symbols[si].ep[tr.exit_bar]) + BAR_SEC - 1)
+                             int(symbols[si].ep[tr.exit_bar]) + bar_seconds - 1)
             book(si, tr, modeled_epoch, plan.loss_classification_r)
             marked_r = sum(float(mark.r_component) for mark in plan.marks
                            if mark.kind in CASHFLOW_MARK_KINDS)
@@ -594,7 +609,9 @@ def run_live(symbols: list, thr=None, caps=None, queue=False, reverse_scan=False
                     if okday:
                         sd = int(s.side[i])
                         a = s.atr[i]
-                        place(si, i, sd, s.c[i] - OFFSET * a * sd, a, i + 1)
+                        entry = (s.o[i + 1] if entry_style == "market"
+                                 else s.c[i] - OFFSET * a * sd)
+                        place(si, i, sd, entry, a, i + 1)
                         continue
                 if fresh:
                     census.occupied += 1
