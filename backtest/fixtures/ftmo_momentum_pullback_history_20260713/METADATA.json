@@ -1,0 +1,70 @@
+{
+  "deals": 15,
+  "history_start_utc": "2020-01-01T00:00:00+00:00",
+  "mt5_version": [
+    500,
+    5836,
+    "28 Apr 2026"
+  ],
+  "orders": 21,
+  "read_only_mt5_calls": [
+    "initialize",
+    "account_info",
+    "terminal_info",
+    "version",
+    "history_deals_get",
+    "history_orders_get",
+    "last_error",
+    "shutdown"
+  ],
+  "redactions": [
+    "account login",
+    "terminal data path",
+    "broker ticket/order/position IDs",
+    "comments",
+    "external IDs",
+    "credentials"
+  ],
+  "retrieval_utc": "2026-07-13T18:55:03.731791+00:00",
+  "symbols": [
+    "BTCUSD",
+    "JP225.cash",
+    "US100.cash",
+    "US30.cash"
+  ],
+  "target_magics": [
+    770077,
+    771025
+  ],
+  "telemetry": {
+    "MomentumPullback_decisions_202607.csv": {
+      "rows": 16,
+      "sanitized_sha256": "390697900be75ddd5fc69cd9fcf3756bc65d8e79316c990f49d0679f55708124",
+      "source_file": "MomentumPullback_decisions_202607.csv",
+      "source_sha256": "88aea5f22c666f24b61432a6e812b1092493eb138f397a6011296b70036010b9"
+    },
+    "MomentumPullback_decisions_v130_202607.csv": {
+      "rows": 48,
+      "sanitized_sha256": "1762a7e6068ab0b6fdb557c8e7557e033f2152f802f8b5bd03c0e9177824607d",
+      "source_file": "MomentumPullback_decisions_v130_202607.csv",
+      "source_sha256": "7f321b4494f29a8fd10fd474aa05a833058b3a2bf879ea201f14da02da0e8f44"
+    },
+    "MomentumPullback_partials_v130.csv": {
+      "rows": 1,
+      "sanitized_sha256": "ae2e0557ae1956c137c412c1f2b4a9926319f94efb0e19025ff50d1b6cdda047",
+      "source_file": "MomentumPullback_partials_v130.csv",
+      "source_sha256": "ba159b2941704c67ac28ad6ddbc82eeeed184f6b5192c08b36a2d45630cae75a"
+    },
+    "MomentumPullback_trades.csv": {
+      "rows": 7,
+      "sanitized_sha256": "f903445ab44385393109651bfb698010e48e4b17e8b8f5bd395c55ff67cc7ac2",
+      "source_file": "MomentumPullback_trades.csv",
+      "source_sha256": "ee5ee688469988354f4fb4c7e9437e37fbde377d4beab650754785450f2f3bb8"
+    }
+  },
+  "terminal_build": 5836,
+  "venue": {
+    "company": "FTMO Global Markets Ltd",
+    "server": "FTMO-Demo"
+  }
+}

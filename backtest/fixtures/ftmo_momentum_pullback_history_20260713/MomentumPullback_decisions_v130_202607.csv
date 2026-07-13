@@ -1,0 +1,49 @@
+time,verdicts,fills,day_pnl,halted,hard,positions,pendings,partial_states
+2026.07.12 06:42:52,US30.cash: - ; US100.cash: - ; JP225.cash: -,0,0.00,n,n,0,0,
+2026.07.12 07:03:01,US30.cash: - ; US100.cash: - ; JP225.cash: -,0,0.00,n,n,0,0,
+2026.07.12 07:06:29,US30.cash: - ; US100.cash: - ; JP225.cash: -,0,0.00,n,n,0,0,
+2026.07.13 01:05:11,US30.cash: no impulse (0.33 ATR| need 2.0) ; US100.cash: no impulse (0.19 ATR| need 2.0) ; JP225.cash: SKIP spread/ATR/side 0.1456 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 01:15:10,US30.cash: SKIP candle filter: adv wick 0.00 ATR < 0.30 (clean climax) ; US100.cash: SKIP candle filter: adv wick 0.16 ATR < 0.30 (clean climax) ; JP225.cash: SKIP spread/ATR/side 0.0751 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 01:30:06,US30.cash: no impulse (-2.83 ATR| need 2.0) ; US100.cash: no impulse (-3.20 ATR| need 2.0) ; JP225.cash: SKIP spread/ATR/side 0.0751 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 01:45:11,US30.cash: no impulse (-2.59 ATR| need 2.0) ; US100.cash: no impulse (-3.24 ATR| need 2.0) ; JP225.cash: SKIP spread/ATR/side 0.0726 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 02:00:01,US30.cash: no impulse (-2.60 ATR| need 2.0) ; US100.cash: no impulse (-3.04 ATR| need 2.0) ; JP225.cash: SKIP spread/ATR/side 0.0699 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 02:15:06,US30.cash: no impulse (-2.96 ATR| need 2.0) ; US100.cash: SKIP candle filter: adv wick 0.14 ATR < 0.30 (clean climax) ; JP225.cash: SKIP spread/ATR/side 0.0504 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 02:30:06,US30.cash: no impulse (-2.96 ATR| need 2.0) ; US100.cash: no impulse (0.54 ATR| need 2.0) ; JP225.cash: SKIP spread/ATR/side 0.0558 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 02:45:06,US30.cash: no impulse (0.15 ATR| need 2.0) ; US100.cash: no impulse (0.07 ATR| need 2.0) ; JP225.cash: SKIP spread/ATR/side 0.1104 > 0.0500,0,0.00,n,n,0,0,
+2026.07.13 03:00:08,US30.cash: no impulse (-0.05 ATR| need 2.0) ; US100.cash: no impulse (-0.06 ATR| need 2.0) ; JP225.cash: no impulse (-0.91 ATR| need 2.0),0,0.00,n,n,0,0,
+2026.07.13 03:15:06,US30.cash: no impulse (0.31 ATR| need 2.0) ; US100.cash: SIGNAL BUY LIMIT 5.65 lots @ 29774.98 (imp 2.06 ATR) ; JP225.cash: no impulse (1.15 ATR| need 2.0),0,0.00,n,n,0,1,
+2026.07.13 03:30:01,US30.cash: SKIP cluster cap (1 in cluster 0) ; US100.cash: SIGNAL BUY LIMIT 5.65 lots @ 29774.98 (imp 2.06 ATR) ; JP225.cash: no impulse (0.49 ATR| need 2.0),1,-105.37,n,n,1,0,493719974:ARMED@29824.96118
+2026.07.13 03:38:35,US30.cash: - ; US100.cash: - ; JP225.cash: -,1,-274.87,n,n,0,0,
+2026.07.13 03:45:04,US30.cash: no impulse (-0.01 ATR| need 2.0) ; US100.cash: no impulse (-0.11 ATR| need 2.0) ; JP225.cash: no impulse (-1.75 ATR| need 2.0),1,-274.87,n,n,0,0,
+2026.07.13 04:00:02,US30.cash: no impulse (-0.26 ATR| need 2.0) ; US100.cash: no impulse (-0.88 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 17.51 lots @ 68234.84 (imp -2.84 ATR),1,-274.87,n,n,0,1,
+2026.07.13 04:15:02,US30.cash: no impulse (-1.52 ATR| need 2.0) ; US100.cash: no impulse (-1.33 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 17.51 lots @ 68234.84 (imp -2.84 ATR),1,-274.87,n,n,0,1,
+2026.07.13 04:30:12,US30.cash: no impulse (-2.02 ATR| need 2.0) ; US100.cash: SIGNAL SELL LIMIT 4.84 lots @ 29632.65 (imp -3.44 ATR) ; JP225.cash: SIGNAL SELL LIMIT 17.51 lots @ 68234.84 (imp -2.84 ATR),1,-274.87,n,n,0,2,
+2026.07.13 04:45:02,US30.cash: no impulse (-2.02 ATR| need 2.0) ; US100.cash: SIGNAL SELL LIMIT 4.84 lots @ 29632.65 (imp -3.44 ATR) ; JP225.cash: SIGNAL SELL LIMIT 17.51 lots @ 68234.84 (imp -2.84 ATR),1,-274.87,n,n,0,2,
+2026.07.13 05:00:03,US30.cash: SKIP cluster cap (1 in cluster 0) ; US100.cash: SIGNAL SELL LIMIT 4.84 lots @ 29632.65 (imp -3.44 ATR) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),1,-274.87,n,n,0,2,
+2026.07.13 05:15:07,US30.cash: SKIP cluster cap (1 in cluster 0) ; US100.cash: SIGNAL SELL LIMIT 4.84 lots @ 29632.65 (imp -3.44 ATR) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),1,-274.87,n,n,0,2,
+2026.07.13 05:30:07,US30.cash: no impulse (-0.32 ATR| need 2.0) ; US100.cash: no impulse (-0.22 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,-472.94,n,n,1,0,493797469:ARMED@67315.07691
+2026.07.13 05:45:02,US30.cash: no impulse (-0.28 ATR| need 2.0) ; US100.cash: no impulse (-0.71 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,-345.98,n,n,1,0,493797469:ARMED@67315.07691
+2026.07.13 06:00:07,US30.cash: no impulse (-0.54 ATR| need 2.0) ; US100.cash: no impulse (-1.61 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,-229.67,n,n,1,0,493797469:ARMED@67315.07691
+2026.07.13 06:15:02,US30.cash: no impulse (-0.71 ATR| need 2.0) ; US100.cash: no impulse (-1.13 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,-99.69,n,n,1,0,493797469:ARMED@67315.07691
+2026.07.13 06:30:02,US30.cash: no impulse (-0.19 ATR| need 2.0) ; US100.cash: no impulse (-0.74 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,-120.01,n,n,1,0,493797469:ARMED@67315.07691
+2026.07.13 06:45:02,US30.cash: no impulse (-0.73 ATR| need 2.0) ; US100.cash: no impulse (-1.81 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,60.24,n,n,1,0,493797469:DONE@67315.07691
+2026.07.13 07:00:07,US30.cash: no impulse (-1.15 ATR| need 2.0) ; US100.cash: no impulse (-1.42 ATR| need 2.0) ; JP225.cash: SIGNAL SELL LIMIT 16.46 lots @ 67602.15 (imp -3.16 ATR),2,118.65,n,n,1,0,493797469:DONE@67315.07691
+2026.07.13 07:15:12,US30.cash: no impulse (-1.09 ATR| need 2.0) ; US100.cash: no impulse (-0.92 ATR| need 2.0) ; JP225.cash: SKIP exit-bar cooldown (engine parity),2,174.48,n,n,0,0,
+2026.07.13 07:30:07,US30.cash: no impulse (-0.55 ATR| need 2.0) ; US100.cash: no impulse (-0.83 ATR| need 2.0) ; JP225.cash: no impulse (-1.32 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 07:35:35,US30.cash: - ; US100.cash: - ; JP225.cash: -,2,174.48,n,n,0,0,
+2026.07.13 08:00:05,US30.cash: no impulse (-1.42 ATR| need 2.0) ; US100.cash: SKIP candle filter: adv wick 0.13 ATR < 0.30 (clean climax) ; JP225.cash: SKIP candle filter: adv wick 0.15 ATR < 0.30 (clean climax),2,174.48,n,n,0,0,
+2026.07.13 09:00:00,US30.cash: no impulse (-0.84 ATR| need 2.0) ; US100.cash: no impulse (-1.72 ATR| need 2.0) ; JP225.cash: no impulse (-1.66 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 09:26:49,US30.cash: - ; US100.cash: - ; JP225.cash: - ; USDJPY: no impulse (0.91 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 10:00:08,US30.cash: no impulse (1.03 ATR| need 2.0) ; US100.cash: no impulse (-1.23 ATR| need 2.0) ; JP225.cash: no impulse (-0.48 ATR| need 2.0) ; USDJPY: no impulse (1.40 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 11:00:03,US30.cash: no impulse (1.55 ATR| need 2.0) ; US100.cash: no impulse (-0.62 ATR| need 2.0) ; JP225.cash: no impulse (-0.53 ATR| need 2.0) ; USDJPY: no impulse (0.16 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 12:00:03,US30.cash: SKIP candle filter: adv wick 0.02 ATR < 0.30 (clean climax) ; US100.cash: no impulse (0.56 ATR| need 2.0) ; JP225.cash: no impulse (1.11 ATR| need 2.0) ; USDJPY: no impulse (0.05 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 13:00:03,US30.cash: no impulse (2.79 ATR| need 2.0) ; US100.cash: no impulse (1.42 ATR| need 2.0) ; JP225.cash: no impulse (1.85 ATR| need 2.0) ; USDJPY: no impulse (0.03 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 14:00:08,US30.cash: no impulse (2.26 ATR| need 2.0) ; US100.cash: no impulse (1.10 ATR| need 2.0) ; JP225.cash: no impulse (0.86 ATR| need 2.0) ; USDJPY: no impulse (-1.05 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 15:00:03,US30.cash: no impulse (0.21 ATR| need 2.0) ; US100.cash: no impulse (1.16 ATR| need 2.0) ; JP225.cash: no impulse (0.88 ATR| need 2.0) ; USDJPY: no impulse (-0.65 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 16:00:08,US30.cash: no impulse (0.33 ATR| need 2.0) ; US100.cash: no impulse (0.70 ATR| need 2.0) ; JP225.cash: no impulse (0.98 ATR| need 2.0) ; USDJPY: no impulse (0.02 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 17:00:08,US30.cash: no impulse (1.47 ATR| need 2.0) ; US100.cash: no impulse (-1.12 ATR| need 2.0) ; JP225.cash: no impulse (0.17 ATR| need 2.0) ; USDJPY: no impulse (0.81 ATR| need 2.0),2,174.48,n,n,0,0,
+2026.07.13 17:46:22,US30.cash: - ; US100.cash: - ; JP225.cash: - ; USDJPY: -,2,174.48,n,n,0,0,
+2026.07.13 18:00:03,US30.cash: no impulse: |-0.86| ATR < 2.0 ATR threshold ; US100.cash: no impulse: |-0.47| ATR < 2.0 ATR threshold ; JP225.cash: no impulse: |0.42| ATR < 2.0 ATR threshold ; USDJPY: no impulse: |1.96| ATR < 2.0 ATR threshold,2,174.48,n,n,0,0,
+2026.07.13 19:00:02,US30.cash: no impulse: |-1.29| ATR < 2.0 ATR threshold ; US100.cash: no impulse: |-1.24| ATR < 2.0 ATR threshold ; JP225.cash: no impulse: |0.10| ATR < 2.0 ATR threshold ; USDJPY: no impulse: |1.50| ATR < 2.0 ATR threshold,2,174.48,n,n,0,0,
+2026.07.13 20:00:02,US30.cash: no impulse: |-1.19| ATR < 2.0 ATR threshold ; US100.cash: no impulse: |-1.77| ATR < 2.0 ATR threshold ; JP225.cash: no impulse: |-0.25| ATR < 2.0 ATR threshold ; USDJPY: no impulse: |1.96| ATR < 2.0 ATR threshold,2,174.48,n,n,0,0,
+2026.07.13 21:00:02,US30.cash: no impulse: |-1.37| ATR < 2.0 ATR threshold ; US100.cash: no impulse: |-1.99| ATR < 2.0 ATR threshold ; JP225.cash: no impulse: |-0.97| ATR < 2.0 ATR threshold ; USDJPY: SKIP candle filter: adv wick 0.02 ATR < 0.30 (clean climax),2,174.48,n,n,0,0,

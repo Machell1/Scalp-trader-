@@ -1,0 +1,17 @@
+time,verdicts,fills,day_pnl,halted,hard,positions,pendings
+2026.07.10 20:30:42,US30.cash: - ; US100.cash: -,5,-799.27,n,n,0,1
+2026.07.10 20:45:05,US30.cash: SKIP cluster cap (1 in cluster 0) ; US100.cash: -,5,-799.27,n,n,0,1
+2026.07.10 21:00:00,US30.cash: SKIP cluster cap (1 in cluster 0) ; US100.cash: -,5,-799.27,n,n,0,1
+2026.07.10 21:15:10,US30.cash: no impulse (0.29 ATR| need 2.0) ; US100.cash: no impulse (0.37 ATR| need 2.0),5,-799.27,n,n,0,0
+2026.07.10 21:30:08,US30.cash: no impulse (0.55 ATR| need 2.0) ; US100.cash: no impulse (0.48 ATR| need 2.0),5,-799.27,n,n,0,0
+2026.07.10 21:45:03,US30.cash: no impulse (0.83 ATR| need 2.0) ; US100.cash: no impulse (-0.21 ATR| need 2.0),5,-799.27,n,n,0,0
+2026.07.10 22:00:08,US30.cash: no impulse (0.72 ATR| need 2.0) ; US100.cash: no impulse (-0.53 ATR| need 2.0),5,-799.27,n,n,0,0
+2026.07.10 22:15:03,US30.cash: no impulse (1.23 ATR| need 2.0) ; US100.cash: no impulse (0.34 ATR| need 2.0),5,-799.27,n,n,0,0
+2026.07.10 22:30:08,US30.cash: no impulse (0.88 ATR| need 2.0) ; US100.cash: no impulse (-0.11 ATR| need 2.0),5,-799.27,n,n,0,0
+2026.07.10 22:38:55,US30.cash: - ; US100.cash: -,5,-799.27,y,y,0,0
+2026.07.11 00:50:42,US30.cash: SKIP stale/invalid quotes (freshness guard) ; US100.cash: SKIP stale/invalid quotes (freshness guard),0,0.00,n,n,0,0
+2026.07.11 06:19:22,US30.cash: - ; US100.cash: -,0,0.00,n,n,0,0
+2026.07.11 06:23:15,US30.cash: - ; US100.cash: -,0,0.00,n,n,0,0
+2026.07.11 06:49:18,US30.cash: - ; US100.cash: -,0,0.00,n,n,0,0
+2026.07.11 07:41:02,US30.cash: - ; US100.cash: - ; JP225.cash: -,0,0.00,n,n,0,0
+2026.07.11 14:58:26,US30.cash: - ; US100.cash: - ; JP225.cash: -,0,0.00,n,n,0,0
