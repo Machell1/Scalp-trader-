@@ -31,3 +31,8 @@ The first path-0 attempt failed before producing an outcome with
 H1 enumeration had not yet applied the registered one-seat US30/US100 cluster
 and two-seat global scheduler. The tape builder was corrected to apply that
 scheduler; no account result was used from the failed attempt.
+
+The corrected scheduler still allowed a same-epoch terminal/placement tie;
+path 0 failed again with `BootstrapOverlapError: source cluster overlap: 0`
+(`H1:US30.cash:1999` versus `H1:US100.cash:1998`). Equality is now retained as
+occupied through the terminal epoch; no account result was used.

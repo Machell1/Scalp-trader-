@@ -169,7 +169,10 @@ def build_h1_tape(*, stress: bool = False) -> tuple[PassTape, dict[str, object]]
     active = []
     accepted = set()
     for placement, _, trade_id, symbol, cluster, ending in sorted(intervals):
-        active = [x for x in active if x[5] > placement]
+        # Equality remains occupied: source event ordering can place a new
+        # pending before a same-epoch final, so free only after the terminal
+        # epoch has strictly passed the placement epoch.
+        active = [x for x in active if x[5] >= placement]
         if any(x[3] == symbol for x in active) or any(x[4] == cluster for x in active) or len(active) >= 2:
             continue
         accepted.add(trade_id)
