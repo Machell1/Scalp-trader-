@@ -52,3 +52,8 @@ unpack (expected 2)` at `run_market_vwap_screen.py:68`, because the imported
 `TRIO` is a tuple of symbol strings rather than `(symbol, directory)` pairs. No
 result was produced; the runner wiring was corrected without changing the
 registered protocol.
+
+The second invocation reached aggregation and failed with `ValueError:
+'Wall_Street_30' is not in list` at `run_market_vwap_screen.py:88` due to the
+same tuple/string assumption in the OOS cutoff lookup. No result was emitted;
+the mapping was corrected without changing the cell.

@@ -84,8 +84,9 @@ def main() -> None:
                 raw = pd.read_csv(os.path.join(HERE, "data", subdir, symbol + ".csv"))
                 dt = pd.to_datetime(raw["time"])
                 cut_epochs.append(int(((dt - pd.Timestamp(0)) // pd.Timedelta(seconds=1)).to_numpy()[int(len(raw) * 0.7)]))
+            symbol_to_cut = dict(zip(TRIO, cut_epochs))
             pooled_r = np.asarray([r for _, _, r in pooled_rows], float)
-            pooled_oos_r = np.asarray([r for symbol, ep, r in pooled_rows if ep >= cut_epochs[[x[0] for x in TRIO].index(symbol)]], float)
+            pooled_oos_r = np.asarray([r for symbol, ep, r in pooled_rows if ep >= symbol_to_cut[symbol]], float)
             all_rows = [v for _, v in per]
             # Pool from per-symbol aggregate moments, preserving exact trade counts.
             pooled_n = sum(v["n"] for v in all_rows)
