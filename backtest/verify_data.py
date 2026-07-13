@@ -13,7 +13,9 @@ def main():
     if not os.path.isfile(MAN):
         print("FAIL: MANIFEST.sha256 missing"); sys.exit(2)
     bad = missing = ok = 0
-    for line in open(MAN):
+    # The manifest's comment header is cp1252 (authored on Windows); hash lines
+    # are pure ASCII. Tolerant decode keeps verification byte-exact everywhere.
+    for line in open(MAN, encoding="utf-8", errors="replace"):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
