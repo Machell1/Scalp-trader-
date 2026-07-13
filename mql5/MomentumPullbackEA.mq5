@@ -1,4 +1,13 @@
 //+------------------------------------------------------------------+
+//|   v1.32 (2026-07-13): LOWER-TIMEFRAME ADMISSION LAYER.             |
+//|     * H1 remains the default and is not filtered by this layer.     |
+//|     * If the operator deliberately selects M15/M5, require the      |
+//|       lower-timeframe W2 pullback signal to align with an H1 parent |
+//|       impulse before any order is placed. This seeks tighter entries|
+//|       inside the proven H1 regime instead of replacing the edge.    |
+//|     * Experimental lower-timeframe fills are risk-scaled by default |
+//|       while their own live/backtest evidence is accumulated.        |
+//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -92,9 +101,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.31"
+#property version   "1.32"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.31. USDJPY 0.05% risk sleeve; trio 0.30%; bank 50% at +1R."
+#property description "Multi-symbol H1 momentum pullback EA v1.32. H1 default unchanged; optional H1 parent gate for M15/M5."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -126,6 +135,13 @@ input int    InpMomentumBars     = 6;     // Lookback bars for the move
 input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
+
+input group "=== Lower-Timeframe Admission (experimental M15/M5 adapter) ==="
+input bool   InpUseParentTimeframeGateV132 = true;      // Active only when InpTimeframe is below InpParentTimeframeV132; H1 default is unchanged.
+input ENUM_TIMEFRAMES InpParentTimeframeV132 = PERIOD_H1; // Parent regime used to admit lower-timeframe entries.
+input double InpParentMinImpulseAtrV132 = 1.0;          // Parent close-to-close move must align by at least this ATR.
+input bool   InpParentRequireAlignedCandleV132 = false; // Optional stricter parent candle alignment; off to avoid over-filtering.
+input double InpLowerTimeframeRiskMultV132 = 0.50;      // Risk multiplier for parent-gated M15/M5 experiments (1.0 = same as H1).
 
 //--- Anchored VWAP (discount/premium gate) --------------------------
 input group "=== Anchored VWAP (AVWAP) ==="
@@ -281,7 +297,13 @@ int OnInit()
    if(InpRiskPercent <= 0.0 || InpUSDJPYRiskPercentV131 <= 0.0 ||
       InpUSDJPYRiskPercentV131 > InpRiskPercent)
      {
-      Print("v1.31 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
+      Print("v1.32 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
+      return(INIT_PARAMETERS_INCORRECT);
+     }
+   if(InpLowerTimeframeRiskMultV132 <= 0.0 || InpLowerTimeframeRiskMultV132 > 1.0 ||
+      InpParentMinImpulseAtrV132 <= 0.0)
+     {
+      Print("v1.32 invalid lower-timeframe admission inputs: risk multiplier must be in (0,1] and parent impulse > 0");
       return(INIT_PARAMETERS_INCORRECT);
      }
 
@@ -325,7 +347,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.32 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -352,14 +374,17 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.31 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%.",
+   PrintFormat("MomentumPullbackEA v1.32 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. LTF parent gate=%s %s min %.2f ATR risk x%.2f.",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131);
+               InpUSDJPYRiskPercentV131,
+               LowerTimeframeAdmissionActive() ? "ACTIVE" : "inactive",
+               EnumToString(InpParentTimeframeV132), InpParentMinImpulseAtrV132,
+               LowerTimeframeAdmissionActive() ? InpLowerTimeframeRiskMultV132 : 1.0);
    return(INIT_SUCCEEDED);
   }
 
@@ -999,6 +1024,20 @@ void ScanSymbol(string symbol, int atrHandle)
         }
      }
 
+   // v1.32 lower-timeframe adapter: M15/M5 entries keep the proven W2 pullback
+   // mechanics, but they must be nested inside an aligned H1 parent impulse. The
+   // layer is inactive for the default H1 chart, preserving the validated H1 edge.
+   if(LowerTimeframeAdmissionActive() && (fallingFast || risingFast))
+     {
+      int childDir = risingFast ? 1 : -1;
+      string parentReason = "";
+      if(!ParentTimeframeAllows(symbol, childDir, parentReason))
+        {
+         LogSkip(symbol, "parent gate: " + parentReason, atr, spreadAtrSide, -moveAtr);
+         return;
+        }
+     }
+
    // Impulse sign convention matches SIGNAL lines: negative = falling (close1 - closePast).
    double impulseAtr = -moveAtr;
    if(!fallingFast && !(risingFast && InpTradeBothSides))
@@ -1158,9 +1197,12 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 //+------------------------------------------------------------------+
 double RiskPercentForSymbol(string symbol)
   {
+   double riskPct = InpRiskPercent;
    if(symbol == "USDJPY")
-      return(InpUSDJPYRiskPercentV131);
-   return(InpRiskPercent);
+      riskPct = InpUSDJPYRiskPercentV131;
+   if(LowerTimeframeAdmissionActive())
+      riskPct *= InpLowerTimeframeRiskMultV132;
+   return(riskPct);
   }
 
 //+------------------------------------------------------------------+
@@ -1663,6 +1705,74 @@ void LogSkip(string symbol, string reason, double atr=0.0, double spreadAtrSide=
                   symbol, reason, atr, spreadAtrSide, impulseAtr);
    else
       PrintFormat("SKIP %s: %s", symbol, reason);
+  }
+
+bool LowerTimeframeAdmissionActive()
+  {
+   if(!InpUseParentTimeframeGateV132)
+      return(false);
+   int workSec = PeriodSeconds(InpTimeframe);
+   int parentSec = PeriodSeconds(InpParentTimeframeV132);
+   return(workSec > 0 && parentSec > workSec);
+  }
+
+bool ParentTimeframeAllows(string symbol, int direction, string &reason)
+  {
+   reason = "";
+   if(!LowerTimeframeAdmissionActive())
+      return(true);
+   if(direction == 0)
+     {
+      reason = "no child direction";
+      return(false);
+     }
+   if(Bars(symbol, InpParentTimeframeV132) <= InpMomentumBars + InpAtrPeriod + 2)
+     {
+      reason = "parent data not ready";
+      return(false);
+     }
+
+   double parentAtr = 0.0;
+   if(!WilderAtrForTimeframe(symbol, InpParentTimeframeV132, parentAtr) || parentAtr <= 0.0)
+     {
+      reason = "parent ATR unavailable";
+      return(false);
+     }
+
+   double close1 = iClose(symbol, InpParentTimeframeV132, 1);
+   double closePast = iClose(symbol, InpParentTimeframeV132, InpMomentumBars);
+   double open1 = iOpen(symbol, InpParentTimeframeV132, 1);
+   if(close1 == 0.0 || closePast == 0.0 || open1 == 0.0)
+     {
+      reason = "parent bar data missing";
+      return(false);
+     }
+
+   double parentImpulseAtr = (close1 - closePast) / parentAtr; // positive = rising parent, negative = falling parent
+   bool alignedImpulse = (direction > 0)
+                         ? (parentImpulseAtr >= InpParentMinImpulseAtrV132)
+                         : (parentImpulseAtr <= -InpParentMinImpulseAtrV132);
+   if(!alignedImpulse)
+     {
+      reason = StringFormat("%s impulse %.2f ATR is not aligned by %.2f ATR",
+                            EnumToString(InpParentTimeframeV132), parentImpulseAtr,
+                            InpParentMinImpulseAtrV132);
+      return(false);
+     }
+
+   if(InpParentRequireAlignedCandleV132)
+     {
+      bool candleAligned = (direction > 0) ? (close1 > open1) : (close1 < open1);
+      if(!candleAligned)
+        {
+         reason = StringFormat("%s candle not aligned with parent impulse",
+                               EnumToString(InpParentTimeframeV132));
+         return(false);
+        }
+     }
+
+   reason = StringFormat("%s parent impulse %.2f ATR", EnumToString(InpParentTimeframeV132), parentImpulseAtr);
+   return(true);
   }
 
 string PendingSigAtrGv(ulong orderTicket)
@@ -2327,19 +2437,12 @@ int SymbolIndex(string symbol)
 // MT5 built-in iATR is a sliding SIMPLE mean of TR (Examples/ATR.mq5 line 92)
 // and diverges 12-14% median; the impulse gate disagreed on ~1/5 of signals.
 // Seeded with SMA(period) then RMA over ~400 bars: seed influence (13/14)^386 ~ 0.
-bool WilderAtrForSymbol(string symbol, double &value)
+bool ComputeWilderAtr(string symbol, ENUM_TIMEFRAMES tf, double &value)
   {
    value = 0.0;
-   int idx = SymbolIndex(symbol);
-   datetime bar1 = (datetime)iTime(symbol, InpTimeframe, 1);
-   if(idx >= 0 && bar1 > 0 && g_wAtrCacheBar[idx] == bar1 && g_wAtrCache[idx] > 0.0)
-     {
-      value = g_wAtrCache[idx];
-      return(true);
-     }
    MqlRates rates[];
    int need = 400;
-   int got = CopyRates(symbol, InpTimeframe, 1, need, rates);   // shift 1 = closed bars only
+   int got = CopyRates(symbol, tf, 1, need, rates);   // shift 1 = closed bars only
    if(got < InpAtrPeriod * 3)
       return(false);
    double atr = 0.0;
@@ -2360,6 +2463,28 @@ bool WilderAtrForSymbol(string symbol, double &value)
       atr += (tr - atr) / InpAtrPeriod;
      }
    if(atr <= 0.0)
+      return(false);
+   value = atr;
+   return(true);
+  }
+
+bool WilderAtrForTimeframe(string symbol, ENUM_TIMEFRAMES tf, double &value)
+  {
+   return(ComputeWilderAtr(symbol, tf, value));
+  }
+
+bool WilderAtrForSymbol(string symbol, double &value)
+  {
+   value = 0.0;
+   int idx = SymbolIndex(symbol);
+   datetime bar1 = (datetime)iTime(symbol, InpTimeframe, 1);
+   if(idx >= 0 && bar1 > 0 && g_wAtrCacheBar[idx] == bar1 && g_wAtrCache[idx] > 0.0)
+     {
+      value = g_wAtrCache[idx];
+      return(true);
+     }
+   double atr = 0.0;
+   if(!ComputeWilderAtr(symbol, InpTimeframe, atr))
       return(false);
    value = atr;
    if(idx >= 0 && bar1 > 0)
@@ -2795,7 +2920,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.32  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
