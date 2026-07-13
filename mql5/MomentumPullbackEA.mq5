@@ -57,7 +57,7 @@
 //|                                                                  |
 //|   v1.21 (2026-07): EXIT-ENGINE FIDELITY (see docs/LIVE_TRADE_      |
 //|   ANALYSIS_2026-07-01.md). Live was managing lock/trail per tick;  |
-//|   the validated harness manages on M15 bar close. Default now:     |
+//|   the validated harness manages on working-timeframe bar close.   |
 //|   InpManageOnBarClose=true, frozen signal-ATR, limit anchored to   |
 //|   signal-bar close, per-symbol bar clocks, OnTimer heartbeat.      |
 //|                                                                  |
@@ -156,7 +156,7 @@ input double InpLockTriggerAtr   = 0.25;  // (only if InpUseLockTrail) once pric
 input int    InpLockBufferPoints = 0;     // (only if InpUseLockTrail) extra points locked above break-even (0 = auto: spread+2)
 input double InpTrailAtrMult      = 0.5;  // (only if InpUseLockTrail) trailing distance after lock (ATR)
 input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N closed bars (0 = off)
-input bool   InpManageOnBarClose = true;  // P0: lock/trail on M15 bar close (validated engine; false = legacy per-tick)
+input bool   InpManageOnBarClose = true;  // P0: lock/trail on working-timeframe bar close (validated engine; false = legacy per-tick)
 
 //--- Portfolio risk --------------------------------------------------
 input group "=== Portfolio Risk ==="
@@ -182,7 +182,7 @@ input long   InpMagicNumber      = 771025;// Magic number tagging this EA's orde
 input ulong  InpDeviationPoints  = 30;    // Max slippage in points
 input string InpTradeComment     = "MomPullback";   // broker-visible on EVERY order. Deliberately avoids "scalp" (FTMO polices tick-scalping) and any other broker's name.
 input int    InpHeartbeatSeconds = 5;     // OnTimer scan/manage heartbeat (0 = chart ticks only)
-input bool   InpLogNoImpulse     = false; // Log "no impulse" SKIP lines (~1,100/day; gate/data skips are always logged)
+input bool   InpLogNoImpulse     = false; // Log routine impulse/candle rejection lines (gate/data skips are always logged)
 
 input group "=== v1.25 Hardening (protective GATES + observability; validated entry/exit engine UNCHANGED) ==="
 // Zero-regret, ON by default: they never remove a VALID trade, only broken-data trades, and add logging.
@@ -1003,10 +1003,26 @@ void ScanSymbol(string symbol, int atrHandle)
    double impulseAtr = -moveAtr;
    if(!fallingFast && !(risingFast && InpTradeBothSides))
      {
-      if(InpLogNoImpulse)
-         LogSkip(symbol, StringFormat("no impulse (impulse=%.2f ATR)", impulseAtr), atr, spreadAtrSide, impulseAtr);
+      bool belowThreshold = (MathAbs(impulseAtr) < InpMomentumAtrMult);
+      string rejectReason;
+      if(belowThreshold)
+         rejectReason = StringFormat("no impulse: |%.2f| ATR < %.1f ATR threshold",
+                                     impulseAtr, InpMomentumAtrMult);
+      else if(risingFast && !InpTradeBothSides)
+         rejectReason = StringFormat("long impulse %.2f ATR: long-side trading disabled",
+                                     impulseAtr);
       else
-         SetVerdict(symbol, StringFormat("no impulse (%.2f ATR, need %.1f)", impulseAtr, InpMomentumAtrMult));   // v1.28
+        {
+         string actualCandle = (close1 > open1) ? "bullish" :
+                               (close1 < open1) ? "bearish" : "doji";
+         string requiredCandle = (impulseAtr > 0.0) ? "bullish" : "bearish";
+         rejectReason = StringFormat("impulse %.2f ATR: signal candle is %s, requires %s alignment",
+                                     impulseAtr, actualCandle, requiredCandle);
+        }
+      if(InpLogNoImpulse)
+         LogSkip(symbol, rejectReason, atr, spreadAtrSide, impulseAtr);
+      else
+         SetVerdict(symbol, belowThreshold ? rejectReason : "SKIP " + rejectReason);
       return;
      }
 
