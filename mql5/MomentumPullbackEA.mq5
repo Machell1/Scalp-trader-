@@ -297,6 +297,11 @@ int OnInit()
       Print("v1.32 invalid risk inputs: risk values must be positive and no symbol override may exceed base risk");
       return(INIT_PARAMETERS_INCORRECT);
      }
+   if(!ValidateClusterSpec())
+     {
+      Print("v1.32 invalid cluster specification");
+      return(INIT_PARAMETERS_INCORRECT);
+     }
 
    if(InpUsePartialCloseV130)
      {
@@ -1150,10 +1155,17 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       // above the ask is rejected 10015 (observed live 08:29 today) and the trade
       // is silently lost. Market entry at the ask is equal-or-BETTER than the
       // engine's assumed limit fill (ask < limit here by construction).
-      if(isLimit && entry >= ask - stopsLevel)
+      if(isLimit && entry >= ask)
         {
          entry = ask;
          sendMarket = true;
+        }
+      else if(isLimit && stopsLevel > 0.0 && entry >= ask - stopsLevel)
+        {
+         // The desired limit has not traded, but is too close for the broker.
+         // Move it one tick farther into the pullback; never market-enter early.
+         double tickSize = MathMax(SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE), point);
+         entry = ask - stopsLevel - tickSize;
         }
       entry = SnapPrice(symbol, entry);
       sl    = SnapPrice(symbol, entry - stopDist);
@@ -1163,10 +1175,15 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
      {
       // SELL_STOP sits below the bid; SELL_LIMIT sits above signal-bar close (pullback).
       entry = isLimit ? (signalClose + offset) : (bid - offset);
-      if(isLimit && entry <= bid + stopsLevel)
+      if(isLimit && entry <= bid)
         {
          entry = bid;   // v1.27 B4: see BUY branch
          sendMarket = true;
+        }
+      else if(isLimit && stopsLevel > 0.0 && entry <= bid + stopsLevel)
+        {
+         double tickSize = MathMax(SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE), point);
+         entry = bid + stopsLevel + tickSize;
         }
       entry = SnapPrice(symbol, entry);
       sl    = SnapPrice(symbol, entry + stopDist);
@@ -1341,6 +1358,52 @@ bool ValidateRiskOverrides()
          PrintFormat("Invalid risk override '%s'; percent must be in (0, %.4f]",
                      Trim(overrides[i]), InpRiskPercent);
          return(false);
+        }
+      string tokenUp = token;
+      StringToUpper(tokenUp);
+      for(int j = 0; j < i; j++)
+        {
+         string priorPair[];
+         if(StringSplit(overrides[j], StringGetCharacter("=", 0), priorPair) != 2)
+            continue;
+         string priorUp = Trim(priorPair[0]);
+         StringToUpper(priorUp);
+         if(priorUp == tokenUp)
+           {
+            PrintFormat("Duplicate risk override for '%s'", token);
+            return(false);
+           }
+        }
+     }
+   return(true);
+  }
+
+//+------------------------------------------------------------------+
+bool ValidateClusterSpec()
+  {
+   string clusters[];
+   int nc = StringSplit(InpClusterSpec, StringGetCharacter(";", 0), clusters);
+   string seen[];
+   for(int ci = 0; ci < nc; ci++)
+     {
+      string members[];
+      int nm = StringSplit(clusters[ci], StringGetCharacter("|", 0), members);
+      for(int mi = 0; mi < nm; mi++)
+        {
+         string token = Trim(members[mi]);
+         if(StringLen(token) == 0)
+            continue;
+         string tokenUp = token;
+         StringToUpper(tokenUp);
+         for(int si = 0; si < ArraySize(seen); si++)
+            if(seen[si] == tokenUp)
+              {
+               PrintFormat("Duplicate cluster member '%s'; each symbol token must have one cluster", token);
+               return(false);
+              }
+         int next = ArraySize(seen);
+         ArrayResize(seen, next + 1);
+         seen[next] = tokenUp;
         }
      }
    return(true);

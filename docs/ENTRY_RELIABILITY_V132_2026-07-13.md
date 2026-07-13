@@ -38,6 +38,11 @@ codes, or after the single attempt. SL and TP are rebuilt around the refreshed
 entry while retaining the frozen ATR distances and risk-sized volume. The
 behavior can be disabled with `InpRetryCrossedLimitV132`.
 
+If the intended limit has not traded but falls inside the broker's minimum stop
+distance, the EA now moves the pending one tick beyond that minimum instead of
+entering at market early. Market conversion remains reserved for a limit price
+the executable quote has actually crossed.
+
 ### Fail-closed candle data
 
 The W2 filter previously skipped its predicate when high/low data was missing.
@@ -60,7 +65,9 @@ cap or promote reduced-risk USDJPY to base risk.
 
 `InpRiskOverridesV132` accepts comma-separated `SYMBOL=percent` entries. Every
 override must be positive and no larger than `InpRiskPercent`; malformed or
-over-risking maps prevent initialization. Unspecified symbols retain base risk.
+over-risking maps prevent initialization. Duplicate risk or cluster tokens also
+fail initialization rather than relying on list order. Unspecified symbols
+retain base risk.
 
 This makes additional *validated* assets deployable without adding one hard-coded
 input per symbol. It does not admit assets automatically: the whitelist,
