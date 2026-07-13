@@ -120,3 +120,12 @@ each Stage-A passer, and one 100,000-path confirmation per greedy admission.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `458dc2f63a7faf5e608df1f803c7b9e4cbbc4eccdf44f681c6114f24072200fe`
+
+## Owner amendment after results began
+
+After the AUS200 account result was visible, the owner changed the absolute
+stress requirement from 80% to the legacy C0 baseline of 78.887%. This is a
+post-result decision amendment and does not alter the protocol hash or erase
+the original verdict. The paired-improvement, hard-halt, and timeout gates stay
+unchanged. Both the original and amended absolute-threshold verdicts must be
+reported.
