@@ -1,0 +1,2 @@
+time,position_id,symbol,dir,initial_volume,target_volume,deal_volume,level,fill,slippage_price,slippage_R,state,deal_id
+2026.07.13 06:35:57,b549aece1917018794b6,JP225.cash,SELL,16.46,8.23,8.23,67315.07691,67312.00000,3.07691,0.01054,DONE,5a9ec7fcb839c64cc693
