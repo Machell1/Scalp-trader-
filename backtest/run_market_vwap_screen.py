@@ -65,7 +65,8 @@ def main() -> None:
         for stress in (False, True):
             per = []
             pooled_rows = []
-            for symbol, subdir in TRIO:
+            for symbol in TRIO:
+                subdir = "derivM15_spreadgated"
                 path = os.path.join(HERE, "data", subdir, symbol + ".csv")
                 raw = pd.read_csv(path)
                 cost = real_cost_per_side(raw)
@@ -78,7 +79,8 @@ def main() -> None:
                 per.append((symbol, stats(rows, s)))
                 pooled_rows.extend((symbol, ep, r) for ep, r in rows)
             cut_epochs = []
-            for symbol, subdir in TRIO:
+            for symbol in TRIO:
+                subdir = "derivM15_spreadgated"
                 raw = pd.read_csv(os.path.join(HERE, "data", subdir, symbol + ".csv"))
                 dt = pd.to_datetime(raw["time"])
                 cut_epochs.append(int(((dt - pd.Timestamp(0)) // pd.Timedelta(seconds=1)).to_numpy()[int(len(raw) * 0.7)]))

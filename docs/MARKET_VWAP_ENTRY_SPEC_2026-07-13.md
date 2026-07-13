@@ -44,3 +44,11 @@ as a control. No API refresh, terminal access, or live deployment.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `4750df93e80cab40a44206277dfa28ac9babb974a4f40bba22164b13a6609051`
+
+## Execution record
+
+The first invocation failed before reading a cell: `ValueError: too many values to
+unpack (expected 2)` at `run_market_vwap_screen.py:68`, because the imported
+`TRIO` is a tuple of symbol strings rather than `(symbol, directory)` pairs. No
+result was produced; the runner wiring was corrected without changing the
+registered protocol.
