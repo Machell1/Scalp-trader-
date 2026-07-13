@@ -89,7 +89,7 @@ were n10=19,854 and n01=11,202; the registered paired lower improvement was
 The EA changes only the versioned H1 default, whitelist, cluster map, and
 symbol-specific risk lookup. Entry/exit geometry is unchanged. MetaEditor
 compiled the repository source with `Result: 0 errors, 0 warnings, 10580 ms
-elapsed, cpu='X64 Regular'`. Source SHA256 is
+elapsed, cpu='X64 Regular'`. The LF source bytes used by that compile had SHA256
 `84410515cdd76a23d66a0699adf29bd33b4db600319714757ecbdba1165672f4`;
 EX5 SHA256 is
 `c21f03a322d1a5adf7d8cdec7b096bcc6b845391e2252b88aa1ec1fdfa890fa1`.
@@ -109,6 +109,36 @@ query @ `41069cf` plus v1.31 working tree]
 
 ## Terminal-write journal
 
-No terminal write had occurred when this report section was created. Deployment
-requires a second flat-account check, backup hashes, graceful shutdown, source
-and binary replacement, graceful restart, and a verified v1.31 H1 init line.
+Immediately before deployment, a second read-only query returned `POSITIONS 0`
+and `ORDERS 0`. [MEASURED: MetaTrader5 query @ main `9a209b2`]
+
+The terminal write sequence was:
+
+| Terminal-local time | Action | Evidence |
+|---|---|---|
+| 2026-07-13 01:26:17-01:26:30 | Gracefully closed PID 564 with `CloseMainWindow`; no kill | journal: expert removed, exit code 0, terminal stopped/shutdown with 0 |
+| 2026-07-13 01:26:30 | Backed up the prior deployed source and EX5 outside the terminal | `backtest/deploy_backups/v130-before-v131-20260713-012630/` |
+| 2026-07-13 01:26:30 | Replaced `MQL5/Experts/MomentumPullbackEA.mq5` | old SHA256 `7f54580530f412288c17a987085731c0171be5c937c5f2fc45dcaba5c055afba`; new CRLF checkout SHA256 `230d40193bbf099e4e7293a20adb40062f53e9a7545b1a4aef4c3d143ff04c1b` |
+| 2026-07-13 01:26:30 | Replaced `MQL5/Experts/MomentumPullbackEA.ex5` | old SHA256 `63740a67a0ea2b5502ca0a89e745513a0235c6313474ad71e1687a1bec3285bc`; new SHA256 `c21f03a322d1a5adf7d8cdec7b096bcc6b845391e2252b88aa1ec1fdfa890fa1` |
+| 2026-07-13 01:26:34 | Started the same FTMO terminal hidden | PID 3928, responsive; journal reports build 5836 and the expected data path |
+
+No order, position, chart file, account setting, or unrelated terminal file was
+written. [MEASURED: deployment command and before/after hashes @ main
+`9a209b2`]
+
+The journal then reported successful EA load and account synchronization with
+zero positions and zero orders. At 01:26:43 the EA restored
+`dayStartBal=99200.73 dayPnL=174.48 fillsToday=2 peakEq=99375.21
+initBal=100000.00 halted=no hard=no`. At 01:26:44 it reported the panel ready,
+Wilder ATR and CandleParity lines for US30.cash, US100.cash, JP225.cash, and
+USDJPY, followed by:
+
+`MomentumPullbackEA v1.31 ready. Entry=PULLBACK(limit). Exits=bank 50% @
++1.00R + TP2.00/time. ManageOnBarClose=yes. Scanning 4 symbols on PERIOD_H1.
+Base risk=0.30%; USDJPY risk=0.05%.`
+
+[MEASURED: `MQL5/Logs/20260713.log` @ deployed main `9a209b2`]
+
+**Deployment verdict: VERIFIED.** The forward demo remains the validation of
+live fills and behavior; the 85.474% figure is a stress-model estimate, not a
+guarantee of passing any individual challenge.
