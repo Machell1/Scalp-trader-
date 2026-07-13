@@ -1,6 +1,6 @@
 # Scalp-trader — MomentumPullbackEA (FTMO build)
 
-Multi-symbol M15 momentum **pullback** EA + the Python research harness that designed,
+Multi-symbol H1 momentum **pullback** EA + the Python research harness that designed,
 gated, and continuously audits it. Formerly DerivScalperEA; the live deployment is now
 the FTMO $100k evaluation track.
 
@@ -12,23 +12,31 @@ the FTMO $100k evaluation track.
 > `docs/` with results appended under the hash. Read `HANDOFF.md` + the dated
 > `docs/*_SPEC_*.md` files before proposing changes.
 
-## LIVE STATE (2026-07-11) — do not regress
+## LIVE STATE (2026-07-13) — do not regress
 
-- **EA:** `mql5/MomentumPullbackEA.mq5` **v1.29.1**, live on FTMO demo (login 1513946641),
-  magic **771025**, hosted on the BTCUSD,H1 chart (host chart is irrelevant — 5s timer).
-- **Universe (earned per-symbol through gates):** `US30.cash, US100.cash, JP225.cash`,
-  clusters `US30.cash|US100.cash;JP225.cash`. Crypto is COST-DEAD on FTMO (measured
-  commission ≈3.25 bps/side); gold failed six independent methods — do not re-add.
+- **EA:** `mql5/MomentumPullbackEA.mq5` **v1.32**, H1 default, magic **771025**. The host
+  chart is irrelevant because the EA scans each symbol from its 5-second timer.
+- **Universe (earned per-symbol through gates):** `US30.cash, US100.cash, JP225.cash,
+  USDJPY`; clusters `US30.cash|US100.cash;JP225.cash;USDJPY`. USDJPY is independently
+  capped at 0.05% risk. Crypto is COST-DEAD on FTMO (measured commission ≈3.25 bps/side);
+  gold failed six independent methods — do not re-add.
 - **Entry engine (FROZEN — this is the strategy):** momentum 6 bars ≥ 2.0 ATR (Wilder 14,
   self-computed, Python-parity 0.00000), pullback LIMIT 0.6 ATR, expiry 3 bars
   (bar-counted), **W2 candle filter: signal bar must carry an adverse-side wick ≥ 0.30 ATR**
   (contested impulses continue; clean climax bars are the WORST trades — 58k-trade result).
-- **Exits (FROZEN):** pure bracket SL 1.0 ATR / TP 3.0 ATR / 8-bar time exit. A 576-cell
-  walk-forward optimization CONFIRMED these parameters optimal (process −14.4% trying to
-  beat them; the +18%-per-trade alternative collapsed challenge odds 75→56%).
-- **Risk: 0.3%/trade** (sized to the W2 edge: 88.7% modeled both-phase odds, 6.0% bust).
-  Guards: daily −3% pause/−4% halt (cancels pendings), trailing 8% + static 91% floor
-  (restart-proof ledger), max 8 fills/day, 1/cluster, freshness + news guards, panel.
+- **Exits:** SL 1.0 ATR, bank 50% at +1R, remainder TP 2.0 ATR, 8-bar time exit.
+- **Risk:** 0.30% for the confirmed index trio and 0.05% for USDJPY. Guards: daily
+  −4% halt (cancels pendings), trailing 8% + static 91% floor (restart-proof ledger),
+  max 8 fills/day, 1/cluster, freshness + news guards, panel.
+- **v1.32 portability rails:** configured broker suffixes resolve only when unambiguous;
+  signal OHLC and live spread gates fail closed. Symbols deliberately added beyond the
+  confirmed quartet are capped at 0.05% probe risk and one shared cluster seat by default.
+
+M5 is not validated because this repository has no canonical M5 tape. M15 is the original
+research timeframe, but it does not match H1 account results. Shorter timeframe work must
+be treated as a separate research cell: preserve the H1 defaults in production, use real
+costs, and pass the same OOS, 2×-cost, breadth, DSR, and coupled-account gates before any
+new entry logic or asset becomes a live default.
 
 ## Rules for changes (Cursor: these are hard constraints)
 

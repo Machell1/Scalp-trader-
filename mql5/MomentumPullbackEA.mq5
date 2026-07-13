@@ -454,6 +454,15 @@ bool SymbolKeyMatch(string symbol, string key)
           sep == (ushort)StringGetCharacter("#", 0));
   }
 
+bool SymbolExactMatch(string symbol, string key)
+  {
+   symbol = Trim(symbol);
+   key = Trim(key);
+   StringToUpper(symbol);
+   StringToUpper(key);
+   return(symbol == key);
+  }
+
 //+------------------------------------------------------------------+
 //| Resolve one configured key without guessing between broker names. |
 //+------------------------------------------------------------------+
@@ -737,8 +746,8 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
             outVol + 0.5 * vstep < g_posState[si].partialTargetVolume)
             SetPartialState(si, PARTIAL_TRIGGERED, "entry fill increased the 50% target; closing the remainder");
          PersistPartialState(si);
-         double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
-         double sprPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
+         double sprPrice = 0.0;
+         CurrentSpreadPrice(symbol, sprPrice);
          g_posState[si].spreadAtrEntry = (g_posState[si].signalAtr > 0.0) ? 0.5 * sprPrice / g_posState[si].signalAtr : 0.0;
         }
       return;
@@ -1267,19 +1276,23 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 //+------------------------------------------------------------------+
 bool IsConfirmedH1Symbol(string symbol)
   {
-   return(SymbolKeyMatch(symbol, "US30.cash") ||
-          SymbolKeyMatch(symbol, "US100.cash") ||
-          SymbolKeyMatch(symbol, "JP225.cash") ||
-          SymbolKeyMatch(symbol, "USDJPY"));
+   // Full risk is intentionally stricter than cluster matching. A suffixed
+   // contract may have a different tick value/session (for example "_mini");
+   // resolving it makes the EA operable, but it remains probe-risk until that
+   // exact broker product is admitted through the account gate.
+   return(SymbolExactMatch(symbol, "US30.cash") ||
+          SymbolExactMatch(symbol, "US100.cash") ||
+          SymbolExactMatch(symbol, "JP225.cash") ||
+          SymbolExactMatch(symbol, "USDJPY"));
   }
 
 //+------------------------------------------------------------------+
 double RiskPercentForSymbol(string symbol)
   {
-   if(SymbolKeyMatch(symbol, "USDJPY"))
-      return(InpUSDJPYRiskPercentV131);
    if(InpCapUnconfirmedAssetsV132 && !IsConfirmedH1Symbol(symbol))
       return(InpUnconfirmedRiskPercentV132);
+   if(SymbolExactMatch(symbol, "USDJPY"))
+      return(InpUSDJPYRiskPercentV131);
    return(InpRiskPercent);
   }
 
