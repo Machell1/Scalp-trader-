@@ -120,3 +120,22 @@ is claimed.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `ab5e4be70b5cd76cec22579a1e0839522365d41b946a3844cb35ff94e01b0872`
+
+## Results appended post-run
+
+The 12-symbol tape averaged 2.404118 actual entries per Monday-Friday Prague
+day and only 2.3166% of weekdays reached six fills. Its registered-round-trip
+E2 expectancy was +0.043201R versus +0.079031R for the four-symbol control;
+five additions were negative. The frequency and edge gates failed, so no risk
+cell or account Monte Carlo was opened. [MEASURED: `python -u
+backtest/run_twelve_symbol_census.py` @ `d925398`]
+
+The census also found that the H1 account tape's one-time entry debit differs
+from the reference resolver's two-sided registered cost by +0.075039R per
+candidate trade (+0.057315R control). This must be reconciled before another
+H1 account-probability claim. [MEASURED: same command and source inspection @
+`d925398`]
+
+Verdict: **FAILED — DO NOT EXPAND THE LIVE WHITELIST.** Complete results are in
+`docs/codex/TWELVE_SYMBOL_UNIVERSE_REPORT_2026-07-13.md` and
+`backtest/twelve_symbol_census_results.json`.
