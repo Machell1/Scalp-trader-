@@ -205,7 +205,7 @@ def verify_directory(directory: Path, manifest_body: str) -> None:
         raise RuntimeError("manifest row count mismatch")
     seen: set[str] = set()
     for row in rows:
-        match = re.fullmatch(r"([0-9a-f]{64})  backtest/data/ftmoM1_us100_video_20260713/([^/]+)", row)
+        match = re.fullmatch(r"([0-9a-f]{64})  data/ftmoM1_us100_video_20260713/([^/]+)", row)
         if match is None or match.group(2) not in DATA_FILES:
             raise RuntimeError(f"malformed manifest row: {row!r}")
         if match.group(2) in seen:
