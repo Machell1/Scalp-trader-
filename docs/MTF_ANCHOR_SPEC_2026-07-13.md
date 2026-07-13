@@ -106,5 +106,75 @@ pinned. Screens noted at the batch level per house convention.
 
 **Recorded protocol SHA256:** `0922f66f55bbff5b2b9530370926fa5ad60e2905c0c8952ba8bd276ba9cf0bf2`
 
-*Results append below this line after the runs; the runs require the
-manifest-pinned data present only in the owner's environment.*
+---
+## RESULTS (appended post-run 2026-07-13; protocol hashed pre-run:
+SHA256 0922f66f55bbff5b2b9530370926fa5ad60e2905c0c8952ba8bd276ba9cf0bf2)
+
+Data became runnable in-agent when the owner published the LFS package (main
+`846e296`, PR #40). Verification chain, all [MEASURED] at this branch:
+`verify_data.py` -> `verified 46 OK, 0 missing, 0 mismatched`;
+`freeze_ftmo_v130_blind.py --verify` -> 9 OK; `export_ftmo_momentum_history_
+snapshot.py --verify` -> 9 OK; `test_mtf_anchor_screen.py` -> ALL PASS on this
+host; the registered `run_h1_timeframe_screen.py` reproduces the recorded H1
+report EXACTLY (pooled OOS +0.208086R, stress +0.188278R, per-symbol identical
+to all printed digits). Result files: `backtest/mtf_anchor_screen_results.json`,
+`mtf_anchor_holdout_results.json`, `mtf_anchor_livewindow_results.json`.
+Data span 2024-01-22 -> 2026-07-03; 2026Q3 is calendar-incomplete (pooled
+OOS n=10) and is excluded from the complete-quarters gate.
+
+### Trio (E1 measured cost / E2 = 2x), pooled OOS expectancy
+| cell | n | OOS n | OOS E1 | OOS E2 | OOS totR E1 |
+|---|---:|---:|---:|---:|---:|
+| A phase-0 anchor (golden) | 863 | 280 | **+0.2081** | +0.1883 | +58.3 |
+| B phase-1 anchor | 813 | 251 | +0.0885 | +0.0693 | +22.2 |
+| B phase-2 anchor | 841 | 272 | +0.0551 | +0.0354 | +15.0 |
+| B phase-3 anchor | 858 | 261 | +0.0900 | +0.0703 | +23.5 |
+| C1 phase-0 fine | 882 | 280 | +0.1568 | +0.1371 | +43.9 |
+| C2 sliding fine | 1665 | 494 | +0.0423 | +0.0227 | +20.9 |
+
+C2 cohorts (trio, OOS E1): aligned n=130 exp **+0.2074**; off-phase n=364 exp
+**−0.0167** (E2 −0.0365). C2 complete quarters: 2025Q4 +0.1005, 2026Q1 −0.0168,
+2026Q2 +0.0843 (2/3). Live-window (+1 bar) sensitivity: C2 +0.0337/+0.0141 —
+no rescue. Holdout-10 pooled OOS: A +0.0936/+0.0490; C1 +0.0156/−0.0289;
+C2 **−0.0102/−0.0548**; inside holdout-C2 even the aligned cohort is negative
+(−0.0568 E1) — seat contention degrades everything.
+
+### Gate evaluation (pre-registered rules, no post-hoc softening)
+1. Consistency anchor: **PASS** (exact reproduction).
+2. Alignment robustness: **PASS** (all three offsets OOS > 0 at E1) — the H1
+   edge is NOT pure hour-grid luck. But it concentrates 2.3–3.8x at the
+   hour-aligned phase; offsets are weak (and mostly ~0 full-period).
+3. C1: OOS > 0 at E1/E2 ✓, but A−C1 = 0.2081−0.1568 = **0.0513 > 0.05 → FAIL**
+   (by 0.0013; the rule fires as written).
+4. C2: pooled OOS > 0 ✓✓, all trio symbols ✓, quarters 2/3 ✓, but
+   **off-phase cohort OOS −0.0167 → FAIL**, **OOS totR +20.9 < +58.3 → FAIL**,
+   **holdout −0.0102 ≤ −0.01 → FAIL**.
+
+### VERDICT
+**C2 (sliding anchor) is KILLED by its own pre-registered gates.** Mechanism,
+proven by the cohort decomposition: off-phase completions of the "same"
+H1-scale pattern carry no edge (−0.02R), and under single-seat occupancy they
+STEAL the seat from hour-aligned signals (C2 kept only 130 of A's 280 aligned
+OOS trades). Densifying evaluation dilutes the take by construction. The M5
+cell (factor 12) is declared moot upstream — denser off-phase evaluation adds
+more of the negative cohort — and its ledger charge is not incurred.
+`InpUseAnchorAggV132` was reverted from the EA before merge; the mechanization
+survives in branch history if new evidence ever justifies revisiting.
+
+**Positive residue (three findings that stand):**
+1. **The live H1 config survives falsification designed to kill it:** every
+   offset phase is OOS-positive, so the recorded H1 edge is not a bar-grid
+   artifact — but it is genuinely strongest AT the hour boundary, consistent
+   with hour-clustered institutional flow rather than luck.
+2. **Fidelity correction for planning: the derived-H1 tape is grain-optimistic
+   by ~0.05R/trade.** C1 (same signals, M15-granular resolution — closer to
+   how broker-side SL/TP actually execute) estimates the live config at
+   +0.157/+0.137 OOS rather than +0.208/+0.188, all complete quarters
+   positive. Holdout shows the same direction (~0.08R). Plan on the C1
+   numbers, not the A numbers.
+3. Off-grid H1 phases are mildly positive standalone (B cells) but far below
+   phase 0; B_3 on the holdout (+0.116 E1) is a single-cell curiosity, noted
+   and NOT chased (unregistered, selection-exposed).
+
+Ledger: +4 registered cells (B batch, C1, C2, holdout column) + 1 sensitivity
+screen noted; M5 cell not charged. Future DSR hurdles evaluate at ~218.
