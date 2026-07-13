@@ -1,0 +1,4 @@
+backtest/data/derivM15/** filter=lfs diff=lfs merge=lfs -text
+backtest/data/derivM15_diverse/** filter=lfs diff=lfs merge=lfs -text
+backtest/data/derivM15_spreadgated/** filter=lfs diff=lfs merge=lfs -text
+backtest/data/ftmoM15_blind_20260711/** filter=lfs diff=lfs merge=lfs -text
