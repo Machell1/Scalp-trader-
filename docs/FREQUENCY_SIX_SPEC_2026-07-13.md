@@ -106,3 +106,15 @@ survivor.
 **PRE-REGISTRATION ENDS — hash all UTF-8/LF bytes through this line, including its newline.**
 
 **Recorded protocol SHA256:** `5748232e24bd8d78bb4349704a4ac9ab7f4c80d4e35a75902146103a1acb22fe`
+
+## Results appended post-run
+
+Both cells failed before final OOS. P30 selected zero of 33 symbols; M30
+selected zero of 33 symbols. P30 pooled E2 expectancy was -0.217077R in
+calibration and -0.215775R in confirmation. M30 pooled E2 expectancy was
+-0.320544R and -0.303370R respectively. No frequency or account-risk cell was
+opened. [MEASURED: `python -u backtest/run_frequency_six_study.py` @ `4605d22`]
+
+Verdict: **SIX-FILL TARGET NOT MET — BOTH CELLS KILLED.** Complete results are
+in `docs/codex/FREQUENCY_SIX_REPORT_2026-07-13.md` and
+`backtest/frequency_six_results.json`.
