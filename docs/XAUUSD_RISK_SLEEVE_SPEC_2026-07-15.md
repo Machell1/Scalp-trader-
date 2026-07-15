@@ -66,3 +66,33 @@ Ledger charge: five predeclared XAUUSD risk cells and one conditional
 **Recorded protocol SHA256:** `5170da78961ac538c774196e2b061174c48d9d9b1d31fa6b423071e98f1ee4b2`
 
 ## Results appended after the hash
+
+Frozen-data verification: `verified 46 OK, 0 missing, 0 mismatched`.
+[MEASURED: `python backtest/verify_data.py` @ `3efe9fa`]
+
+The Python reference and C# account kernel matched byte-for-byte on path 0 for
+the deployed control and every XAUUSD risk policy. The screen used 20,000
+common path IDs and 116 common eligible moving blocks. The deployed-v1.31
+paired control measured 82.1350% both-phases pass, 81.6851% Wilson lower,
+0.2150% hard halt, and 17.6500% timeout on the common paths.
+[MEASURED: `python -u backtest/run_h1_xauusd_risk.py`]
+
+| XAUUSD dynamic risk | Both phases | Wilson lower | Hard halt | Timeout | Paired lower delta | Verdict |
+|---:|---:|---:|---:|---:|---:|---|
+| 0.05% | 81.2650% | 80.8070% | 0.1100% | 18.6250% | -1.8647 pp | FAIL |
+| 0.10% | 78.6800% | 78.1998% | 0.4050% | 20.9150% | -4.4787 pp | FAIL |
+| 0.15% | 76.4900% | 75.9932% | 1.2500% | 22.2600% | -6.6716 pp | FAIL |
+| 0.20% | 72.8450% | 72.3246% | 3.6400% | 23.5150% | -10.3398 pp | FAIL |
+| 0.25% | 68.4050% | 67.8618% | 7.9050% | 23.6900% | -14.8008 pp | FAIL |
+
+No screen cell passed; the 100,000-path confirmation did not run.
+[MEASURED: `backtest/h1_xauusd_risk_results.json`]
+
+**Verdict: NO_ADMISSION.** The paired delta never approaches zero — even the
+smallest sleeve (0.05%) makes the deployed book worse (-1.86 pp lower bound),
+and degradation is monotonic in size. The pre-registered prior held: gold's
+per-symbol expectancy (+0.110R OOS, best of the universe passers) does not
+survive account-level integration at ANY size — its tail profile consumes more
+pass probability through halts and timeouts than its expectancy contributes.
+Per the pre-registration, XAUUSD is closed on this data: no further risk
+levels, filters, indicator changes, or timeframe variants.
