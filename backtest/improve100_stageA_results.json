@@ -1,0 +1,2343 @@
+{
+  "cells": {
+    "F01": {
+      "delta_full": -0.02706490593559141,
+      "delta_oos": 0.0021001355931455357,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.14644709376107684,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F01",
+      "kind": "overlay",
+      "mean_r_kept": 0.03973092774852617,
+      "mean_r_veto": 0.186178021509603,
+      "n": 1185,
+      "n_kept": 966,
+      "n_veto": 219,
+      "oos_n": 288,
+      "p": 0.9728,
+      "params": "block ATRp(500)>90",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F02": {
+      "delta_full": -0.01329790473718729,
+      "delta_oos": 0.013157426729158483,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.06593312599818801,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F02",
+      "kind": "overlay",
+      "mean_r_kept": 0.05349792894693029,
+      "mean_r_veto": 0.11943105494511831,
+      "n": 1185,
+      "n_kept": 946,
+      "n_veto": 239,
+      "oos_n": 296,
+      "p": 0.748,
+      "params": "block TR(sig)>3.0xATR[i-1]",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F03": {
+      "delta_full": -0.034792806371200614,
+      "delta_oos": -0.07232213726896333,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.07749901419149008,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F03",
+      "kind": "overlay",
+      "mean_r_kept": 0.032003027312916967,
+      "mean_r_veto": 0.10950204150440704,
+      "n": 1185,
+      "n_kept": 653,
+      "n_veto": 532,
+      "oos_n": 190,
+      "p": 0.8978,
+      "params": "allow only sign(EMA20_H4 slope over 3 H4)==dir",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F04": {
+      "delta_full": -0.05012790033754701,
+      "delta_oos": 0.04485745934004931,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.09596375105006975,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F04",
+      "kind": "overlay",
+      "mean_r_kept": 0.016667933346570574,
+      "mean_r_veto": 0.11263168439664033,
+      "n": 1185,
+      "n_kept": 566,
+      "n_veto": 619,
+      "oos_n": 167,
+      "p": 0.9439,
+      "params": "allow only sign(dclose[-1]-dclose[-21])==dir",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F05": {
+      "delta_full": -0.023844459352886156,
+      "delta_oos": 0.03733720278669625,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.03150020549963221,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F05",
+      "kind": "overlay",
+      "mean_r_kept": 0.042951374331231425,
+      "mean_r_veto": 0.07445157983086363,
+      "n": 1185,
+      "n_kept": 288,
+      "n_veto": 897,
+      "oos_n": 72,
+      "p": 0.6785,
+      "params": "allow only 20d extreme printed in last 3d (dir side)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F06": {
+      "delta_full": -0.018729456202184892,
+      "delta_oos": -0.033817187404400206,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.10773983300771403,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F06",
+      "kind": "overlay",
+      "mean_r_kept": 0.04806637748193269,
+      "mean_r_veto": 0.1558062104896467,
+      "n": 1185,
+      "n_kept": 979,
+      "n_veto": 206,
+      "oos_n": 300,
+      "p": 0.9309,
+      "params": "allow only KER(10)>=0.30",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F07": {
+      "delta_full": -0.0035468144643508864,
+      "delta_oos": -0.04084007256180118,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.006021454355667352,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F07",
+      "kind": "overlay",
+      "mean_r_kept": 0.0632490192197667,
+      "mean_r_veto": 0.06927047357543405,
+      "n": 1185,
+      "n_kept": 487,
+      "n_veto": 698,
+      "oos_n": 149,
+      "p": 0.5551,
+      "params": "allow only VR(10)>1.00 (250 H1 log rets)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F08": {
+      "delta_full": -0.009335521628272662,
+      "delta_oos": -0.024995809683863182,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.15581117083807172,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F08",
+      "kind": "overlay",
+      "mean_r_kept": 0.05746031205584492,
+      "mean_r_veto": 0.21327148289391665,
+      "n": 1185,
+      "n_kept": 1114,
+      "n_veto": 71,
+      "oos_n": 341,
+      "p": 0.8889,
+      "params": "indices only: sign(US500 6-bar)==dir; USDJPY exempt",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F09": {
+      "delta_full": 0.001045087798122235,
+      "delta_oos": 0.0004462265177440916,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.018212191776100638,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F09",
+      "kind": "overlay",
+      "mean_r_kept": 0.06784092148223982,
+      "mean_r_veto": 0.04962872970613918,
+      "n": 1185,
+      "n_kept": 1117,
+      "n_veto": 68,
+      "oos_n": 339,
+      "p": 0.6899,
+      "params": "USDJPY only: sign(6-leg dollar 6-bar factor)==dir",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F10": {
+      "delta_full": -0.047910737594939815,
+      "delta_oos": -0.056202724438287555,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.23173152673470887,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F10",
+      "kind": "overlay",
+      "mean_r_kept": 0.01888509608917777,
+      "mean_r_veto": 0.25061662282388664,
+      "n": 1185,
+      "n_kept": 940,
+      "n_veto": 245,
+      "oos_n": 268,
+      "p": 0.9879,
+      "params": "US idx: block longs if USDJPY 6-bar<-0.5xATR_JPY (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F11": {
+      "delta_full": -0.0028374676527451598,
+      "delta_oos": -0.021873220269306715,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.04424209432240829,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F11",
+      "kind": "overlay",
+      "mean_r_kept": 0.06395836603137242,
+      "mean_r_veto": 0.10820046035378071,
+      "n": 1185,
+      "n_kept": 1109,
+      "n_veto": 76,
+      "oos_n": 328,
+      "p": 0.5878,
+      "params": "block longs (risk-dir, all 4) when XAUUSD 6-bar>+2.0xATR_XAU",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F12": {
+      "delta_full": -0.006118829349527566,
+      "delta_oos": -0.007129433242094696,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.08431177650221124,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F12",
+      "kind": "overlay",
+      "mean_r_kept": 0.060677004334590015,
+      "mean_r_veto": 0.14498878083680125,
+      "n": 1185,
+      "n_kept": 1099,
+      "n_veto": 86,
+      "oos_n": 321,
+      "p": 0.952,
+      "params": "JP225 only: sign(USDJPY 6-bar)==dir",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F13": {
+      "delta_full": 0.0010256141103532485,
+      "delta_oos": -0.00021233010586832468,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.15191909009607665,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F13",
+      "kind": "overlay",
+      "mean_r_kept": 0.06782144779447083,
+      "mean_r_veto": -0.08409764230160582,
+      "n": 1185,
+      "n_kept": 1177,
+      "n_veto": 8,
+      "oos_n": 354,
+      "p": 0.4143,
+      "params": "USDJPY longs: AUDJPY 6-bar<-2.0xATR14 (real cross used: spec's synthetic AUDUSDxUSDJPY impossible, no AUDUSD on tape)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F14": {
+      "delta_full": -0.016524458986808266,
+      "delta_oos": -0.014632056180578862,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.06420158655530424,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F14",
+      "kind": "overlay",
+      "mean_r_kept": 0.050271374697309315,
+      "mean_r_veto": 0.11447296125261355,
+      "n": 1185,
+      "n_kept": 880,
+      "n_veto": 305,
+      "oos_n": 253,
+      "p": 0.6533,
+      "params": "index must own largest |6-bar/ATR| of the 3 indices",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F15": {
+      "delta_full": 0.0,
+      "delta_oos": 0.0,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gap": null,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": false,
+        "pre_fdr_pass": false
+      },
+      "id": "F15",
+      "kind": "overlay",
+      "mean_r_kept": 0.06679583368411758,
+      "mean_r_veto": null,
+      "n": 1185,
+      "n_kept": 1185,
+      "n_veto": 0,
+      "oos_n": 358,
+      "p": null,
+      "params": "block mean M15 spread(sig hour)>2x trailing-20 same-hour median; USDJPY no spread series -> never vetoed",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F16": {
+      "delta_full": -0.005162894391650609,
+      "delta_oos": 9.594220161193712e-05,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.21096654669330936,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F16",
+      "kind": "overlay",
+      "mean_r_kept": 0.06163293929246697,
+      "mean_r_veto": 0.2725994859857763,
+      "n": 1185,
+      "n_kept": 1156,
+      "n_veto": 29,
+      "oos_n": 356,
+      "p": 0.9397,
+      "params": "block 2xmean spread(last 4 M15)>0.10xATR; USDJPY no spread series -> never vetoed",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F17": {
+      "delta_full": 0.0,
+      "delta_oos": 0.0,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gap": null,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": false,
+        "pre_fdr_pass": false
+      },
+      "id": "F17",
+      "kind": "overlay",
+      "mean_r_kept": 0.06679583368411758,
+      "mean_r_veto": null,
+      "n": 1185,
+      "n_kept": 1185,
+      "n_veto": 0,
+      "oos_n": 358,
+      "p": null,
+      "params": "block 0.6xATR>3.0xmean M15 TR(8)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F18": {
+      "delta_full": -0.00031357459167540014,
+      "delta_oos": 0.011861632488563645,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.01376244041242046,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F18",
+      "kind": "overlay",
+      "mean_r_kept": 0.06648225909244218,
+      "mean_r_veto": 0.08024469950486264,
+      "n": 1185,
+      "n_kept": 1158,
+      "n_veto": 27,
+      "oos_n": 350,
+      "p": 0.6192,
+      "params": "block sum|gaps|(5 internal, bars i-5..i)>=0.35x|c[i]-c[i-5]| (engine move)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F19": {
+      "delta_full": 0.0005913388805228181,
+      "delta_oos": 0.0054479049780925826,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.006737851667495652,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F19",
+      "kind": "overlay",
+      "mean_r_kept": 0.0673871725646404,
+      "mean_r_veto": 0.06064932089714475,
+      "n": 1185,
+      "n_kept": 1081,
+      "n_veto": 104,
+      "oos_n": 325,
+      "p": 0.4553,
+      "params": "block any TR>4xATR@bar in i-24..i-1",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F20": {
+      "delta_full": 0.016313070344365355,
+      "delta_oos": 0.02104276391040949,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.08826935323320975,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F20",
+      "kind": "overlay",
+      "mean_r_kept": 0.08310890402848294,
+      "mean_r_veto": -0.00516044920472681,
+      "n": 1185,
+      "n_kept": 966,
+      "n_veto": 219,
+      "oos_n": 259,
+      "p": 0.1111,
+      "params": "block stop within 0.10xATR of round grid (grid=10^(floor(log10(med close))-2))",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F21": {
+      "delta_full": 0.020977348239747437,
+      "delta_oos": 0.04966860121105168,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.07891478623524038,
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": true
+      },
+      "id": "F21",
+      "kind": "overlay",
+      "mean_r_kept": 0.08777318192386502,
+      "mean_r_veto": 0.008858395688624631,
+      "n": 1185,
+      "n_kept": 870,
+      "n_veto": 315,
+      "oos_n": 247,
+      "p": 0.1439,
+      "params": "block prior-day extreme strictly inside limit->TP path",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F22": {
+      "delta_full": 0.0,
+      "delta_oos": 0.0,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gap": null,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": false,
+        "pre_fdr_pass": false
+      },
+      "id": "F22",
+      "kind": "overlay",
+      "mean_r_kept": 0.06679583368411758,
+      "mean_r_veto": null,
+      "n": 1185,
+      "n_kept": 1185,
+      "n_veto": 0,
+      "oos_n": 358,
+      "p": null,
+      "params": "allow longs only if limit>=min(low[i-4..i]) (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F23": {
+      "delta_full": 0.0003238450097309553,
+      "delta_oos": 0.04686387367140463,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.0010019747690109548,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F23",
+      "kind": "overlay",
+      "mean_r_kept": 0.06711967869384854,
+      "mean_r_veto": 0.06611770392483758,
+      "n": 1185,
+      "n_kept": 802,
+      "n_veto": 383,
+      "oos_n": 251,
+      "p": 0.4988,
+      "params": "block longs if close>SMA20+3xATR (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F24": {
+      "delta_full": 0.009224292497546555,
+      "delta_oos": 0.046438849912725205,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.06918219373159917,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F24",
+      "kind": "overlay",
+      "mean_r_kept": 0.07602012618166414,
+      "mean_r_veto": 0.006837932450064957,
+      "n": 1185,
+      "n_kept": 1027,
+      "n_veto": 158,
+      "oos_n": 310,
+      "p": 0.2574,
+      "params": "block if same-dir actionable signal in prior 8 bars",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F25": {
+      "delta_full": 0.001124525364589124,
+      "delta_oos": 0.020420328597407666,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.012005068081424299,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F25",
+      "kind": "overlay",
+      "mean_r_kept": 0.0679203590487067,
+      "mean_r_veto": 0.055915290967282406,
+      "n": 1185,
+      "n_kept": 1074,
+      "n_veto": 111,
+      "oos_n": 322,
+      "p": 0.5637,
+      "params": "block volume z>3 vs trailing 100 prior bars",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F26": {
+      "delta_full": 0.028749745013503622,
+      "delta_oos": 0.04253926801044838,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.057257895531095435,
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": true
+      },
+      "id": "F26",
+      "kind": "overlay",
+      "mean_r_kept": 0.0955455786976212,
+      "mean_r_veto": 0.03828768316652577,
+      "n": 1185,
+      "n_kept": 590,
+      "n_veto": 595,
+      "oos_n": 173,
+      "p": 0.5472,
+      "params": "H1 grain: allow only mean TR(i-17..i-6)<=0.90xATR[i-6] (window pre-dates the 6-bar impulse; M15 reading would sit inside it)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F27": {
+      "delta_full": -0.002415144341460798,
+      "delta_oos": 0.005833616609440012,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.03815928059508057,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F27",
+      "kind": "overlay",
+      "mean_r_kept": 0.06438068934265678,
+      "mean_r_veto": 0.10253996993773735,
+      "n": 1185,
+      "n_kept": 1110,
+      "n_veto": 75,
+      "oos_n": 338,
+      "p": 0.553,
+      "params": "indices: block last+first trading day of month",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F28": {
+      "delta_full": -0.0012139400238567882,
+      "delta_oos": 0.007616728550997792,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.044953716508446734,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F28",
+      "kind": "overlay",
+      "mean_r_kept": 0.06558189366026079,
+      "mean_r_veto": 0.11053561016870753,
+      "n": 1185,
+      "n_kept": 1153,
+      "n_veto": 32,
+      "oos_n": 351,
+      "p": 0.5051,
+      "params": "block if <3 H1 bars to weekly close (gap>24h boundary)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F29": {
+      "delta_full": -0.007221771443168518,
+      "delta_oos": -0.0024216601440499586,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.06434435458762915,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F29",
+      "kind": "overlay",
+      "mean_r_kept": 0.05957406224094906,
+      "mean_r_veto": 0.12391841682857821,
+      "n": 1185,
+      "n_kept": 1052,
+      "n_veto": 133,
+      "oos_n": 315,
+      "p": 0.9145,
+      "params": "block if M15 grid gap or >2 zero-range bars in last 24 M15",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "F30": {
+      "delta_full": 0.004859480585128612,
+      "delta_oos": -0.003401256141355169,
+      "family": "F",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.11074008641110356,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "F30",
+      "kind": "overlay",
+      "mean_r_kept": 0.07165531426924619,
+      "mean_r_veto": -0.039084772141857356,
+      "n": 1185,
+      "n_kept": 1133,
+      "n_veto": 52,
+      "oos_n": 343,
+      "p": 0.193,
+      "params": "block if >20 of 96 closes within +-0.5xATR of TP (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G01": {
+      "delta_full": -0.061361257641847224,
+      "delta_oos": -0.09768509792010426,
+      "expectancy": 0.00543457604227036,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G01",
+      "kind": "variant",
+      "n": 1429,
+      "oos_n": 415,
+      "p": 0.999,
+      "params": "{'depth': 0.4}",
+      "plateau": {
+        "consistent": true,
+        "family": "depth",
+        "family_entrant": "G03",
+        "neighbors": {
+          "0.5": 0.03426281132803683
+        },
+        "value": 0.4
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G02": {
+      "delta_full": -0.03253302235608075,
+      "delta_oos": -0.0609784180320829,
+      "expectancy": 0.03426281132803683,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G02",
+      "kind": "variant",
+      "n": 1303,
+      "oos_n": 383,
+      "p": 0.982,
+      "params": "{'depth': 0.5}",
+      "plateau": {
+        "consistent": false,
+        "family": "depth",
+        "family_entrant": "G03",
+        "neighbors": {
+          "0.4": 0.00543457604227036,
+          "0.6": 0.06679583368411758
+        },
+        "value": 0.5
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G03": {
+      "delta_full": -0.007671603382275925,
+      "delta_oos": -0.028924784953470103,
+      "expectancy": 0.059124230301841656,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G03",
+      "kind": "variant",
+      "n": 1062,
+      "oos_n": 312,
+      "p": 0.679,
+      "params": "{'depth': 0.7}",
+      "plateau": {
+        "consistent": true,
+        "family": "depth",
+        "family_entrant": "G03",
+        "neighbors": {
+          "0.6": 0.06679583368411758,
+          "0.8": 0.08785922584913855
+        },
+        "value": 0.7
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G04": {
+      "delta_full": 0.02106339216502097,
+      "delta_oos": -0.010687037025389728,
+      "expectancy": 0.08785922584913855,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G04",
+      "kind": "variant",
+      "n": 948,
+      "oos_n": 277,
+      "p": 0.1935,
+      "params": "{'depth': 0.8}",
+      "plateau": {
+        "consistent": false,
+        "family": "depth",
+        "family_entrant": "G03",
+        "neighbors": {
+          "0.7": 0.059124230301841656
+        },
+        "value": 0.8
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G05": {
+      "delta_full": -0.005586692041532455,
+      "delta_oos": 0.004177549938967157,
+      "expectancy": 0.061209141642585126,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G05",
+      "kind": "variant",
+      "n": 1099,
+      "oos_n": 329,
+      "p": 0.673,
+      "params": "{'window': 2}",
+      "plateau": {
+        "consistent": true,
+        "family": "window",
+        "family_entrant": "G07",
+        "neighbors": {
+          "3": 0.06679583368411758
+        },
+        "value": 2
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G06": {
+      "delta_full": 0.005556693545392455,
+      "delta_oos": 0.004595764255790724,
+      "expectancy": 0.07235252722951004,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G06",
+      "kind": "variant",
+      "n": 1224,
+      "oos_n": 358,
+      "p": 0.2825,
+      "params": "{'window': 4}",
+      "plateau": {
+        "consistent": true,
+        "family": "window",
+        "family_entrant": "G07",
+        "neighbors": {
+          "3": 0.06679583368411758,
+          "5": 0.07050578031863619
+        },
+        "value": 4
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G07": {
+      "delta_full": 0.00370994663451861,
+      "delta_oos": 0.00584443553649322,
+      "expectancy": 0.07050578031863619,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G07",
+      "kind": "variant",
+      "n": 1242,
+      "oos_n": 360,
+      "p": 0.368,
+      "params": "{'window': 5}",
+      "plateau": {
+        "consistent": true,
+        "family": "window",
+        "family_entrant": "G07",
+        "neighbors": {
+          "4": 0.07235252722951004
+        },
+        "value": 5
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G08": {
+      "delta_full": 0.008913651544098608,
+      "delta_oos": 0.028054238340067067,
+      "expectancy": 0.07570948522821619,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G08",
+      "kind": "variant",
+      "n": 935,
+      "oos_n": 284,
+      "p": 0.328,
+      "params": "{'wick': 0.4}",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G08d35": {
+      "delta_full": 0.01693804748013561,
+      "delta_oos": 0.023159532520778736,
+      "expectancy": 0.08373388116425319,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "note": "non-decisional diagnostic"
+      },
+      "id": "G08d35",
+      "kind": "diagnostic",
+      "n": 1045,
+      "oos_n": 315,
+      "p": 0.13,
+      "params": "{'wick': 0.35}",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G09": {
+      "delta_full": -0.037847762658968526,
+      "delta_oos": -0.024304332104867418,
+      "expectancy": 0.028948071025149052,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G09",
+      "kind": "variant",
+      "n": 1020,
+      "oos_n": 296,
+      "p": 0.943,
+      "params": "{'lookback': 5}",
+      "plateau": {
+        "consistent": true,
+        "family": "lookback",
+        "family_entrant": "G09",
+        "neighbors": {
+          "6": 0.06679583368411758
+        },
+        "value": 5
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G10": {
+      "delta_full": -0.07737408664521624,
+      "delta_oos": -0.055279925086010276,
+      "expectancy": -0.010578252961098657,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": false
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G10",
+      "kind": "variant",
+      "n": 1324,
+      "oos_n": 415,
+      "p": 1.0,
+      "params": "{'lookback': 7}",
+      "plateau": {
+        "consistent": true,
+        "family": "lookback",
+        "family_entrant": "G09",
+        "neighbors": {
+          "6": 0.06679583368411758
+        },
+        "value": 7
+      },
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G12": {
+      "delta_full": -0.05078114638697783,
+      "delta_oos": 0.006285782398521955,
+      "expectancy": 0.01601468729713975,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G12",
+      "kind": "variant",
+      "n": 575,
+      "oos_n": 167,
+      "p": 0.9185,
+      "params": "{'persist': True}",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G14": {
+      "delta_full": 0.004311638989320576,
+      "delta_oos": 0.05147966491589115,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.020437168809379597,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "G14",
+      "kind": "overlay",
+      "mean_r_kept": 0.07110747267343816,
+      "mean_r_veto": 0.05067030386405856,
+      "n": 1185,
+      "n_kept": 935,
+      "n_veto": 250,
+      "oos_n": 282,
+      "p": 0.4445,
+      "params": "keep only first armed signal of server-day per symbol",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "G15": {
+      "delta_full": 0.024332822405463098,
+      "delta_oos": 0.012288183783899537,
+      "expectancy": 0.09112865608958068,
+      "family": "G",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": true
+      },
+      "id": "G15",
+      "kind": "variant",
+      "n": 982,
+      "oos_n": 295,
+      "p": 0.042,
+      "params": "{'cooldown': 12}",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "H01": {
+      "delta_full": -0.004242433537427648,
+      "delta_oos": 0.002171342834131895,
+      "family": "H",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.017395445473535456,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "H01",
+      "kind": "overlay",
+      "mean_r_kept": 0.06255340014668993,
+      "mean_r_veto": 0.07994884562022539,
+      "n": 1185,
+      "n_kept": 896,
+      "n_veto": 289,
+      "oos_n": 274,
+      "p": 0.6418,
+      "params": "block longs if prior-day IBS>0.8 (mirror shorts <0.2)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R01": {
+      "delta_full": -0.012113272160069473,
+      "delta_oos": -0.01513094811961764,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.1421210644523002,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R01",
+      "kind": "overlay",
+      "mean_r_kept": 0.05468256152404811,
+      "mean_r_veto": 0.1968036259763483,
+      "n": 1185,
+      "n_kept": 1084,
+      "n_veto": 101,
+      "oos_n": 333,
+      "p": 0.9147,
+      "params": "block last 2 TD of month",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R02": {
+      "delta_full": 0.03516638866115261,
+      "delta_oos": -0.0020886594899431343,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.07522052448279033,
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R02",
+      "kind": "overlay",
+      "mean_r_kept": 0.10196222234527019,
+      "mean_r_veto": 0.026741697862479857,
+      "n": 1185,
+      "n_kept": 631,
+      "n_veto": 554,
+      "oos_n": 187,
+      "p": 0.098,
+      "params": "ToM window (last1+first3): longs only inside, shorts only outside",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R03": {
+      "delta_full": 0.0074156414689470485,
+      "delta_oos": 0.01751894621370989,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.06367779087465401,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R03",
+      "kind": "overlay",
+      "mean_r_kept": 0.07421147515306463,
+      "mean_r_veto": 0.010533684278410614,
+      "n": 1185,
+      "n_kept": 1047,
+      "n_veto": 138,
+      "oos_n": 317,
+      "p": 0.2501,
+      "params": "block TD 1-3",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R04": {
+      "delta_full": -0.006337059960431872,
+      "delta_oos": -0.006896866648826466,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.19761621192399384,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R04",
+      "kind": "overlay",
+      "mean_r_kept": 0.06045877372368571,
+      "mean_r_veto": 0.25807498564767956,
+      "n": 1185,
+      "n_kept": 1147,
+      "n_veto": 38,
+      "oos_n": 352,
+      "p": 0.8969,
+      "params": "block last 3 TD of Mar/Jun/Sep/Dec",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R05": {
+      "delta_full": -0.0014468783509854338,
+      "delta_oos": 0.004669957598550323,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.0816452783770347,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R05",
+      "kind": "overlay",
+      "mean_r_kept": 0.06534895533313215,
+      "mean_r_veto": 0.14699423371016684,
+      "n": 1185,
+      "n_kept": 1164,
+      "n_veto": 21,
+      "oos_n": 353,
+      "p": 0.6405,
+      "params": "block fixed dates ((1, 1), (1, 2), (7, 3), (7, 4), (12, 24), (12, 25), (12, 26), (12, 31))",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R06": {
+      "delta_full": -0.0012232292092682062,
+      "delta_oos": -0.007856683654256652,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.20707523042611486,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R06",
+      "kind": "overlay",
+      "mean_r_kept": 0.06557260447484937,
+      "mean_r_veto": 0.2726478349009642,
+      "n": 1185,
+      "n_kept": 1178,
+      "n_veto": 7,
+      "oos_n": 355,
+      "p": 0.7532,
+      "params": "USDJPY: block last 3 TD of Mar and Sep",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R07": {
+      "delta_full": 0.01588674271582348,
+      "delta_oos": 0.015221669820831896,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.13842492734007955,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R07",
+      "kind": "overlay",
+      "mean_r_kept": 0.08268257639994106,
+      "mean_r_veto": -0.0557423509401385,
+      "n": 1185,
+      "n_kept": 1049,
+      "n_veto": 136,
+      "oos_n": 322,
+      "p": 0.2394,
+      "params": "USDJPY: longs only if dollar index>SMA200 (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R08": {
+      "delta_full": -0.01876063678171902,
+      "delta_oos": -0.005648016419228741,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.07435235647604359,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R08",
+      "kind": "overlay",
+      "mean_r_kept": 0.04803519690239856,
+      "mean_r_veto": 0.12238755337844215,
+      "n": 1185,
+      "n_kept": 886,
+      "n_veto": 299,
+      "oos_n": 261,
+      "p": 0.7122,
+      "params": "indices: longs only above own SMA200(H1) (mirrored); USDJPY exempt",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R09": {
+      "delta_full": -0.0104774134117505,
+      "delta_oos": -0.032967596753710485,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.22992101653563604,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R09",
+      "kind": "overlay",
+      "mean_r_kept": 0.05631842027236708,
+      "mean_r_veto": 0.2862394368080031,
+      "n": 1185,
+      "n_kept": 1131,
+      "n_veto": 54,
+      "oos_n": 338,
+      "p": 0.9889,
+      "params": "JP225: block when sign(JP225 20-bar)!=sign(US100 20-bar)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R10": {
+      "delta_full": -0.015385290177803171,
+      "delta_oos": 0.017886631568270167,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.11323955814097361,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R10",
+      "kind": "overlay",
+      "mean_r_kept": 0.05141054350631441,
+      "mean_r_veto": 0.16465010164728802,
+      "n": 1185,
+      "n_kept": 1024,
+      "n_veto": 161,
+      "oos_n": 309,
+      "p": 0.8944,
+      "params": "block when median ATRp of 4 traded symbols>90",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R11": {
+      "delta_full": 0.001018000978911443,
+      "delta_oos": 0.011362023590546833,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.022339465926112613,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R11",
+      "kind": "overlay",
+      "mean_r_kept": 0.06781383466302902,
+      "mean_r_veto": 0.04547436873691641,
+      "n": 1185,
+      "n_kept": 1131,
+      "n_veto": 54,
+      "oos_n": 345,
+      "p": 0.4931,
+      "params": "block when median ATRp of 4 traded symbols<10",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R12": {
+      "delta_full": -0.006921759013128435,
+      "delta_oos": -0.032177922453025073,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.058172230003951685,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R12",
+      "kind": "overlay",
+      "mean_r_kept": 0.059874074670989146,
+      "mean_r_veto": 0.11804630467494083,
+      "n": 1185,
+      "n_kept": 1044,
+      "n_veto": 141,
+      "oos_n": 313,
+      "p": 0.7396,
+      "params": "block longs after 3 consecutive red days (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R13": {
+      "delta_full": 0.003700087327147661,
+      "delta_oos": 0.022528747001531818,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.07431531326559278,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R13",
+      "kind": "overlay",
+      "mean_r_kept": 0.07049592101126524,
+      "mean_r_veto": -0.003819392254327537,
+      "n": 1185,
+      "n_kept": 1126,
+      "n_veto": 59,
+      "oos_n": 339,
+      "p": 0.5012,
+      "params": "JP225: block when USDJPY %ATR pctile(500)>85",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R14": {
+      "delta_full": -0.0018444216452722234,
+      "delta_oos": -0.00786377888402455,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": -0.04856976999216868,
+      "gates": {
+        "materiality": false,
+        "n_ok": false,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R14",
+      "kind": "overlay",
+      "mean_r_kept": 0.06495141203884536,
+      "mean_r_veto": 0.11352118203101404,
+      "n": 1185,
+      "n_kept": 1140,
+      "n_veto": 45,
+      "oos_n": 321,
+      "p": 0.6162,
+      "params": "block longs (risk-dir) when XAUUSD 20-bar>+1.5%",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "R15": {
+      "delta_full": 0.0028134061933340893,
+      "delta_oos": 0.003979040674640166,
+      "family": "R",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gap": 0.008397698587155923,
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "R15",
+      "kind": "overlay",
+      "mean_r_kept": 0.06960923987745167,
+      "mean_r_veto": 0.06121154129029575,
+      "n": 1185,
+      "n_kept": 788,
+      "n_veto": 397,
+      "oos_n": 236,
+      "p": 0.4563,
+      "params": "longs only if breadth(frac>SMA200) of ('Wall_Street_30', 'US_Tech_100', 'Japan_225', 'Germany_40', 'UK_100', 'US_SP_500')>=0.5 (mirrored)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X01": {
+      "delta_full": -0.00043481291375277453,
+      "delta_oos": 0.004114185882592686,
+      "expectancy": 0.0663610207703648,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X01",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.5115,
+      "params": "exit at close if MAE>=0.6R before MFE>=+0.5R (same-bar tie: MFE disarm wins)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X02": {
+      "delta_full": 0.0021978676709784595,
+      "delta_oos": -0.02583538285644678,
+      "expectancy": 0.06899370135509604,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X02",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.391,
+      "params": "exit next open if fill bar closes >=0.25xATR past fill price",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X03": {
+      "delta_full": -0.008483291789791222,
+      "delta_oos": -0.021015580251904642,
+      "expectancy": 0.05831254189432636,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X03",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.9405,
+      "params": "if fill-bar penetration>0.4xATR: TP 1.2R + hold 5 from bar j+1",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X04": {
+      "delta_full": 0.01957561953573754,
+      "delta_oos": 0.023454515950596777,
+      "expectancy": 0.08637145321985512,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X04",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.0155,
+      "params": "exit at 2nd consecutive close beyond entry",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X05": {
+      "delta_full": -0.0003380266435178275,
+      "delta_oos": 0.0018151194948850258,
+      "expectancy": 0.06645780704059975,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X05",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.518,
+      "params": "at close of bar 4 (j+3): if MFE<+0.5R stop tightens to 0.5xATR",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X06": {
+      "delta_full": 0.0019311087766789997,
+      "delta_oos": 0.0028372359435344108,
+      "expectancy": 0.06872694246079658,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X06",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.409,
+      "params": "shorts TP 1.5R hold 6; longs control",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X07": {
+      "delta_full": 0.006237358992486758,
+      "delta_oos": 0.006595130651490727,
+      "expectancy": 0.07303319267660434,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X07",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.2665,
+      "params": "ladder 1/3 @0.75R, 1/3 @1.5R, 1/3 @2.5R; SL 1R; hold 8",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X10": {
+      "delta_full": -5.355855495298156e-06,
+      "delta_oos": -1.772818089923467e-05,
+      "expectancy": 0.06679047782862228,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X10",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 1.0,
+      "params": "exit at close when ATR14[k]<0.7 x signal ATR",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X11": {
+      "delta_full": 0.0,
+      "delta_oos": 0.0,
+      "expectancy": 0.06679583368411758,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X11",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 1.0,
+      "params": "flatten at close on opposite actionable signal",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X12": {
+      "delta_full": -0.000397815192364967,
+      "delta_oos": -0.005828879334813825,
+      "expectancy": 0.06639801849175261,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X12",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.5485,
+      "params": "close all at last bar with open <= Fri 20:00 UTC",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X13": {
+      "delta_full": -9.07294360008859e-05,
+      "delta_oos": -0.009027901989565254,
+      "expectancy": 0.0667051042481167,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X13",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.514,
+      "params": "JP225 exits at last bar with open <= 06:00 UTC (others control)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X15": {
+      "delta_full": -0.02511105496120212,
+      "delta_oos": -0.019262431346674977,
+      "expectancy": 0.04168477872291546,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X15",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.943,
+      "params": "structural stop = 20-bar swing extreme, distance clipped at 1.25xATR (R-units re-based; degenerate non-positive distance -> control 1xATR; M15-fill-realism caveat binds)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X16": {
+      "delta_full": 0.007965786340974917,
+      "delta_oos": 0.012800994251111864,
+      "expectancy": 0.0747616200250925,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X16",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.2325,
+      "params": "TP at 20-bar swing extreme, distance clipped to [1.2R, 3.0R]; bank kept",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X18": {
+      "delta_full": -0.023079012873569754,
+      "delta_oos": -0.01833670626466688,
+      "expectancy": 0.04371682081054783,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X18",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.9975,
+      "params": "after bank fills: one limit at original entry for 3 bars re-enters the half",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X20": {
+      "delta_full": -0.011530264861848952,
+      "delta_oos": -0.004934987973227473,
+      "expectancy": 0.05526556882226863,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X20",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.8875,
+      "params": "skip the 50% bank when |signal body|>=0.8xATR",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X21": {
+      "delta_full": 0.03735170766780868,
+      "delta_oos": 0.044519481881913014,
+      "expectancy": 0.10414754135192626,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": true
+      },
+      "id": "X21",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.0605,
+      "params": "stop evaluated at bar close only; fill next open; bank+TP unchanged",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X22": {
+      "delta_full": -0.023405735170200552,
+      "delta_oos": 0.03610996459327204,
+      "expectancy": 0.04339009851391703,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X22",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.6225,
+      "params": "no TP/no bank: opposite-signal close, 1R stop, or 45-bar cap",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X23": {
+      "delta_full": 0.01111594379836979,
+      "delta_oos": 0.0241967113401384,
+      "expectancy": 0.07791177748248737,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": false,
+        "n_ok": true,
+        "oos_delta_pos": true,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X23",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.359,
+      "params": "runner: chandelier 3xATR(22) ratchet replaces TP; bank kept; 45-bar cap (frozen)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    },
+    "X24": {
+      "delta_full": 0.025924744490905524,
+      "delta_oos": -0.012548226521015352,
+      "expectancy": 0.0927205781750231,
+      "family": "X",
+      "fdr": {
+        "bh_pass": false,
+        "in_set": true
+      },
+      "gates": {
+        "materiality": true,
+        "n_ok": true,
+        "oos_delta_pos": false,
+        "p_computable": true,
+        "pre_fdr_pass": false
+      },
+      "id": "X24",
+      "kind": "variant",
+      "n": 1185,
+      "oos_n": 358,
+      "p": 0.2185,
+      "params": "runner: EMA20-cross close exit replaces TP; bank kept; 45-bar cap (frozen)",
+      "stage_a_survivor": false,
+      "survivor_pre_cap": false
+    }
+  },
+  "control": {
+    "per_symbol": {
+      "Japan_225": {
+        "cost_e1_per_side_atr": 0.033608963705760685,
+        "expectancy": -0.006101094924587808,
+        "h1_bars": 14440,
+        "n": 254,
+        "oos_expectancy": 0.04165962209537539,
+        "oos_n": 87
+      },
+      "USDJPY": {
+        "cost_e1_per_side_atr": 0.04865708900911491,
+        "expectancy": -0.005645411956389376,
+        "h1_bars": 17498,
+        "n": 322,
+        "oos_expectancy": 0.06903327836924301,
+        "oos_n": 78
+      },
+      "US_Tech_100": {
+        "cost_e1_per_side_atr": 0.012566556926544159,
+        "expectancy": 0.10051532487899657,
+        "h1_bars": 14383,
+        "n": 287,
+        "oos_expectancy": 0.22058143521011048,
+        "oos_n": 78
+      },
+      "Wall_Street_30": {
+        "cost_e1_per_side_atr": 0.013244413550389873,
+        "expectancy": 0.1666852963857453,
+        "h1_bars": 14383,
+        "n": 322,
+        "oos_expectancy": 0.18496913084678904,
+        "oos_n": 115
+      }
+    },
+    "pooled_expectancy": 0.06679583368411758,
+    "pooled_n": 1185,
+    "pooled_oos_expectancy": 0.132641857063877,
+    "pooled_oos_n": 358
+  },
+  "elapsed_s": 37.6,
+  "engine_commit": "61f42c9+branch",
+  "fdr": {
+    "bh_pass": [],
+    "bh_threshold": 0.0,
+    "m": 69,
+    "q": 0.1
+  },
+  "n_bootstraps": 2000,
+  "n_permutations": 10000,
+  "plateau_entrants": {
+    "depth": "G03",
+    "lookback": "G09",
+    "window": "G07"
+  },
+  "runtime_forfeits": {},
+  "seed": 13020260715,
+  "spec": "docs/IMPROVE100_SPEC_2026-07-15.md",
+  "spec_forfeits": {
+    "G11": "candle-anatomy clv_dir family closed (inverted sign 3x)",
+    "G13": "adjacent to Q2 re-place + M2-REPLACE recovery nulls",
+    "X08": "conditional-hold fence (cond_hold + VPOF)",
+    "X09": "adaptive_tp do-not-re-propose",
+    "X14": "no live spread series at exit timestamps in tape",
+    "X17": "dominated by construction under E2",
+    "X19": "VPOF/HIGHWATER trailing-family fence"
+  },
+  "spec_sha256_check": "MATCH",
+  "stage_a_survivors": [],
+  "statistic_conventions": {
+    "alignment": "last aux H1 bar with open epoch <= signal bar open epoch",
+    "fdr": "Benjamini-Hochberg q=0.1 over the 69-cell run set (grid families collapsed to their entrant; diagnostics excluded)",
+    "feature_unavailable": "ALLOW (veto only when computable)",
+    "frozen_choices": [
+      "X23/X24 runner cap = 45 bars (X22's cap; hold-8 would make a 3xATR22 trail unreachable) - flagged as a frozen harness choice",
+      "F13 uses the REAL AUDJPY cross (no AUDUSD on the frozen tape so the spec's synthetic AUDUSDxUSDJPY is unbuildable; the real cross is economically identical with a true-range ATR)",
+      "F09/R07 AUDUSD dollar-basket leg synthesized exactly as AUDJPY/USDJPY (log-return identity)",
+      "F26 computed on H1 (spec window t-17..t-6 pre-dates the impulse only on H1; an M15 reading would sit inside it)",
+      "F20 round grid = 10^(floor(log10(median close))-2)",
+      "R02 ToM window = last 1 + first 3 trading days",
+      "R05 fixed dates = ((1, 1), (1, 2), (7, 3), (7, 4), (12, 24), (12, 25), (12, 26), (12, 31))",
+      "R15 breadth = fraction of 6-basket above SMA200(H1)",
+      "R14/F11 risk-dir = longs on all four symbols",
+      "X15 swing = 20-bar extreme; non-positive distance -> control",
+      "X18 re-entry: fill checked before SL within the bar; bank latch not re-armed; +0.5x round-trip cost",
+      "trading-day calendars use the symbol's realized tape days (ex-ante-knowable market schedule)"
+    ],
+    "overlay": "E2 mean-R gap (kept-vetoed); p=P(within-symbol perm gap>=obs); delta_full=mean_kept-mean_all (materiality); delta_oos=mean_kept_oos-mean_all_oos; n gate = n_veto>=50 AND n_kept>=50",
+    "plateau": "adapted WFO_SPEC sec.4: all one-step neighbors' pooled E2 expectancy >= candidate - 20%|candidate|; control counts at its own expectancy; candidate = highest OOS delta that is plateau-consistent; one entrant per grid family into FDR",
+    "variant": "E2 pooled expectancy delta vs control; p=frac of 2000 paired-by-day (union days, shared draw) bootstrap deltas<=0; n gate = variant n>=50"
+  },
+  "zero_veto_cells": {
+    "F15": "verified genuine, not a bug: at SIGNAL bars the max spread / same-hour-median ratio is 1.13 (US30) / 1.05 (US100) / 1.40 (JP225) vs >2 required; the huge spread spikes (up to 239x) occur in hours that never produce signals or inflate their own hour median.  USDJPY has no spread series (noted).",
+    "F17": "structural on this book: 3x mean M15 TR(8) always exceeds 0.6xATR_H1 at signal bars (max observed ratio 0.73, US30).",
+    "F22": "structural: after a >=2-ATR 6-bar impulse the 0.6-ATR pullback limit sits far above the 5-bar structure low (min observed margin +1.45 ATR, US30)."
+  }
+}
