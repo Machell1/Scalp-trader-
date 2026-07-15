@@ -1,0 +1,145 @@
+{
+  "cells": {
+    "E1_MEASURED": {
+      "per_symbol": {
+        "JP225.cash": {
+          "all": {
+            "mean_net_bps": 8.071996029075278,
+            "n": 215,
+            "total_net_bps": 1735.4791462511848,
+            "win_rate": 0.5488372093023256,
+            "worst_net_bps": -212.2416632613891
+          },
+          "oos": {
+            "mean_net_bps": -5.947241328860802,
+            "n": 75,
+            "total_net_bps": -446.04309966456015,
+            "win_rate": 0.44,
+            "worst_net_bps": -211.8802911499172
+          },
+          "open_candidates": 633,
+          "qualified": 215,
+          "skipped": 3
+        },
+        "US100.cash": {
+          "all": {
+            "mean_net_bps": 6.48435764685142,
+            "n": 154,
+            "total_net_bps": 998.5910776151186,
+            "win_rate": 0.474025974025974,
+            "worst_net_bps": -246.9659487397028
+          },
+          "oos": {
+            "mean_net_bps": -4.604578309611376,
+            "n": 49,
+            "total_net_bps": -225.6243371709574,
+            "win_rate": 0.46938775510204084,
+            "worst_net_bps": -246.9659487397028
+          },
+          "open_candidates": 632,
+          "qualified": 154,
+          "skipped": 25
+        },
+        "US30.cash": {
+          "all": {
+            "mean_net_bps": 8.505011065941986,
+            "n": 79,
+            "total_net_bps": 671.8958742094169,
+            "win_rate": 0.4810126582278481,
+            "worst_net_bps": -176.50521700296375
+          },
+          "oos": {
+            "mean_net_bps": -0.23915161219286052,
+            "n": 32,
+            "total_net_bps": -7.652851590171537,
+            "win_rate": 0.5,
+            "worst_net_bps": -176.50521700296375
+          },
+          "open_candidates": 631,
+          "qualified": 79,
+          "skipped": 24
+        }
+      },
+      "pooled_oos": {
+        "mean_net_bps": -4.354617233498008,
+        "n": 156,
+        "total_net_bps": -679.3202884256892,
+        "win_rate": 0.46153846153846156,
+        "worst_net_bps": -246.9659487397028
+      },
+      "provisional_edge": false
+    },
+    "E2_STRESS": {
+      "per_symbol": {
+        "JP225.cash": {
+          "all": {
+            "mean_net_bps": 6.921102211612456,
+            "n": 215,
+            "total_net_bps": 1488.036975496678,
+            "win_rate": 0.5488372093023256,
+            "worst_net_bps": -213.47994601087214
+          },
+          "oos": {
+            "mean_net_bps": -6.839585386257607,
+            "n": 75,
+            "total_net_bps": -512.9689039693205,
+            "win_rate": 0.44,
+            "worst_net_bps": -212.66127268751367
+          },
+          "open_candidates": 633,
+          "qualified": 215,
+          "skipped": 3
+        },
+        "US100.cash": {
+          "all": {
+            "mean_net_bps": 6.166087872721628,
+            "n": 154,
+            "total_net_bps": 949.5775323991307,
+            "win_rate": 0.4675324675324675,
+            "worst_net_bps": -247.20933345618593
+          },
+          "oos": {
+            "mean_net_bps": -4.871124431609332,
+            "n": 49,
+            "total_net_bps": -238.68509714885727,
+            "win_rate": 0.46938775510204084,
+            "worst_net_bps": -247.20933345618593
+          },
+          "open_candidates": 632,
+          "qualified": 154,
+          "skipped": 25
+        },
+        "US30.cash": {
+          "all": {
+            "mean_net_bps": 8.278766593395867,
+            "n": 79,
+            "total_net_bps": 654.0225608782735,
+            "win_rate": 0.4810126582278481,
+            "worst_net_bps": -176.70821322723395
+          },
+          "oos": {
+            "mean_net_bps": -0.44430056814520924,
+            "n": 32,
+            "total_net_bps": -14.217618180646696,
+            "win_rate": 0.5,
+            "worst_net_bps": -176.70821322723395
+          },
+          "open_candidates": 631,
+          "qualified": 79,
+          "skipped": 24
+        }
+      },
+      "pooled_oos": {
+        "mean_net_bps": -4.909433457043745,
+        "n": 156,
+        "total_net_bps": -765.8716192988243,
+        "win_rate": 0.46153846153846156,
+        "worst_net_bps": -247.20933345618593
+      },
+      "provisional_edge": false
+    }
+  },
+  "gap_threshold": 0.005,
+  "protocol_sha256": "8f5acbfc8cf7d216bb16e4150184d33bab9a26e918559ada842960f5cad8901e",
+  "verdict": "DISPOSED"
+}
