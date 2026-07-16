@@ -99,3 +99,19 @@ Every numeric result will be tagged `[MEASURED: command @ commit]` or `[DERIVED]
 ---
 
 END OF PRE-REGISTRATION. Results may be appended only below this line after the pre-registration SHA256 is recorded.
+
+## Results appended 2026-07-16
+
+Pre-registration SHA256 recorded before the measured phase: `0ef15210cb19bc22903d1165ed27c640f691c522d7b58e89ea3557253685c87a`.
+
+[MEASURED: `python backtest/run_v131_challenger_headtohead.py` @ `042dfe49955f1057bb2d0a389a28661cce0f8dd7`] Data verification was exactly `verified 46 OK, 0 missing, 0 mismatched`; the additive legacy regression passed; Python/C# path-0 was exact for both tapes; and 373 common eligible blocks were used.
+
+[MEASURED: same command and commit] At 20,000 paired screen paths, v1.31 control both-phase probability was 76.7500%. E3 was 86.6600%, with Wilson lower 86.2596%, hard-halt probability 0.4350%, timeout probability 12.9050%, and paired lower bound +8.9376 percentage points.
+
+[MEASURED: same command and commit] Gate outcomes were PASS, PASS, FAIL, PASS, PASS in the pre-registered order. The only failure was `HARD_GT_0_3700PCT`.
+
+Verdict: **NO_CONFIRMATION_PASS**. The 100,000-path confirmation was not run, and no MT5 installation or write occurred.
+
+Full report: `docs/codex/V131_CHALLENGER_HEADTOHEAD_REPORT_2026-07-16.md`.
+
+Machine result: `backtest/v131_challenger_headtohead_results.json`, SHA256 `1e3183d8739029dbd7deb02bcbf1ba8fa096197e885b96bd5c6d2b8fe532889e`.
