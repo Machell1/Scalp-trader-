@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 import numpy as np
+from scipy.stats import binomtest
 
 from build_h1_universe_tape import build_h1_universe_tape, ftmo_metas
 from run_h1_universe_account import common_bootstrap, configure_symbols
@@ -214,13 +215,21 @@ def reason_counts(run: CompactRun) -> dict:
 
 
 def paired(candidate: CompactRun, control: CompactRun) -> dict:
-    lower, n10, n01, estimate, p_value = candidate.paired_delta_lower(control)
+    lower, n10, n01, p10_lower, p01_upper = candidate.paired_delta_lower(control)
+    discordant = n10 + n01
+    point_delta = (n10 - n01) / len(candidate.rows)
+    p_value = (
+        float(binomtest(n10, discordant, 0.5, alternative="greater").pvalue)
+        if discordant else 1.0
+    )
     return {
         "lower": lower,
         "n10_candidate_only_pass": n10,
         "n01_control_only_pass": n01,
-        "estimate": estimate,
-        "p_value": p_value,
+        "point_delta": point_delta,
+        "p10_clopper_pearson_lower": p10_lower,
+        "p01_clopper_pearson_upper": p01_upper,
+        "mcnemar_exact_one_sided_p_value": p_value,
     }
 
 
@@ -281,7 +290,7 @@ def run_stage(control_tape, candidate_tape, metas, policy, boot, paths, label) -
         f"candidate_lower={candidate_record['summary']['both_wilson_lower']:.6f}",
         f"candidate_hard={candidate_record['summary']['hard_probability']:.6f}",
         f"candidate_timeout={candidate_record['summary']['timeout_probability']:.6f}",
-        f"paired_delta={comparison['estimate']:.6f}",
+        f"paired_delta={comparison['point_delta']:.6f}",
         f"paired_lower={comparison['lower']:.6f}",
         ",".join(failures) if failures else "none",
         flush=True,
