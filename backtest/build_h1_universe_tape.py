@@ -71,10 +71,23 @@ def ftmo_metas(sources: tuple[str, ...]) -> dict[str, SymbolMeta]:
 
 
 def build_h1_universe_tape(
-    sources: tuple[str, ...], *, stress: bool = True, cost_mode: str = "registered"
+    sources: tuple[str, ...], *, stress: bool = True, cost_mode: str = "registered",
+    partial_fraction: float = 0.5, target_atr: float = 2.0,
+    reference_same_bar_partial: bool = False,
 ) -> tuple[PassTape, dict[str, int]]:
+    """Build the registered H1 portfolio tape.
+
+    The three exit arguments are additive.  Their defaults preserve the
+    historical account-tape bytes.  ``reference_same_bar_partial`` includes a
+    +1R partial immediately before a same-bar target/time exit, matching
+    ``retest_engine.resolve`` and the tick-checked EA lifecycle.
+    """
     if not set(BASE_SOURCES).issubset(sources):
         raise ValueError("the live H1 control trio must remain in every portfolio")
+    if not 0.0 < partial_fraction < 1.0:
+        raise ValueError("partial_fraction must be in (0, 1)")
+    if target_atr <= 1.0:
+        raise ValueError("target_atr must be greater than the +1R partial level")
     snapshot = json.loads(META_PATH.read_text(encoding="utf-8"))
     events = []
     seq = 0
@@ -133,7 +146,7 @@ def build_h1_universe_tape(
                 i += 4
                 continue
             stop = entry - signal_atr * side
-            target = entry + 2.0 * signal_atr * side
+            target = entry + target_atr * signal_atr * side
             partial = None
             exit_bar = None
             exit_price = None
@@ -174,7 +187,8 @@ def build_h1_universe_tape(
                         f"{trade_id}:partial", trade_id, symbol, cluster, side,
                         _epoch(h1.iloc[bar]["time"]) + 3599, seq, "partial",
                         price=entry + side * signal_atr, stop_distance=signal_atr,
-                        fixed_slippage_r=0.0, remaining_fraction=0.5,
+                        fixed_slippage_r=0.0,
+                        remaining_fraction=1.0 - partial_fraction,
                         mark_role="favorable",
                     ))
                     continue
@@ -185,10 +199,23 @@ def build_h1_universe_tape(
                     _epoch(h1.iloc[bar]["time"]) + 3599, seq, "mark",
                     price=mark_price, stop_distance=signal_atr,
                     fixed_slippage_r=0.0,
-                    remaining_fraction=0.5 if partial is not None and bar > partial else 1.0,
+                    remaining_fraction=(
+                        1.0 - partial_fraction
+                        if partial is not None and bar > partial else 1.0
+                    ),
                     mark_role="favorable" if (mark_price - entry) * side > 0 else "adverse",
                 ))
             final_epoch = _epoch(h1.iloc[exit_bar]["time"]) + 3599
+            if reference_same_bar_partial and partial == exit_bar:
+                seq += 1
+                events.append(_event(
+                    f"{trade_id}:partial", trade_id, symbol, cluster, side,
+                    final_epoch, seq, "partial",
+                    price=entry + side * signal_atr, stop_distance=signal_atr,
+                    fixed_slippage_r=0.0,
+                    remaining_fraction=1.0 - partial_fraction,
+                    mark_role="favorable",
+                ))
             seq += 1
             events.append(_event(
                 f"{trade_id}:final", trade_id, symbol, cluster, side,

@@ -1,61 +1,4 @@
 //+------------------------------------------------------------------+
-//|   v1.33-C1 CANDIDATE (2026-07-18): GEOMETRY RESET of the failed  |
-//|     E3 challenger, owner-authorized. Two input renames with new  |
-//|     defaults (house convention: chart-saved V130 values cannot    |
-//|     survive):                                                     |
-//|       * InpPartialCloseFractionV133 = 0.75 (was 0.50 in v1.31;    |
-//|         the failed E3 challenger ran 0.67)                        |
-//|       * InpTakeProfitAtrMultV133    = 1.5  (was 2.0)              |
-//|     Rationale (pre-registered 6-cell paired grid, 20,000 CRN      |
-//|     paths, seed 13020260711, E2 stress, repo harness): C1 tied E3 |
-//|     on pass (88.85% vs 88.01%, LB ~0), eliminated ALL hard halts  |
-//|     (0/20k vs E3 2/20k vs v1.31 167/20k), cut timeout to 11.15%   |
-//|     and median completion to 374d (v1.31: 562d); +8.48pp vs v1.31 |
-//|     with paired lower bound +7.55pp.                              |
-//|     STATUS: CONFIRMED on the owner's corrected-fidelity harness:  |
-//|     100,000 paired E2-stress paths, 88.274% modeled pass,         |
-//|     0.266% hard halt, paired lower +11.0265pp vs v1.31.          |
-//|     The forward demo remains live execution validation.           |
-//|     Everything else is v1.32 unchanged (fidelity fixes A1-A9,     |
-//|     gated arms B1-B3 default OFF).                                |
-//+------------------------------------------------------------------+
-//+------------------------------------------------------------------+
-//|   v1.32 (2026-07-14): EXECUTION FIDELITY + PRE-REGISTERED ARMS.   |
-//|     Part A (default ON; they only make the live EA faithfully     |
-//|     realize the already-validated engine - zero strategy change): |
-//|     * A1: partial-close retry overhaul - MARKET_CLOSED / no-      |
-//|       connection retcodes no longer burn the 5-attempt budget     |
-//|       (60s re-arm, retry-until-open), freshness-gated trigger,    |
-//|       bar-extreme catch-up trigger (InpPartialBarCatchupV132).    |
-//|     * A2: time exit evaluated EVERY heartbeat in                  |
-//|       ManageOpenPositions; a rejected close retries next          |
-//|       heartbeat instead of waiting a full bar (weekend gap fix).  |
-//|     * A3: DEAL_ENTRY_OUT_BY / DEAL_ENTRY_INOUT get the same       |
-//|       exit-bar cooldown + LogClosedTrade as DEAL_ENTRY_OUT.       |
-//|     * A4: the daily fill cap counts DISTINCT positions, not       |
-//|       broker fill fragments (live counter + RestoreRiskLedger).   |
-//|     * A5: riskPrice (the R denominator) comes from the ACTUAL     |
-//|       placed stop, so the +1R level and R-logs stay honest when   |
-//|       the stops-level clamp / tick snap moves the SL.             |
-//|     * A6: bounded entry retry (InpEntryMaxRetriesV132) on price-  |
-//|       class retcodes (10015/10004/10020/10021) while the signal   |
-//|       bar is still bar 1 (the deferred v1.30 "10015" item).       |
-//|     * A7: magic-scoped risk-ledger GVs + one-shot legacy migrate. |
-//|     * A8: halt pending-cancel spam throttle.                      |
-//|     * A9: bar-clock seeding guard - never blind-increment an      |
-//|       unseeded clock; recompute retried every bar close.          |
-//|     Part B (pre-registered research arms, flag-gated, DEFAULT     |
-//|     OFF; defaults reproduce v1.31 behavior exactly):              |
-//|     * B1: ENTRY_MARKET entry mode (Alvarez A/B arm B).            |
-//|     * B2: EXIT_UNCAPPED_RUNNER - opposite-impulse exit via the    |
-//|       factored-out DetectImpulse, InpRunnerMaxBarsV132 backstop,  |
-//|       optional stop-and-reverse (InpRunnerReverseV132).           |
-//|     * B3: STOP_EVAL_BAR_CLOSE - stop evaluated on bar close; the  |
-//|       broker carries only a disaster backstop                     |
-//|       (InpDisasterStopMultV132); the intended 1.0 ATR stop stays  |
-//|       the R denominator.                                          |
-//|     Frozen defaults are bit-identical to v1.31 live behavior.     |
-//|                                                                  |
 //|   v1.31 (2026-07-13): H1 USDJPY ADMISSION.                        |
 //|     * H1 is now the versioned default working timeframe.         |
 //|     * Add USDJPY after a 100,000-path stress confirmation.       |
@@ -63,7 +6,7 @@
 //|       size USDJPY independently at 0.05%; no fixed lots.         |
 //|     * Give USDJPY its own FX cluster seat under the global cap.  |
 //|                                                                  |
-//|   v1.30 (2026-07-13): CORRECTED-ENGINE EARLY BANKING.             |
+//|   v1.31C (2026-07-13): CORRECTED-ENGINE EARLY BANKING.             |
 //|     * Bank 50% once at +1R using the frozen signal-bar Wilder ATR |
 //|       and initial stop multiple; the remainder keeps its bracket. |
 //|     * TP3 -> TP2 via a versioned input name so an existing chart  |
@@ -119,7 +62,7 @@
 //|   signal-bar close, per-symbol bar clocks, OnTimer heartbeat.      |
 //|                                                                  |
 //|   v1.22 (2026-07): P4 hygiene from the post-v1.21 review (see      |
-//|   docs/CURSOR_BRIEF_2026-07-01.md §4): SKIP impulse sign aligned   |
+//|   docs/CURSOR_BRIEF_2026-07-01.md Â§4): SKIP impulse sign aligned   |
 //|   with SIGNAL, no-impulse log verbosity input, pending frozen-ATR  |
 //|   sweep (broker-side expiry leak), barsClosed recomputed from the  |
 //|   entry bar (multi-bar backfill), whitelist-orphan positions get   |
@@ -142,16 +85,16 @@
 //|   silently blocked 3 of the 12 validated symbols on EVERY scan:   |
 //|   BTCUSD (median 2,424 pts yet the CHEAPEST cost/side at 0.0048   |
 //|   ATR and the best backtest performer), ETHUSD (58,000 pts,       |
-//|   0.0239) and Japan 225 (500 pts, 0.0348) — all of which PASS     |
+//|   0.0239) and Japan 225 (500 pts, 0.0348) â€” all of which PASS     |
 //|   the validated gate. The backtest never modeled a points cap;    |
 //|   InpMaxSpreadAtr (0.05 ATR/side) is the validated, price-scale-  |
 //|   invariant cost filter and remains the load-bearing gate. Same   |
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.33"
+#property version   "1.310"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.33-C1: bank 75% @ +1R, TP 1.5 ATR. Corrected-fidelity 100k confirmation passed; forward demo remains live validation. USDJPY 0.05% sleeve; trio 0.30%; v1.32 fidelity fixes ON; arms B1-B3 OFF."
+#property description "Research-only H1 momentum pullback challenger. E3: bank 67% at +1R; TP1.5; order submission OFF by default."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -161,29 +104,14 @@
 enum ENUM_ENTRY_MODE
   {
    ENTRY_LIMIT_PULLBACK = 0,  // Pullback LIMIT back into the move (backtest-validated)
-   ENTRY_STOP_BREAKOUT  = 1,  // Breakout STOP beyond price (original; net loser OOS)
-   ENTRY_MARKET         = 2   // v1.32 B1: Market at next bar open (research arm)
-  };
-
-//--- v1.32 B2: exit mode (validated bracket vs uncapped runner) -------
-enum ENUM_EXIT_MODE_V132
-  {
-   EXIT_BRACKET_V130    = 0,  // validated SL/TP/time bracket
-   EXIT_UNCAPPED_RUNNER = 1   // no TP; exit on opposite impulse or backstop bars
-  };
-
-//--- v1.32 B3: stop evaluation (touch vs bar close) -------------------
-enum ENUM_STOP_EVAL_V132
-  {
-   STOP_EVAL_TOUCH     = 0,   // validated: broker SL touched intrabar
-   STOP_EVAL_BAR_CLOSE = 1    // stop evaluated on bar close; broker holds a disaster backstop
+   ENTRY_STOP_BREAKOUT  = 1    // Breakout STOP beyond price (original; net loser OOS)
   };
 
 //--- Symbol universe -------------------------------------------------
 input group "=== Symbol Universe ==="
 input bool   InpScanMarketWatch  = false;     // Scan Market Watch (used only when the whitelist below is empty)
-input string InpSymbolWhitelistV131 = "US30.cash,US100.cash,JP225.cash,USDJPY";  // v1.31 confirmed H1 portfolio. Versioned so saved trio-only input cannot survive.
-#define InpSymbolWhitelist InpSymbolWhitelistV131
+input string InpSymbolWhitelistV131C = "US30.cash,US100.cash,JP225.cash,USDJPY";  // v1.31 confirmed H1 portfolio. Versioned so saved trio-only input cannot survive.
+#define InpSymbolWhitelist InpSymbolWhitelistV131C
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
 
 //--- Strategy --------------------------------------------------------
@@ -192,8 +120,8 @@ input bool   InpCandleFilter    = true;  // W2 remains the forward-test signal d
 input double InpMinAdvWickAtr   = 0.30;  // Adverse-wick threshold in frozen signal ATR (0.30 = W2; 0 = off)
 
 input group "=== Momentum Strategy ==="
-input ENUM_TIMEFRAMES InpTimeframeV131 = PERIOD_H1; // Confirmed H1 working timeframe; versioned to supersede saved M15 values
-#define InpTimeframe InpTimeframeV131
+input ENUM_TIMEFRAMES InpTimeframeV131C = PERIOD_H1; // Confirmed H1 working timeframe; versioned to supersede saved M15 values
+#define InpTimeframe InpTimeframeV131C
 input int    InpMomentumBars     = 6;     // Lookback bars for the move
 input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
 input int    InpAtrPeriod        = 14;    // ATR period
@@ -210,22 +138,20 @@ input group "=== Pending Entry ==="
 input ENUM_ENTRY_MODE InpEntryMode = ENTRY_LIMIT_PULLBACK; // Entry geometry (PULLBACK = validated; BREAKOUT = legacy)
 input double InpPullbackAtr        = 0.6;  // PULLBACK mode: place the LIMIT this many ATR back toward price
 input double InpEntryOffsetAtr     = 0.05; // BREAKOUT mode: place the STOP this many ATR beyond price
-input int    InpPendingExpiryBars  = 3;    // Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.30 retest assumes w4
+input int    InpPendingExpiryBars  = 3;    // Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.31C retest assumes w4
 input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop pending glued to price
 
 //--- Risk / exits ----------------------------------------------------
 input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.3;   // Corrected-engine MC sizing; current FTMO chart already uses 0.3%
-input double InpUSDJPYRiskPercentV131 = 0.05; // Confirmed USDJPY sleeve; dynamic cash risk, not a fixed lot size
+input double InpUSDJPYRiskPercentV131C = 0.05; // Confirmed USDJPY sleeve; dynamic cash risk, not a fixed lot size
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
-input double InpTakeProfitAtrMultV133 = 1.5;  // v1.33 C1 candidate: TP 1.5 ATR. Renamed again so chart-saved V130=2.0 cannot survive. Revert to 2.0 to restore v1.31 behavior
-#define InpTakeProfitAtrMultV130 InpTakeProfitAtrMultV133
-input bool   InpUsePartialCloseV130   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
-input double InpPartialCloseFractionV133 = 0.75; // v1.33 C1 candidate: bank 75% at the trigger (E3 ran 0.67; v1.31 ran 0.50). Renamed so chart-saved V130 values cannot survive. Revert to 0.50 for v1.31 behavior
-#define InpPartialCloseFractionV130 InpPartialCloseFractionV133
-input double InpPartialCloseAtRV130   = 1.0;  // Trigger in initial R, using frozen signal ATR * InpStopAtrMult
-input int    InpPartialRetrySecondsV130 = 30; // Reconcile before a bounded retry after a transient server result
-input bool   InpUseLockTrail     = false; // Corrected-engine retest: every lock/trail arm remains negative; v1.30 early banking is the only enabled exit overlay.
+input double InpTakeProfitAtrMultV131C = 1.5; // Confirmed E3 challenger exit: TP1.5 ATR on the remainder
+input bool   InpUsePartialCloseV131C   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
+input double InpPartialCloseFractionV131C = 0.6666667; // Confirmed E3 challenger: bank 67% of ORIGINAL volume (rounded DOWN)
+input double InpPartialCloseAtRV131C   = 1.0;  // Trigger in initial R, using frozen signal ATR * InpStopAtrMult
+input int    InpPartialRetrySecondsV131C = 30; // Reconcile before a bounded retry after a transient server result
+input bool   InpUseLockTrail     = false; // Corrected-engine retest: every lock/trail arm remains negative; v1.31C early banking is the only enabled exit overlay.
 input double InpLockTriggerAtr   = 0.25;  // (only if InpUseLockTrail) once price is this many ATR in profit, lock the trade
 input int    InpLockBufferPoints = 0;     // (only if InpUseLockTrail) extra points locked above break-even (0 = auto: spread+2)
 input double InpTrailAtrMult      = 0.5;  // (only if InpUseLockTrail) trailing distance after lock (ATR)
@@ -241,33 +167,24 @@ input double InpMaxDrawdownPct   = 8.0;  // Halt if equity drawdown from peak ex
 input double InpInitialBalance   = 100000.0; // v1.26: initial balance anchoring the STATIC floor below (0 = auto-capture first-seen balance into a terminal global)
 input double InpStaticFloorPct   = 9.0;   // v1.26: HARD halt if equity <= initial*(1 - this%). Buffer inside FTMO's 10% breach line; the trailing check above cannot see across re-inits without it. 0 = off.
 input int    InpMaxConsecLosses  = 4;     // Pause for the day after this many losses in a row
-input int    InpMaxSpreadPtsRaw  = 0;     // Raw POINTS spread cap — OFF (v1.24). Points scale with nominal price, so the old 200 cap structurally blocked BTCUSD/ETHUSD/Japan 225 (validated symbols that PASS the ATR gate). Use InpMaxSpreadAtr below; >0 re-enables at your own risk. (Renamed from InpMaxSpreadPoints so the new default supersedes chart-saved values on upgrade.)
+input int    InpMaxSpreadPtsRaw  = 0;     // Raw POINTS spread cap â€” OFF (v1.24). Points scale with nominal price, so the old 200 cap structurally blocked BTCUSD/ETHUSD/Japan 225 (validated symbols that PASS the ATR gate). Use InpMaxSpreadAtr below; >0 re-enables at your own risk. (Renamed from InpMaxSpreadPoints so the new default supersedes chart-saved values on upgrade.)
 input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spread > this many ATR PER SIDE (0.05 = validated ceiling; the edge dies above it, e.g. LTC/BCH/Mid Cap). 0 = off.
-// P3 (brief §4): correlation-aware concurrency. OFF (0) by default - adoption requires the
+// P3 (brief Â§4): correlation-aware concurrency. OFF (0) by default - adoption requires the
 // acceptance study (lower drawdown at equal pooled expectancy). Day-1 saw 4 same-direction
 // Tech-100-cluster entries in 70 min stacking ~1.5% correlated heat.
 input int    InpMaxPerCluster    = 1;     // Max open+pending per correlation cluster (0 = off, current behavior)
-input string InpClusterSpecV131  = "US30.cash|US100.cash;JP225.cash;USDJPY";  // US pair shares a seat; JP225 and USDJPY are independent
-#define InpClusterSpec InpClusterSpecV131
+input string InpClusterSpecV131C  = "US30.cash|US100.cash;JP225.cash;USDJPY";  // US pair shares a seat; JP225 and USDJPY are independent
+#define InpClusterSpec InpClusterSpecV131C
 
 //--- Execution -------------------------------------------------------
 input group "=== Execution ==="
-input long   InpMagicNumber      = 771025;// Magic number tagging this EA's orders
+input long   InpMagicNumber      = 7711313;// Separate challenger magic; does not manage the existing EA
 input ulong  InpDeviationPoints  = 30;    // Max slippage in points
 input string InpTradeComment     = "MomPullback";   // broker-visible on EVERY order. Deliberately avoids "scalp" (FTMO polices tick-scalping) and any other broker's name.
 input int    InpHeartbeatSeconds = 5;     // OnTimer scan/manage heartbeat (0 = chart ticks only)
 input bool   InpLogNoImpulse     = false; // Log routine impulse/candle rejection lines (gate/data skips are always logged)
-
-input group "=== v1.32 Execution Fidelity (Part A fixes; default ON, zero strategy-semantics change) ==="
-input bool   InpPartialBarCatchupV132 = true; // A1(c): bar-extreme catch-up trigger for the +1R partial (a touch between heartbeats still banks)
-input int    InpEntryMaxRetriesV132   = 3;    // A6: extra resends after a price-class rejection (10015/10004/10020/10021) while the signal bar is still bar 1 (0 = v1.31 behavior)
-
-input group "=== v1.32 Research Arms (default OFF; pre-registered forward arms) ==="
-input ENUM_EXIT_MODE_V132 InpExitModeV132 = EXIT_BRACKET_V130; // B2: validated bracket vs UNCAPPED RUNNER (opposite-impulse exit; NEW positions only)
-input int    InpRunnerMaxBarsV132    = 45;  // B2: runner backstop time exit in closed bars (HARVEST: 45 bars; 0 = off)
-input bool   InpRunnerReverseV132    = false; // B2: also open the opposite trade on the runner exit signal (normal scan + exit-bar cooldown govern)
-input ENUM_STOP_EVAL_V132 InpStopEvalV132 = STOP_EVAL_TOUCH;  // B3: validated touch stop vs bar-close stop (NEW positions only)
-input double InpDisasterStopMultV132 = 3.0; // B3: broker-side disaster stop (ATR) when bar-close mode; the intended InpStopAtrMult stop stays the R denominator
+input bool   InpEnableOrderSubmission = false; // Hard research default: signals and management telemetry only
+input double InpMaxLotCap       = 0.01;  // Safety ceiling; no order may exceed this volume without a deliberate code change
 
 input group "=== v1.25 Hardening (protective GATES + observability; validated entry/exit engine UNCHANGED) ==="
 // Zero-regret, ON by default: they never remove a VALID trade, only broken-data trades, and add logging.
@@ -275,7 +192,7 @@ input bool   InpFreshnessGuard   = true;  // Block NEW entries on stale ticks / 
 input int    InpMaxTickAgeSec     = 60;    // Max age (s) of the latest tick before a symbol is considered frozen (catches dead feeds, not normal illiquid gaps)
 input bool   InpTradeLog          = true;  // Write a per-trade CSV (MFE/MAE in R, spread@entry, exit reason) = the doc's "post-trade learning" data. Pure observability.
 input string InpTradeLogFile      = "MomentumPullback_trades.csv";
-input string InpPartialLogFileV130= "MomentumPullback_partials_v130.csv"; // Actual partial fill + level-vs-fill slippage
+input string InpPartialLogFileV131C= "MomentumPullbackV131C_partials.csv"; // Actual partial fill + level-vs-fill slippage
 // Protective but they DO alter the validated trade distribution -> OFF by default; flip on deliberately.
 input int    InpNewsBlockMins     = 3;     // Protective entry block is ON; evaluation accounts allow news, but this conservative gate remains chart-compatible. 0=off.
 input string InpBlockHours        = "";
@@ -306,7 +223,7 @@ enum ENUM_PARTIAL_STATE
    PARTIAL_DONE      = 2,
    PARTIAL_SKIPPED   = 3
   };
-#define V130_PARTIAL_MAX_ATTEMPTS 5
+#define V131C_PARTIAL_MAX_ATTEMPTS 5
 
 // Open position metadata for bar-close management (keyed by POSITION_IDENTIFIER).
 struct PositionMgmtState
@@ -324,7 +241,7 @@ struct PositionMgmtState
    double   spreadAtrEntry;// spread/ATR/side at fill
    double   mfeR;          // max favorable excursion (R), sampled each heartbeat
    double   maeR;          // max adverse excursion (R)
-   // v1.30 partial-close lifecycle (all geometry derives from frozen signal ATR).
+   // v1.31C partial-close lifecycle (all geometry derives from frozen signal ATR).
    double   initialVolume;
    bool     signalAtrFrozen;
    double   partialTargetVolume;
@@ -333,17 +250,6 @@ struct PositionMgmtState
    datetime partialTriggerTime;
    datetime partialNextRetry;
    int      partialAttempts;
-   // v1.32 A1: RAM-only partial-trigger bookkeeping (not persisted; worst case after a
-   // restart is one repeated log line, never a trade decision).
-   bool     partialGapSeen;      // a market-closed/no-connection gap happened while TRIGGERED
-   string   partialTriggerTag;   // "bar-catchup" when the A1(c) catch-up armed the trigger
-   // v1.32 A9: false while the entry-bar anchor could not be resolved (unsynced history);
-   // an unseeded bar clock is never incremented - the recompute is retried each bar close.
-   bool     barClockSeeded;
-   // v1.32 B2/B3: which research arm this position was PLACED under (stamped at the first
-   // DEAL_ENTRY_IN, persisted via GV; positions already open at attach keep bracket/touch).
-   bool     runnerV132;
-   bool     barCloseStopV132;
   };
 PositionMgmtState g_posState[];
 
@@ -351,7 +257,6 @@ datetime g_currentDay  = 0;
 double   g_dayStartBalance = 0.0;
 double   g_peakEquity  = 0.0;
 int      g_tradesToday = 0;
-long     g_fillPosIdsToday[];   // v1.32 A4: distinct DEAL_POSITION_IDs already counted toward the daily fill cap (reset at day rollover)
 bool     g_halted      = false;   // daily-loss pause: cleared at day rollover
 bool     g_haltedHard  = false;   // v1.26: max-DD / static-floor halt - NEVER auto-cleared
 double   g_initialBalance = 0.0;  // v1.26: static-floor anchor
@@ -375,26 +280,33 @@ int OnInit()
    trade.SetMarginMode();
    trade.LogLevel(LOG_LEVEL_ERRORS);
 
-   if(InpRiskPercent <= 0.0 || InpUSDJPYRiskPercentV131 <= 0.0 ||
-      InpUSDJPYRiskPercentV131 > InpRiskPercent)
+   if(InpRiskPercent <= 0.0 || InpUSDJPYRiskPercentV131C <= 0.0 ||
+      InpUSDJPYRiskPercentV131C > InpRiskPercent)
      {
       Print("v1.31 invalid risk inputs: base and USDJPY risk must be positive, and USDJPY must not exceed base risk");
       return(INIT_PARAMETERS_INCORRECT);
+    }
+
+   if(InpMaxLotCap <= 0.0 || InpMaxLotCap > 0.01 ||
+      InpTakeProfitAtrMultV131C <= 0.0)
+     {
+      Print("v1.31C invalid safety/exit inputs: max lot must be in (0, 0.01] and TP ATR must be positive");
+      return(INIT_PARAMETERS_INCORRECT);
      }
 
-   if(InpUsePartialCloseV130)
+   if(InpUsePartialCloseV131C)
      {
-      if(InpPartialCloseFractionV130 <= 0.0 || InpPartialCloseFractionV130 >= 1.0 ||
-         InpPartialCloseAtRV130 <= 0.0)
+      if(InpPartialCloseFractionV131C <= 0.0 || InpPartialCloseFractionV131C >= 1.0 ||
+         InpPartialCloseAtRV131C <= 0.0)
         {
-         Print("v1.30 invalid partial-close inputs: fraction must be in (0,1) and trigger R > 0");
+         Print("v1.31C invalid partial-close inputs: fraction must be in (0,1) and trigger R > 0");
          return(INIT_PARAMETERS_INCORRECT);
         }
       long accountLogin = AccountInfoInteger(ACCOUNT_LOGIN);
       if(accountLogin > 0 &&
          (ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
         {
-         Print("v1.30 partial close requires a hedging account; refusing to initialize on netting/exchange mode");
+         Print("v1.31C partial close requires a hedging account; refusing to initialize on netting/exchange mode");
          return(INIT_PARAMETERS_INCORRECT);
         }
      }
@@ -407,18 +319,11 @@ int OnInit()
 
    RestorePendingSigAtrFromLiveOrders();
 
-   // v1.32 A7: one-shot migration of the legacy terminal-global ledger anchors into the
-   // magic-scoped names (preserves the live ledger on upgrade; legacy GVs are NOT deleted).
-   if(!GlobalVariableCheck(PeakEquityGv()) && GlobalVariableCheck("MPB_peak_equity"))
-      GlobalVariableSet(PeakEquityGv(), GlobalVariableGet("MPB_peak_equity"));
-   if(!GlobalVariableCheck(InitBalanceGv()) && GlobalVariableCheck("MPB_init_balance"))
-      GlobalVariableSet(InitBalanceGv(), GlobalVariableGet("MPB_init_balance"));
-
    RestoreRiskLedger();   // v1.26: reconstruct today's ledger from deal history - a mid-day
                           // re-init must NOT re-arm a fresh daily budget (audit P1)
    g_initTime = TimeCurrent();   // v1.26.1: history may still be syncing; re-run once in ~60s
 
-   // Per-symbol bar clocks: skip mid-bar rescan after reload (see LIVE_TRADE_ANALYSIS §1).
+   // Per-symbol bar clocks: skip mid-bar rescan after reload (see LIVE_TRADE_ANALYSIS Â§1).
    ArrayResize(g_lastScanBar, ArraySize(g_symbols));
    for(int i = 0; i < ArraySize(g_symbols); i++)
       g_lastScanBar[i] = (datetime)iTime(g_symbols[i], InpTimeframe, 0);
@@ -429,7 +334,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.33-C1 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.31 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -456,21 +361,16 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.33-C1 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
-               (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" :
-                (InpEntryMode == ENTRY_MARKET ? "MARKET(research)" : "BREAKOUT(stop)")),
-               (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
+   PrintFormat("MomentumPullbackV131C ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%; submission=%s; lot cap=%.2f.",
+               (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" : "BREAKOUT(stop)"),
+               (InpUsePartialCloseV131C ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV131C, InpPartialCloseAtRV131C)
                                        : "partial OFF"),
-               InpTakeProfitAtrMultV130,
+               InpTakeProfitAtrMultV131C,
                (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
-               InpUSDJPYRiskPercentV131,
-               (InpExitModeV132 == EXIT_UNCAPPED_RUNNER ? "UNCAPPED_RUNNER" : "bracket"),
-               (InpStopEvalV132 == STOP_EVAL_BAR_CLOSE ? "bar-close" : "touch"));
-   // v1.32: the research arms act only on the bar-close management path - warn loudly
-   // when an arm is ON but the legacy per-tick manager is selected (arms would be inert).
-   if((InpExitModeV132 != EXIT_BRACKET_V130 || InpStopEvalV132 != STOP_EVAL_TOUCH) && !InpManageOnBarClose)
-      Print("WARNING: v1.32 research arm(s) ON but InpManageOnBarClose=false - runner/bar-close-stop exits only run on the bar-close management path; arms are INERT on legacy per-tick.");
+               InpUSDJPYRiskPercentV131C,
+               InpEnableOrderSubmission ? "ON" : "OFF",
+               InpMaxLotCap);
    return(INIT_SUCCEEDED);
   }
 
@@ -716,23 +616,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
 
    if(dealEntry == DEAL_ENTRY_IN)
      {
-      // v1.32 A4: the daily cap counts DISTINCT positions, not broker fill fragments
-      // (a fragmented entry order emits several DEAL_ENTRY_IN rows for ONE trade).
-      // v1.27 B3: the daily cap counts FILLS (engine parity; placements were miscounting).
-      bool seenFill = false;
-      for(int f = 0; f < ArraySize(g_fillPosIdsToday); f++)
-         if(g_fillPosIdsToday[f] == posId)
-           {
-            seenFill = true;
-            break;
-           }
-      if(!seenFill)
-        {
-         int nf = ArraySize(g_fillPosIdsToday);
-         ArrayResize(g_fillPosIdsToday, nf + 1);
-         g_fillPosIdsToday[nf] = posId;
-         g_tradesToday++;
-        }
+      g_tradesToday++;   // v1.27 B3: the daily cap counts FILLS (engine parity; placements were miscounting)
       ulong orderTicket = (ulong)HistoryDealGetInteger(trans.deal, DEAL_ORDER);
       datetime dealTime = (datetime)HistoryDealGetInteger(trans.deal, DEAL_TIME);
       // Peek, do not consume: a partially filled entry order can retain a live
@@ -756,15 +640,6 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
       int si = FindPositionState(posId);
       if(si >= 0)
         {
-         // v1.32 B2/B3: stamp the research arm this position was PLACED under (only NEW
-         // fills pass through here; positions already open at attach keep the validated
-         // bracket/touch semantics). Persisted so a restart keeps the arm.
-         g_posState[si].runnerV132 = (InpExitModeV132 == EXIT_UNCAPPED_RUNNER);
-         g_posState[si].barCloseStopV132 = (InpStopEvalV132 == STOP_EVAL_BAR_CLOSE);
-         if(g_posState[si].runnerV132)
-            GlobalVariableSet(PositionRunnerGv(posId), 1.0);
-         if(g_posState[si].barCloseStopV132)
-            GlobalVariableSet(PositionBarStopGv(posId), 1.0);
          double histEntry = 0.0, histInVol = 0.0;
          int histDir = 0;
          if(PositionHistoryEntryContext(posId, histEntry, histDir, histInVol))
@@ -777,18 +652,7 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
             g_posState[si].entryPrice = HistoryDealGetDouble(trans.deal, DEAL_PRICE);
             g_posState[si].dir = (HistoryDealGetInteger(trans.deal, DEAL_TYPE) == DEAL_TYPE_BUY) ? 1 : -1;
            }
-         // v1.32 A5: the R denominator is the ACTUAL placed stop distance (placement
-         // clamps to stopsLevel*1.5 and snaps to the tick grid, so the input-based value
-         // drifts when the clamp binds). In B3 bar-close-stop mode the placed SL is only
-         // a disaster backstop - the intended stop stays the R denominator there.
-         double actualSL = 0.0;
-         ulong a5ticket = 0; string a5symbol = ""; double a5vol = 0.0;
-         if(!g_posState[si].barCloseStopV132 && FindOpenPositionById(posId, a5ticket, a5symbol, a5vol))
-            actualSL = posInfo.StopLoss();   // FindOpenPositionById leaves posInfo bound to this position
-         if(actualSL > 0.0 && g_posState[si].entryPrice > 0.0)
-            g_posState[si].riskPrice = MathAbs(g_posState[si].entryPrice - actualSL);
-         else
-            g_posState[si].riskPrice = (g_posState[si].signalAtr > 0.0) ? InpStopAtrMult * g_posState[si].signalAtr : 0.0;
+         g_posState[si].riskPrice = (g_posState[si].signalAtr > 0.0) ? InpStopAtrMult * g_posState[si].signalAtr : 0.0;
          double inVol = 0.0, outVol = 0.0;
          double priorTargetVolume = g_posState[si].partialTargetVolume;
          if(PositionHistoryVolumes(posId, inVol, outVol) && inVol > g_posState[si].initialVolume)
@@ -810,12 +674,9 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
       return;
      }
 
-   // v1.32 A3: DEAL_ENTRY_OUT_BY (close-by) and DEAL_ENTRY_INOUT (reversal) are full/
-   // partial closes too - ConsecutiveLossesToday already counted OUT_BY, so the ledger
-   // was inconsistent when these got no cooldown and no LogClosedTrade.
-   if(dealEntry == DEAL_ENTRY_OUT || dealEntry == DEAL_ENTRY_OUT_BY || dealEntry == DEAL_ENTRY_INOUT)
+   if(dealEntry == DEAL_ENTRY_OUT)
      {
-      // v1.30: DEAL_ENTRY_OUT can be the +1R partial. Classify from cumulative
+      // v1.31C: DEAL_ENTRY_OUT can be the +1R partial. Classify from cumulative
       // position volumes (not event ordering: MetaQuotes does not guarantee it).
       int psi = FindPositionState(posId);
       if(psi < 0)
@@ -944,7 +805,7 @@ void LogClosedTrade(ulong dealTicket, long posId, string symbol)
       sprE = g_posState[si].spreadAtrEntry; bars = g_posState[si].barsClosed;
      }
 
-   // v1.30: aggregate entry, partial, and final deals. The volume-weighted
+   // v1.31C: aggregate entry, partial, and final deals. The volume-weighted
    // price R is banked_frac*level_R + remainder*exit_R; cash profit includes
    // the actual entry/exit commissions and swaps exactly once.
    bool haveHistory = HistorySelectByPosition((ulong)posId);
@@ -1013,115 +874,6 @@ void LogClosedTrade(ulong dealTicket, long posId, string symbol)
                       entryPx, exitPx, riskPx, realR, mfe, mae, sprE, bars, rtxt, profit));
       FileClose(h);
      }
-  }
-
-//+------------------------------------------------------------------+
-//| v1.32 B2: impulse detection factored out of ScanSymbol so the     |
-//| runner exit can evaluate OPPOSITE impulses with the SAME inputs.  |
-//| Includes the 6-bar >= InpMomentumAtrMult ATR move, the signal-    |
-//| candle direction alignment, and the W2 adverse-wick filter;       |
-//| EXCLUDES the VWAP gate, the spread gates, and all entry-only      |
-//| guards (those stay in ScanSymbol). Returns true when a tradable   |
-//| impulse exists: dir=+1 rising / -1 falling; impulseAtr is signed  |
-//| (+ rising), matching the SIGNAL-line convention. forExit=true     |
-//| reports both directions regardless of InpTradeBothSides and stays |
-//| silent (no panel/log spam from the management path);              |
-//| forExit=false reproduces the exact v1.31 reject verdicts/logs.    |
-//+------------------------------------------------------------------+
-bool DetectImpulse(string symbol, double atr, int &dir, double &impulseAtr, bool forExit)
-  {
-   dir = 0;
-   impulseAtr = 0.0;
-   if(atr <= 0.0)
-      return(false);
-
-   // spread/ATR/side replica - used ONLY to keep the reject-log arguments identical to
-   // v1.31 (the spread GATE itself stays in ScanSymbol; this never filters here).
-   double spreadAtrSide = 0.0;
-   if(InpMaxSpreadAtr > 0.0)
-     {
-      double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
-      double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
-      spreadAtrSide = 0.5 * spreadPrice / atr;
-     }
-
-   double close1    = iClose(symbol, InpTimeframe, 1);
-   double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
-   double open1     = iOpen(symbol, InpTimeframe, 1);
-   if(close1 == 0.0 || closePast == 0.0)
-     {
-      if(!forExit)
-         LogSkip(symbol, "missing bar data");
-      return(false);
-     }
-
-   double move = closePast - close1;            // positive => price fell
-   double moveAtr = move / atr;
-
-   bool fallingFast = (moveAtr >= InpMomentumAtrMult) && (close1 < open1);
-   bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
-
-   // v1.29 W2 candle filter: the signal bar must be CONTESTED (adverse-side wick
-   // >= InpMinAdvWickAtr ATR). Gate evidence: quarter-stitched WF at real cost
-   // +0.120R vs +0.078R baseline, beats random-drop placebo, 9/12 symbols,
-   // 2x cost OK; direction confirmed on never-used FTMO M15 both symbols and on
-   // 24k never-analyzed IS trades. A SELL continuation needs a LOWER wick
-   // (buyers fought = still fuel); a BUY needs an UPPER wick. Skips only.
-   if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))
-     {
-      double high1 = iHigh(symbol, InpTimeframe, 1);
-      double low1  = iLow(symbol, InpTimeframe, 1);
-      if(high1 > 0.0 && low1 > 0.0)
-        {
-         double bodyTop  = MathMax(open1, close1);
-         double bodyBot  = MathMin(open1, close1);
-         double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
-         double advWickAtr = advWick / atr;
-         if(advWickAtr < InpMinAdvWickAtr)
-           {
-            if(!forExit)
-               LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
-                       advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
-            return(false);
-           }
-        }
-     }
-
-   // Impulse sign convention matches SIGNAL lines: negative = falling (close1 - closePast).
-   impulseAtr = -moveAtr;
-   // Entry path (forExit=false): long impulses require InpTradeBothSides (v1.31 semantics).
-   // Exit path (forExit=true): both directions are reported for the runner exit.
-   bool accepted = fallingFast || (risingFast && (forExit || InpTradeBothSides));
-   if(!accepted)
-     {
-      if(!forExit)
-        {
-         bool belowThreshold = (MathAbs(impulseAtr) < InpMomentumAtrMult);
-         string rejectReason;
-         if(belowThreshold)
-            rejectReason = StringFormat("no impulse: |%.2f| ATR < %.1f ATR threshold",
-                                        impulseAtr, InpMomentumAtrMult);
-         else if(risingFast && !InpTradeBothSides)
-            rejectReason = StringFormat("long impulse %.2f ATR: long-side trading disabled",
-                                        impulseAtr);
-         else
-           {
-            string actualCandle = (close1 > open1) ? "bullish" :
-                                  (close1 < open1) ? "bearish" : "doji";
-            string requiredCandle = (impulseAtr > 0.0) ? "bullish" : "bearish";
-            rejectReason = StringFormat("impulse %.2f ATR: signal candle is %s, requires %s alignment",
-                                        impulseAtr, actualCandle, requiredCandle);
-           }
-         if(InpLogNoImpulse)
-            LogSkip(symbol, rejectReason, atr, spreadAtrSide, impulseAtr);
-         else
-            SetVerdict(symbol, belowThreshold ? rejectReason : "SKIP " + rejectReason);
-        }
-      return(false);
-     }
-
-   dir = fallingFast ? -1 : 1;
-   return(true);
   }
 
 //+------------------------------------------------------------------+
@@ -1209,63 +961,86 @@ void ScanSymbol(string symbol, int atrHandle)
       return;
      }
 
+   double move = closePast - close1;            // positive => price fell
+   double moveAtr = move / atr;
+
+   bool fallingFast = (moveAtr >= InpMomentumAtrMult) && (close1 < open1);
+   bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
+
    // Optional Anchored-VWAP discount/premium gate (OFF by default in v1.2 -- it added no
    // out-of-sample edge and was overfit). When enabled: wait for VWAP to calibrate, then
    // buy ONLY at a discount (below VWAP) and sell ONLY at a premium (above VWAP).
-   // v1.32 B2: calibration is still checked before the impulse verdict (v1.31 ordering);
-   // the direction filter itself is applied to the DetectImpulse result below.
-   double vwap = 0.0;
    if(InpUseVwapGate)
      {
       int sessBars = 0;
-      vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
+      double vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
       if(vwap <= 0.0 || sessBars < InpVwapMinBars)
         {
          LogSkip(symbol, "VWAP not calibrated");
          return;
         }
-     }
-
-   // v1.32 B2: the impulse core (6-bar move, signal-candle alignment, W2 adverse-wick
-   // filter, and every reject verdict) lives in DetectImpulse - ZERO behavior change on
-   // this entry path; the helper emits the exact v1.31 verdicts/logs on rejection.
-   int impDir = 0;
-   double impulseAtr = 0.0;
-   if(!DetectImpulse(symbol, atr, impDir, impulseAtr, false))
-      return;
-
-   bool fallingFast = (impDir < 0);
-   bool risingFast  = (impDir > 0);
-   if(InpUseVwapGate)
-     {
       if(risingFast && close1 >= vwap)        // not a discount -> no buy
          risingFast = false;
       if(fallingFast && close1 <= vwap)       // not a premium -> no sell
          fallingFast = false;
-      if(!fallingFast && !risingFast)
+     }
+
+   // v1.29 W2 candle filter: the signal bar must be CONTESTED (adverse-side wick
+   // >= InpMinAdvWickAtr ATR). Gate evidence: quarter-stitched WF at real cost
+   // +0.120R vs +0.078R baseline, beats random-drop placebo, 9/12 symbols,
+   // 2x cost OK; direction confirmed on never-used FTMO M15 both symbols and on
+   // 24k never-analyzed IS trades. A SELL continuation needs a LOWER wick
+   // (buyers fought = still fuel); a BUY needs an UPPER wick. Skips only.
+   if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))
+     {
+      double high1 = iHigh(symbol, InpTimeframe, 1);
+      double low1  = iLow(symbol, InpTimeframe, 1);
+      if(high1 > 0.0 && low1 > 0.0)
         {
-         // v1.31 fell through to the candle-alignment reject for a VWAP-cleared impulse;
-         // reproduce that exact verdict here (VWAP is a documented dead end, OFF by default).
+         double bodyTop  = MathMax(open1, close1);
+         double bodyBot  = MathMin(open1, close1);
+         double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
+         double advWickAtr = advWick / atr;
+         if(advWickAtr < InpMinAdvWickAtr)
+           {
+            LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
+                    advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
+            return;
+           }
+        }
+     }
+
+   // Impulse sign convention matches SIGNAL lines: negative = falling (close1 - closePast).
+   double impulseAtr = -moveAtr;
+   if(!fallingFast && !(risingFast && InpTradeBothSides))
+     {
+      bool belowThreshold = (MathAbs(impulseAtr) < InpMomentumAtrMult);
+      string rejectReason;
+      if(belowThreshold)
+         rejectReason = StringFormat("no impulse: |%.2f| ATR < %.1f ATR threshold",
+                                     impulseAtr, InpMomentumAtrMult);
+      else if(risingFast && !InpTradeBothSides)
+         rejectReason = StringFormat("long impulse %.2f ATR: long-side trading disabled",
+                                     impulseAtr);
+      else
+        {
          string actualCandle = (close1 > open1) ? "bullish" :
                                (close1 < open1) ? "bearish" : "doji";
          string requiredCandle = (impulseAtr > 0.0) ? "bullish" : "bearish";
-         string rejectReason = StringFormat("impulse %.2f ATR: signal candle is %s, requires %s alignment",
-                                            impulseAtr, actualCandle, requiredCandle);
-         if(InpLogNoImpulse)
-            LogSkip(symbol, rejectReason, atr, spreadAtrSide, impulseAtr);
-         else
-            SetVerdict(symbol, "SKIP " + rejectReason);
-         return;
+         rejectReason = StringFormat("impulse %.2f ATR: signal candle is %s, requires %s alignment",
+                                     impulseAtr, actualCandle, requiredCandle);
         }
+      if(InpLogNoImpulse)
+         LogSkip(symbol, rejectReason, atr, spreadAtrSide, impulseAtr);
+      else
+         SetVerdict(symbol, belowThreshold ? rejectReason : "SKIP " + rejectReason);
+      return;
      }
 
    // Continuation in the direction of the move. PULLBACK uses LIMIT orders (enter on
    // the retrace); BREAKOUT uses STOP orders (chase beyond price, the legacy behaviour).
-   // v1.32 B1: ENTRY_MARKET sends a market order at the next bar open (research arm).
-   ENUM_ORDER_TYPE buyType  = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_BUY_LIMIT  :
-                              (InpEntryMode == ENTRY_MARKET)         ? ORDER_TYPE_BUY        : ORDER_TYPE_BUY_STOP;
-   ENUM_ORDER_TYPE sellType = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_SELL_LIMIT :
-                              (InpEntryMode == ENTRY_MARKET)         ? ORDER_TYPE_SELL       : ORDER_TYPE_SELL_STOP;
+   ENUM_ORDER_TYPE buyType  = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_BUY_LIMIT  : ORDER_TYPE_BUY_STOP;
+   ENUM_ORDER_TYPE sellType = (InpEntryMode == ENTRY_LIMIT_PULLBACK) ? ORDER_TYPE_SELL_LIMIT : ORDER_TYPE_SELL_STOP;
 
    if(fallingFast)
       PlacePending(symbol, sellType, atr, close1, impulseAtr, spreadAtrSide);
@@ -1282,13 +1057,14 @@ void ScanSymbol(string symbol, int atrHandle)
 void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signalClose,
                   double impulseAtr, double spreadAtrSide)
   {
+   double ask   = SymbolInfoDouble(symbol, SYMBOL_ASK);
+   double bid   = SymbolInfoDouble(symbol, SYMBOL_BID);
    double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
    int    digits= (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
    double stopsLevel = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
 
-   bool isMarket = (type == ORDER_TYPE_BUY || type == ORDER_TYPE_SELL);   // v1.32 B1: ENTRY_MARKET
    bool isLimit = (type == ORDER_TYPE_BUY_LIMIT || type == ORDER_TYPE_SELL_LIMIT);
-   bool isBuy   = (type == ORDER_TYPE_BUY || type == ORDER_TYPE_BUY_STOP || type == ORDER_TYPE_BUY_LIMIT);
+   bool isBuy   = (type == ORDER_TYPE_BUY_STOP  || type == ORDER_TYPE_BUY_LIMIT);
 
    // How far the pending sits from the anchor price.
    //   PULLBACK (limit): InpPullbackAtr ATR back from the signal-bar CLOSE (validated harness).
@@ -1298,25 +1074,60 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    if(offset <= 0.0)
       offset = 10 * point;
 
-   double stopDist = atr * InpStopAtrMult;   // INTENDED stop distance: the R denominator (A5) and the sizing basis
-   double tpDist   = (InpTakeProfitAtrMultV130 > 0.0) ? atr * InpTakeProfitAtrMultV130 : 0.0;
-   if(InpExitModeV132 == EXIT_UNCAPPED_RUNNER)
-      tpDist = 0.0;   // v1.32 B2: an uncapped runner carries NO take-profit target (research arm)
+   double stopDist = atr * InpStopAtrMult;
+   double tpDist   = (InpTakeProfitAtrMultV131C > 0.0) ? atr * InpTakeProfitAtrMultV131C : 0.0;
    if(stopsLevel > 0.0)
      {
       stopDist = MathMax(stopDist, stopsLevel * 1.5);
       if(tpDist > 0.0) tpDist = MathMax(tpDist, stopsLevel * 1.5);
      }
-   // v1.32 B3: in bar-close-stop mode the broker holds only a far DISASTER backstop; the
-   // intended stop above stays the sizing/R basis and is evaluated on bar close. The
-   // disaster stop is never tighter than the intended stop (never naked, never tighter).
-   double placedStopDist = stopDist;
-   if(InpStopEvalV132 == STOP_EVAL_BAR_CLOSE)
-      placedStopDist = MathMax(stopDist, atr * InpDisasterStopMultV132);
+
+   double entry, sl, tp;
+   bool sendMarket = false;
+   if(isBuy)
+     {
+      // BUY_STOP sits above the ask; BUY_LIMIT sits below signal-bar close (pullback).
+      entry = isLimit ? (signalClose - offset) : (ask + offset);
+      // v1.27 B4: price already retraced through the limit level (gap / fast move).
+      // The validated engine fills these at the limit on touch; a live BUY_LIMIT
+      // above the ask is rejected 10015 (observed live 08:29 today) and the trade
+      // is silently lost. Market entry at the ask is equal-or-BETTER than the
+      // engine's assumed limit fill (ask < limit here by construction).
+      if(isLimit && entry >= ask - stopsLevel)
+        {
+         entry = ask;
+         sendMarket = true;
+        }
+      entry = SnapPrice(symbol, entry);
+      sl    = SnapPrice(symbol, entry - stopDist);
+      tp    = (tpDist > 0.0) ? SnapPrice(symbol, entry + tpDist) : 0.0;
+     }
+   else
+     {
+      // SELL_STOP sits below the bid; SELL_LIMIT sits above signal-bar close (pullback).
+      entry = isLimit ? (signalClose + offset) : (bid - offset);
+      if(isLimit && entry <= bid + stopsLevel)
+        {
+         entry = bid;   // v1.27 B4: see BUY branch
+         sendMarket = true;
+        }
+      entry = SnapPrice(symbol, entry);
+      sl    = SnapPrice(symbol, entry + stopDist);
+      tp    = (tpDist > 0.0) ? SnapPrice(symbol, entry - tpDist) : 0.0;
+     }
 
    double lots = CalculateLotSize(symbol, stopDist);
    if(lots <= 0.0)
       return;
+
+   if(!InpEnableOrderSubmission)
+     {
+      SetVerdict(symbol, StringFormat("SIGNAL-ONLY %s %.2f lots (submission disabled)",
+                                     isBuy ? "BUY" : "SELL", lots));
+      PrintFormat("SIGNAL-ONLY %s %s: theoretical %.2f lots entry=%.5f SL=%.5f TP=%.5f | order submission disabled",
+                  symbol, isBuy ? "BUY" : "SELL", lots, entry, sl, tp);
+      return;
+     }
 
    datetime expiry = 0;
    ENUM_ORDER_TYPE_TIME ttype = ORDER_TIME_GTC;
@@ -1330,114 +1141,36 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       ttype  = ORDER_TIME_SPECIFIED;
      }
 
-   // v1.32 A6: bounded resend on price-class retcodes (the deferred v1.30 "10015" item).
-   // Each attempt re-fetches bid/ask, re-evaluates the v1.27 B4 marketable-limit ->
-   // market conversion, and recomputes entry/SL/TP from the fresh quotes. The geometry
-   // math is untouched; only the price path changes. Resends stop the moment the signal
-   // bar is no longer bar 1, and non-price retcodes abort immediately.
-   datetime sigBar1 = (datetime)iTime(symbol, InpTimeframe, 1);
-   int maxRetries = MathMax(InpEntryMaxRetriesV132, 0);
-   for(int attempt = 0; ; attempt++)
+   trade.SetTypeFillingBySymbol(symbol);
+   bool ok = false;
+   string tag = "";
+   if(sendMarket)
      {
-      double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
-      double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
-
-      double entry, sl, tp;
-      bool sendMarket = isMarket;   // v1.32 B1: ENTRY_MARKET goes straight to market
-      if(isBuy)
-        {
-         // BUY_STOP sits above the ask; BUY_LIMIT sits below signal-bar close (pullback).
-         entry = isLimit ? (signalClose - offset) : (ask + offset);
-         // v1.27 B4: price already retraced through the limit level (gap / fast move).
-         // The validated engine fills these at the limit on touch; a live BUY_LIMIT
-         // above the ask is rejected 10015 (observed live 08:29 today) and the trade
-         // is silently lost. Market entry at the ask is equal-or-BETTER than the
-         // engine's assumed limit fill (ask < limit here by construction).
-         if(isMarket)
-            entry = ask;
-         else if(isLimit && entry >= ask - stopsLevel)
-           {
-            entry = ask;
-            sendMarket = true;
-           }
-         entry = SnapPrice(symbol, entry);
-         sl    = SnapPrice(symbol, entry - placedStopDist);
-         tp    = (tpDist > 0.0) ? SnapPrice(symbol, entry + tpDist) : 0.0;
-        }
-      else
-        {
-         // SELL_STOP sits below the bid; SELL_LIMIT sits above signal-bar close (pullback).
-         entry = isLimit ? (signalClose + offset) : (bid - offset);
-         if(isMarket)
-            entry = bid;   // v1.32 B1: ENTRY_MARKET
-         else if(isLimit && entry <= bid + stopsLevel)
-           {
-            entry = bid;   // v1.27 B4: see BUY branch
-            sendMarket = true;
-           }
-         entry = SnapPrice(symbol, entry);
-         sl    = SnapPrice(symbol, entry + placedStopDist);
-         tp    = (tpDist > 0.0) ? SnapPrice(symbol, entry - tpDist) : 0.0;
-        }
-
-      trade.SetTypeFillingBySymbol(symbol);
-      bool ok = false;
-      string tag = "";
-      if(sendMarket)
-        {
-         ok = isBuy ? trade.Buy (lots, symbol, 0.0, sl, tp, InpTradeComment)
-                    : trade.Sell(lots, symbol, 0.0, sl, tp, InpTradeComment);
-         tag = isBuy ? (isMarket ? "BUY MARKET(entry-mode)" : "BUY MARKET(retrace-done)")
-                     : (isMarket ? "SELL MARKET(entry-mode)" : "SELL MARKET(retrace-done)");
-        }
-      else
-      switch(type)
-        {
-         case ORDER_TYPE_BUY_STOP:   ok = trade.BuyStop  (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY STOP";   break;
-         case ORDER_TYPE_SELL_STOP:  ok = trade.SellStop (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "SELL STOP";  break;
-         case ORDER_TYPE_BUY_LIMIT:  ok = trade.BuyLimit (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY LIMIT";  break;
-         case ORDER_TYPE_SELL_LIMIT: ok = trade.SellLimit(lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "SELL LIMIT"; break;
-         default: return;
-        }
-
-      uint rc = trade.ResultRetcode();
-      if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))   // v1.26: bool alone only means "request passed basic checks"
-        {
-         // v1.27 B3: fills are counted in OnTradeTransaction. v1.32 B1: a MARKET fill
-         // routes through the same deal path, so the frozen signal ATR is stored here too.
-         StorePendingSigAtr(trade.ResultOrder(), atr);
-         SetVerdict(symbol, StringFormat("SIGNAL %s %.2f lots @ %.2f (imp %.2f ATR)", tag, lots, entry, impulseAtr));   // v1.28
-         PrintFormat("SIGNAL %s %s %.2f lots entry=%.5f (anchor=%.5f) SL=%.5f TP=%.5f | ATR=%.5f impulse=%.2f spread/ATR/side=%.4f",
-                     symbol, tag, lots, entry, signalClose, sl, tp, atr, impulseAtr, spreadAtrSide);
-         return;
-        }
-      // v1.32 A6: only price-class rejections are resent, and only while the signal bar
-      // is still bar 1; everything else (no money, trade disabled, invalid volume...)
-      // aborts immediately, exactly like v1.31.
-      if(!EntryRetcodePriceClass(rc) || attempt >= maxRetries)
-        {
-         // v1.32: name the actual order type (tag carries e.g. "BUY MARKET(entry-mode)")
-         PrintFormat("%s %s order failed: %d (%s)", symbol, tag,
-                     trade.ResultRetcode(), trade.ResultRetcodeDescription());
-         return;
-        }
-      if((datetime)iTime(symbol, InpTimeframe, 1) != sigBar1)
-        {
-         PrintFormat("%s pending abandoned: signal bar rolled during price-class retry (retcode %u)", symbol, rc);
-         return;
-        }
-      PrintFormat("v1.32 ENTRY RETRY %s attempt=%d/%d retcode=%u (%s) - refetching quotes",
-                  symbol, attempt + 1, maxRetries, rc, trade.ResultRetcodeDescription());
+      ok = isBuy ? trade.Buy (lots, symbol, 0.0, sl, tp, InpTradeComment)
+                 : trade.Sell(lots, symbol, 0.0, sl, tp, InpTradeComment);
+      tag = isBuy ? "BUY MARKET(retrace-done)" : "SELL MARKET(retrace-done)";
      }
-  }
+   else
+   switch(type)
+     {
+      case ORDER_TYPE_BUY_STOP:   ok = trade.BuyStop  (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY STOP";   break;
+      case ORDER_TYPE_SELL_STOP:  ok = trade.SellStop (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "SELL STOP";  break;
+      case ORDER_TYPE_BUY_LIMIT:  ok = trade.BuyLimit (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY LIMIT";  break;
+      case ORDER_TYPE_SELL_LIMIT: ok = trade.SellLimit(lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "SELL LIMIT"; break;
+      default: return;
+     }
 
-//+------------------------------------------------------------------+
-//| v1.32 A6: price-class retcodes worth a bounded resend.            |
-//+------------------------------------------------------------------+
-bool EntryRetcodePriceClass(uint rc)
-  {
-   return(rc == TRADE_RETCODE_INVALID_PRICE || rc == TRADE_RETCODE_REQUOTE ||
-          rc == TRADE_RETCODE_PRICE_CHANGED || rc == TRADE_RETCODE_PRICE_OFF);
+   uint rc = trade.ResultRetcode();
+   if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_PLACED))   // v1.26: bool alone only means "request passed basic checks"
+     {
+      StorePendingSigAtr(trade.ResultOrder(), atr);   // v1.27 B3: fills are counted in OnTradeTransaction
+      SetVerdict(symbol, StringFormat("SIGNAL %s %.2f lots @ %.2f (imp %.2f ATR)", tag, lots, entry, impulseAtr));   // v1.28
+      PrintFormat("SIGNAL %s %s %.2f lots entry=%.5f (anchor=%.5f) SL=%.5f TP=%.5f | ATR=%.5f impulse=%.2f spread/ATR/side=%.4f",
+                  symbol, tag, lots, entry, signalClose, sl, tp, atr, impulseAtr, spreadAtrSide);
+     }
+   else
+      PrintFormat("%s pending failed: %d (%s)", symbol,
+                  trade.ResultRetcode(), trade.ResultRetcodeDescription());
   }
 
 //+------------------------------------------------------------------+
@@ -1446,7 +1179,7 @@ bool EntryRetcodePriceClass(uint rc)
 double RiskPercentForSymbol(string symbol)
   {
    if(symbol == "USDJPY")
-      return(InpUSDJPYRiskPercentV131);
+      return(InpUSDJPYRiskPercentV131C);
    return(InpRiskPercent);
   }
 
@@ -1477,6 +1210,13 @@ double CalculateLotSize(string symbol, double stopDistancePrice)
    double minVol  = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
    double maxVol  = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
    double stepVol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
+   if(InpMaxLotCap < minVol - 1e-12)
+     {
+      PrintFormat("%s: broker minimum %.4f exceeds hard challenger lot cap %.4f; signal skipped",
+                  symbol, minVol, InpMaxLotCap);
+      return(0.0);
+     }
+   lots = MathMin(lots, MathMin(maxVol, InpMaxLotCap));
    if(stepVol > 0.0)
       lots = MathFloor(lots / stepVol) * stepVol;
 
@@ -1491,6 +1231,8 @@ double CalculateLotSize(string symbol, double stopDistancePrice)
      }
    if(lots > maxVol)
       lots = maxVol;
+   if(lots > InpMaxLotCap)
+      lots = InpMaxLotCap;
 
    return(lots);
   }
@@ -1500,6 +1242,11 @@ double CalculateLotSize(string symbol, double stopDistancePrice)
 //+------------------------------------------------------------------+
 void ManageAll()
   {
+   // Research mode is fully non-mutating: do not delete pendings or modify/
+   // close positions when order submission is disabled.  Signal scans still
+   // run and emit signal-only telemetry from PlacePending().
+   if(!InpEnableOrderSubmission)
+      return;
    ManagePendingOrders();
    SweepStalePendingSigAtr();
    ManageOpenPositions();
@@ -1522,7 +1269,7 @@ void SweepStalePendingSigAtr()
          continue;                          // still live
       if(!HistoryOrderSelect(ticket))
          continue;                          // resync window: neither live nor in history yet.
-                                            // KEEP the frozen ATR and retry next heartbeat —
+                                            // KEEP the frozen ATR and retry next heartbeat â€”
                                             // dropping here could hand a later fill the wrong
                                             // (fill-time) ATR (review fix).
       // Order is in history. If it produced a position (filled, or partial-then-
@@ -1548,30 +1295,11 @@ void SweepStalePendingSigAtr()
 //+------------------------------------------------------------------+
 void ManagePendingOrders()
   {
-   // v1.32 A8: halt cancel-spam throttle. v1.31 re-issued CancelAllPendings on EVERY
-   // heartbeat while halted. Cancel once per halt episode; re-cancel only when a pending
-   // with our magic (re)appears or the halt flag transitions (reset below when clear).
-   static bool s_haltCancelled = false;
    if(g_halted || g_haltedHard)     // v1.26: a halt must also clear RESTING orders -
      {                              // a pending filling after "paused for the day" adds
-      bool anyOurs = false;         // fresh risk on top of a -4% day (audit P1)
-      for(int i = OrdersTotal() - 1; i >= 0; i--)
-        {
-         ulong t = OrderGetTicket(i);
-         if(t != 0 && ordInfo.Select(t) && ordInfo.Magic() == InpMagicNumber)
-           {
-            anyOurs = true;
-            break;
-           }
-        }
-      if(!s_haltCancelled || anyOurs)
-        {
-         CancelAllPendings("halt active");
-         s_haltCancelled = true;
-        }
+      CancelAllPendings("halt active");   // fresh risk on top of a -4% day (audit P1)
       return;
      }
-   s_haltCancelled = false;         // halt cleared: the next halt episode cancels again
    for(int i = OrdersTotal() - 1; i >= 0; i--)
      {
       ulong ticket = OrderGetTicket(i);
@@ -1618,14 +1346,6 @@ void ManagePendingOrders()
       double stopsLevel = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
       double offset = MathMax(stopsLevel, InpEntryOffsetAtr * atr);
       double stopDist = MathMax(atr * InpStopAtrMult, stopsLevel * 1.5);
-      // v1.32: keep the research arms intact when trailing (BREAKOUT stop orders only -
-      // the default PULLBACK config never trails): a RUNNER must never re-gain a TP, and
-      // a bar-close-stop position keeps the far DISASTER stop as its broker SL.
-      double trailStopDist = stopDist;
-      if(InpStopEvalV132 == STOP_EVAL_BAR_CLOSE)
-         trailStopDist = MathMax(stopDist, atr * InpDisasterStopMultV132);
-      double trailTpDist = (InpExitModeV132 == EXIT_UNCAPPED_RUNNER) ? 0.0
-                           : ((InpTakeProfitAtrMultV130 > 0.0) ? atr * InpTakeProfitAtrMultV130 : 0.0);
 
       double curPrice = ordInfo.PriceOpen();
 
@@ -1640,8 +1360,9 @@ void ManagePendingOrders()
          // Only ratchet the entry DOWN toward price (price rising stays "in front").
          if(newEntry < curPrice - point)
            {
-            double sl = SnapPrice(symbol, newEntry - trailStopDist);   // v1.32: disaster stop when STOP_EVAL_BAR_CLOSE
-            double tp = (trailTpDist > 0.0) ? SnapPrice(symbol, newEntry + trailTpDist) : 0.0;   // v1.32: 0 for runners
+            double sl = SnapPrice(symbol, newEntry - stopDist);
+            double tp = (InpTakeProfitAtrMultV131C > 0.0)
+                        ? SnapPrice(symbol, newEntry + atr * InpTakeProfitAtrMultV131C) : 0.0;
             trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
            }
         }
@@ -1652,8 +1373,9 @@ void ManagePendingOrders()
          // Only ratchet the entry UP toward price (price falling stays "in front").
          if(newEntry > curPrice + point)
            {
-            double sl = SnapPrice(symbol, newEntry + trailStopDist);   // v1.32: disaster stop when STOP_EVAL_BAR_CLOSE
-            double tp = (trailTpDist > 0.0) ? SnapPrice(symbol, newEntry - trailTpDist) : 0.0;   // v1.32: 0 for runners
+            double sl = SnapPrice(symbol, newEntry + stopDist);
+            double tp = (InpTakeProfitAtrMultV131C > 0.0)
+                        ? SnapPrice(symbol, newEntry - atr * InpTakeProfitAtrMultV131C) : 0.0;
             trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
            }
         }
@@ -1665,7 +1387,6 @@ void ManagePendingOrders()
 //+------------------------------------------------------------------+
 void ManageOpenPositions()
   {
-   static datetime s_lastTimeExitLog = 0;   // v1.32 A2: throttle the time-exit failure log to 1/minute
    PruneClosedPositionStates();
 
    for(int i = PositionsTotal() - 1; i >= 0; i--)
@@ -1708,34 +1429,11 @@ void ManageOpenPositions()
             continue;
         }
 
-      // v1.30 partial is tick-checked on every heartbeat, independent of the
+      // v1.31C partial is tick-checked on every heartbeat, independent of the
       // bar-close lock/trail cadence. A sent close request owns this heartbeat
       // so time/SL management cannot race the server transaction chain.
       if(ManagePartialClose(ticket, stateIdx))
          continue;
-
-      // v1.32 A2: the time exit lives HERE now, evaluated EVERY heartbeat right after
-      // the partial check (v1.31 consumed the bar clock inside the bar-close/per-tick
-      // managers BEFORE trade.PositionClose, so a rejected forced close - requote,
-      // market closed, freeze - was silently deferred a full H1 bar; over a weekend
-      // that was days of unplanned exposure). Same counter, same threshold; a failure
-      // simply retries on the next heartbeat. v1.32 B2: runner positions use the
-      // InpRunnerMaxBarsV132 backstop instead of InpMaxHoldingBars.
-      int maxHoldBars = (g_posState[stateIdx].runnerV132) ? InpRunnerMaxBarsV132 : InpMaxHoldingBars;
-      if(maxHoldBars > 0 && g_posState[stateIdx].barsClosed >= maxHoldBars)
-        {
-         if(trade.PositionClose(ticket))
-            continue;                             // position gone
-         if(TimeCurrent() - s_lastTimeExitLog >= 60)
-           {
-            s_lastTimeExitLog = TimeCurrent();
-            PrintFormat("v1.32 time-exit close RETRY position=%I64d %s barsClosed=%d/%d retcode=%u (%s) - retried every heartbeat",
-                        g_posState[stateIdx].positionId, symbol,
-                        g_posState[stateIdx].barsClosed, maxHoldBars,
-                        trade.ResultRetcode(), trade.ResultRetcodeDescription());
-           }
-         continue;                                // do not run other managers against a position we are trying to close
-        }
 
       if(InpManageOnBarClose)
          ManagePositionBarClose(ticket, stateIdx);
@@ -1749,7 +1447,6 @@ void ManageOpenPositions()
 //+------------------------------------------------------------------+
 void ManagePositionBarClose(ulong ticket, int stateIdx)
   {
-   static datetime s_lastArmExitLog = 0;   // v1.32: throttle the arm-exit failure log to 1/minute
    string symbol = posInfo.Symbol();
    datetime curBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
    if(curBarTime == 0)                     // history desync: don't corrupt the bar clock
@@ -1760,112 +1457,14 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
    g_posState[stateIdx].lastMgmtBarTime = curBarTime;
    UpdateBarsClosed(stateIdx, symbol);
 
-   // v1.32 A2: the bar-count time exit moved to ManageOpenPositions (evaluated and
-   // retried every heartbeat). Only NEW-bar exit logic remains here.
-
-   // v1.32 B3: bar-close stop evaluation (arm default OFF; NEW positions stamped
-   // STOP_EVAL_BAR_CLOSE only). The broker SL is just the disaster backstop - the
-   // VALIDATED stop is the close of bar 1 beyond entry -+ InpStopAtrMult*signalAtr.
-   if(g_posState[stateIdx].barCloseStopV132)
+   if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
      {
-      double sigAtr = g_posState[stateIdx].signalAtr;
-      if(sigAtr <= 0.0)
-        {
-         if(ReadAtrForSymbol(symbol, sigAtr) && sigAtr > 0.0)
-            g_posState[stateIdx].signalAtr = sigAtr;
-        }
-      if(sigAtr > 0.0)
-        {
-         double stopClose = iClose(symbol, InpTimeframe, 1);
-         double stopEntry = posInfo.PriceOpen();
-         if(stopClose > 0.0 && stopEntry > 0.0)
-           {
-            double intendedDist = InpStopAtrMult * sigAtr;
-            bool stopHit = (posInfo.PositionType() == POSITION_TYPE_BUY)
-                           ? (stopClose <= stopEntry - intendedDist)
-                           : (stopClose >= stopEntry + intendedDist);
-            if(stopHit)
-              {
-               // fills ~= next bar open, per the pre-registered arm; the disaster-stop
-               // level is logged so the tail-risk column can be audited.
-               PrintFormat("v1.32 BAR_CLOSE stop exit; broker disaster stop was at %.5f (position=%I64d %s barClose=%.5f entry=%.5f intendedDist=%.5f)",
-                           posInfo.StopLoss(), g_posState[stateIdx].positionId, symbol,
-                           stopClose, stopEntry, intendedDist);
-               SetVerdict(symbol, "BAR_CLOSE stop exit");
-               if(!trade.PositionClose(ticket))
-                 {
-                  // v1.32: a rejected arm exit must not wait a full bar - log the retcode
-                  // (throttled 60s, same pattern as the A2 time exit) and reset the bar
-                  // clock so the NEXT heartbeat re-enters this manager and retries.
-                  if(TimeCurrent() - s_lastArmExitLog >= 60)
-                    {
-                     s_lastArmExitLog = TimeCurrent();
-                     PrintFormat("v1.32 BAR_CLOSE stop exit RETRY position=%I64d %s retcode=%u (%s) - retried next heartbeat",
-                                 g_posState[stateIdx].positionId, symbol,
-                                 trade.ResultRetcode(), trade.ResultRetcodeDescription());
-                    }
-                  g_posState[stateIdx].lastMgmtBarTime = 0;
-                 }
-               return;
-              }
-           }
-        }
-     }
-
-   // v1.32 B2: UNCAPPED RUNNER - exit at market when a NEW bar shows an impulse
-   // OPPOSITE the position direction (arm default OFF; the runner carries no TP).
-   // DetectImpulse(forExit=true) reports both directions with the same entry inputs.
-   if(g_posState[stateIdx].runnerV132)
-     {
-      double atrExit = 0.0;
-      if(WilderAtrForSymbol(symbol, atrExit) && atrExit > 0.0)
-        {
-         int impDir = 0;
-         double impAtr = 0.0;
-         if(DetectImpulse(symbol, atrExit, impDir, impAtr, true))
-           {
-            int posDir = (posInfo.PositionType() == POSITION_TYPE_BUY) ? 1 : -1;
-            if(impDir == -posDir)
-              {
-               PrintFormat("v1.32 RUNNER exit on opposite impulse: position=%I64d %s impulse=%+.2f ATR vs posDir=%+d",
-                           g_posState[stateIdx].positionId, symbol, impAtr, posDir);
-               SetVerdict(symbol, "RUNNER exit on opposite impulse");
-               if(!trade.PositionClose(ticket))
-                 {
-                  // v1.32: same retry-until-close treatment as the B3 stop above - log
-                  // the retcode (throttled 60s) and reset the bar clock so the NEXT
-                  // heartbeat re-enters this manager and retries immediately.
-                  if(TimeCurrent() - s_lastArmExitLog >= 60)
-                    {
-                     s_lastArmExitLog = TimeCurrent();
-                     PrintFormat("v1.32 RUNNER exit RETRY position=%I64d %s retcode=%u (%s) - retried next heartbeat",
-                                 g_posState[stateIdx].positionId, symbol,
-                                 trade.ResultRetcode(), trade.ResultRetcodeDescription());
-                    }
-                  g_posState[stateIdx].lastMgmtBarTime = 0;
-                  return;
-                 }
-               if(!InpRunnerReverseV132)
-                 {
-                  // Stop-and-reverse arm OFF: suppress the immediate opposite re-entry
-                  // one bar beyond the standard exit-bar cooldown (the reverse arm lets
-                  // the normal scan take it, governed by the exit-bar cooldown alone).
-                  int xidx = SymbolIndex(symbol);
-                  if(xidx >= 0)
-                    {
-                     datetime curB = (datetime)iTime(symbol, InpTimeframe, 0);
-                     if(curB > g_noSignalUpTo[xidx])
-                        g_noSignalUpTo[xidx] = curB;
-                    }
-                 }
-               return;
-              }
-           }
-        }
+      trade.PositionClose(ticket);
+      return;
      }
 
    // v1.23 PURE BRACKET: with the lock/trail ladder disabled there is nothing to manage
-   // between fill and exit — the broker-side SL/TP set at placement ARE the exit engine,
+   // between fill and exit â€” the broker-side SL/TP set at placement ARE the exit engine,
    // plus the bar-count time exit above. (Exit-ladder study: the ladder cut avg win from
    // 1.72R to 1.02R and cost ~0.027R/trade of OOS expectancy.)
    if(!InpUseLockTrail)
@@ -2029,8 +1628,11 @@ void ManagePositionPerTick(ulong ticket, int stateIdx)
      {
       g_posState[stateIdx].lastMgmtBarTime = curBarTime;
       UpdateBarsClosed(stateIdx, symbol);
-      // v1.32 A2: the bar-count time exit moved to ManageOpenPositions and is evaluated
-      // (and retried on rejection) every heartbeat; only the bar clock is kept here.
+      if(InpMaxHoldingBars > 0 && g_posState[stateIdx].barsClosed >= InpMaxHoldingBars)
+        {
+         trade.PositionClose(ticket);
+         return;
+        }
      }
 
    if(!InpUseLockTrail)                 // v1.23 pure bracket: SL/TP are broker-side, nothing to trail
@@ -2167,7 +1769,7 @@ void RestorePendingSigAtrFromLiveOrders()
       restored++;
      }
    if(restored > 0)
-      PrintFormat("v1.30 restored %d pending signal-ATR record(s)", restored);
+      PrintFormat("v1.31C restored %d pending signal-ATR record(s)", restored);
   }
 
 double TakePendingSigAtrForPosition(long positionId)
@@ -2207,7 +1809,7 @@ int FindPositionState(long positionId)
 
 void LogPartialDeal(ulong dealTicket, long posId, string symbol)
   {
-   if(!InpTradeLog || StringLen(InpPartialLogFileV130) == 0)
+   if(!InpTradeLog || StringLen(InpPartialLogFileV131C) == 0)
       return;
    int si = FindPositionState(posId);
    double fill = HistoryDealGetDouble(dealTicket, DEAL_PRICE);
@@ -2219,21 +1821,20 @@ void LogPartialDeal(ulong dealTicket, long posId, string symbol)
    int dir = (si >= 0) ? g_posState[si].dir : 0;
    double slipPrice = (dir != 0 && level > 0.0) ? dir * (fill - level) : 0.0;
    double slipR = (risk > 0.0) ? slipPrice / risk : 0.0;
-   int h = FileOpen(InpPartialLogFileV130, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   int h = FileOpen(InpPartialLogFileV131C, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
    if(h != INVALID_HANDLE)
      {
       if(FileSize(h) == 0)
-         FileWriteString(h, "time,deal,position_id,symbol,dir,initial_volume,target_volume,deal_volume,level,fill,slippage_price,slippage_R,state,trigger_tag\r\n");   // v1.32 A1(c): appended column, nothing removed
+         FileWriteString(h, "time,deal,position_id,symbol,dir,initial_volume,target_volume,deal_volume,level,fill,slippage_price,slippage_R,state\r\n");
       FileSeek(h, 0, SEEK_END);
-      FileWriteString(h, StringFormat("%s,%I64u,%I64d,%s,%s,%.2f,%.2f,%.2f,%.5f,%.5f,%.5f,%.5f,%s,%s\r\n",
+      FileWriteString(h, StringFormat("%s,%I64u,%I64d,%s,%s,%.2f,%.2f,%.2f,%.5f,%.5f,%.5f,%.5f,%s\r\n",
                       TimeToString((datetime)HistoryDealGetInteger(dealTicket, DEAL_TIME), TIME_DATE | TIME_SECONDS),
                       dealTicket, posId, symbol, dir > 0 ? "BUY" : (dir < 0 ? "SELL" : "NA"),
                       initialVol, targetVol, vol, level, fill, slipPrice, slipR,
-                      (si >= 0) ? PartialStateText(g_posState[si].partialState) : "UNKNOWN",
-                      (si >= 0) ? g_posState[si].partialTriggerTag : ""));   // v1.32 A1(c): "bar-catchup" when the catch-up armed the trigger
+                      (si >= 0) ? PartialStateText(g_posState[si].partialState) : "UNKNOWN"));
       FileClose(h);
      }
-   PrintFormat("v1.30 PARTIAL FILL position=%I64d deal=%I64u %s vol=%.2f level=%.5f fill=%.5f slip=%+.5f (%+.4fR)",
+   PrintFormat("v1.31C PARTIAL FILL position=%I64d deal=%I64u %s vol=%.2f level=%.5f fill=%.5f slip=%+.5f (%+.4fR)",
                posId, dealTicket, symbol, vol, level, fill, slipPrice, slipR);
   }
 
@@ -2242,9 +1843,6 @@ string PartialVolumeGv(long positionId)  { return("MPB_v130_so_initvol_" + (stri
 string PartialTriggerGv(long positionId) { return("MPB_v130_so_trigger_" + (string)positionId); }
 string PartialAttemptsGv(long positionId){ return("MPB_v130_so_attempts_" + (string)positionId); }
 string PositionFrozenAtrGv(long positionId){ return("MPB_v130_frozen_atr_" + (string)positionId); }
-// v1.32 B2/B3: persisted research-arm stamps (the position keeps its arm across restarts).
-string PositionRunnerGv(long positionId)   { return("MPB_v132_runner_" + (string)positionId); }
-string PositionBarStopGv(long positionId)  { return("MPB_v132_barstop_" + (string)positionId); }
 
 string PartialStateText(int state)
   {
@@ -2274,10 +1872,10 @@ double FloorVolumeToStep(string symbol, double volume)
 
 double PartialTargetVolume(string symbol, double initialVolume)
   {
-   if(!InpUsePartialCloseV130 || initialVolume <= 0.0)
+   if(!InpUsePartialCloseV131C || initialVolume <= 0.0)
       return(0.0);
    double minVol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
-   double raw = initialVolume * InpPartialCloseFractionV130;
+   double raw = initialVolume * InpPartialCloseFractionV131C;
    if(raw + 1e-12 < minVol)                 // binding: never round a sub-min half upward
       return(0.0);
    double target = FloorVolumeToStep(symbol, raw);
@@ -2393,7 +1991,7 @@ void RefreshPartialGeometry(int stateIdx, string symbol)
       return;
    if(g_posState[stateIdx].entryPrice > 0.0 && g_posState[stateIdx].riskPrice > 0.0 && g_posState[stateIdx].dir != 0)
       g_posState[stateIdx].partialLevel = g_posState[stateIdx].entryPrice
-                                           + g_posState[stateIdx].dir * InpPartialCloseAtRV130
+                                           + g_posState[stateIdx].dir * InpPartialCloseAtRV131C
                                              * g_posState[stateIdx].riskPrice;
    if(g_posState[stateIdx].initialVolume > 0.0)
       g_posState[stateIdx].partialTargetVolume = PartialTargetVolume(symbol, g_posState[stateIdx].initialVolume);
@@ -2448,13 +2046,13 @@ void SetPartialState(int stateIdx, int state, string reason)
       return;
    g_posState[stateIdx].partialState = state;
    PersistPartialState(stateIdx);
-   PrintFormat("v1.30 PARTIAL STATE position=%I64d state=%s: %s",
+   PrintFormat("v1.31C PARTIAL STATE position=%I64d state=%s: %s",
                g_posState[stateIdx].positionId, PartialStateText(state), reason);
   }
 
 bool ManagePartialClose(ulong ticket, int stateIdx)
   {
-   if(!InpUsePartialCloseV130 || stateIdx < 0 || stateIdx >= ArraySize(g_posState))
+   if(!InpUsePartialCloseV131C || stateIdx < 0 || stateIdx >= ArraySize(g_posState))
       return(false);
    if((ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
      {
@@ -2477,52 +2075,18 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
    bool reached = (g_posState[stateIdx].dir > 0)
                   ? (exitSide >= g_posState[stateIdx].partialLevel)
                   : (exitSide <= g_posState[stateIdx].partialLevel);
+   if(state == PARTIAL_ARMED && !reached)
+      return(false);
    if(state == PARTIAL_ARMED)
      {
-      // v1.32 A1(b): freshness guard on the trigger - a stale/weekend tick must not arm
-      // the partial. A stale tick simply DEFERS the check to the next heartbeat (reuses
-      // the entry guard: InpFreshnessGuard / InpMaxTickAgeSec).
-      if(InpFreshnessGuard && !QuotesFresh(symbol))
-         return(false);
-
-      // v1.32 A1(c): bar-extreme catch-up trigger. A spike to +1R BETWEEN heartbeats
-      // never touches the 5s tick check; if the CURRENT forming bar (which must have
-      // opened AFTER the entry bar) already traded through the level, treat as TRIGGERED
-      // and close at market NOW. The entry bar itself is skipped (its extreme may predate
-      // the fill) - the tick trigger above still covers it.
-      bool barCatchup = false;
-      if(!reached && InpPartialBarCatchupV132 && g_posState[stateIdx].entryBarTime > 0)
-        {
-         datetime curBar = (datetime)iTime(symbol, InpTimeframe, 0);
-         if(curBar > g_posState[stateIdx].entryBarTime)
-           {
-            double hi = iHigh(symbol, InpTimeframe, 0);
-            double lo = iLow(symbol, InpTimeframe, 0);
-            if(hi > 0.0 && lo > 0.0 &&
-               ((g_posState[stateIdx].dir > 0 && hi >= g_posState[stateIdx].partialLevel) ||
-                (g_posState[stateIdx].dir < 0 && lo <= g_posState[stateIdx].partialLevel)))
-              {
-               reached = true;
-               barCatchup = true;
-              }
-           }
-        }
-      if(!reached)
-         return(false);
       g_posState[stateIdx].partialState = PARTIAL_TRIGGERED;
       g_posState[stateIdx].partialTriggerTime = TimeCurrent();
       g_posState[stateIdx].partialNextRetry = 0;
       g_posState[stateIdx].partialAttempts = 0;
-      g_posState[stateIdx].partialGapSeen = false;                                  // v1.32 A1(a)
-      g_posState[stateIdx].partialTriggerTag = barCatchup ? "bar-catchup" : "";     // v1.32 A1(c): reason tag for the partials CSV
       PersistPartialState(stateIdx);
-      if(barCatchup)
-         PrintFormat("v1.32 PARTIAL TRIGGER (bar-catchup) position=%I64d %s level=%.5f - bar extreme reached between heartbeats; closing at market",
-                     g_posState[stateIdx].positionId, symbol, g_posState[stateIdx].partialLevel);
-      else
-         PrintFormat("v1.30 PARTIAL TRIGGER position=%I64d %s level=%.5f exitSide=%.5f initialVol=%.2f targetVol=%.2f",
-                     g_posState[stateIdx].positionId, symbol, g_posState[stateIdx].partialLevel,
-                     exitSide, g_posState[stateIdx].initialVolume, g_posState[stateIdx].partialTargetVolume);
+      PrintFormat("v1.31C PARTIAL TRIGGER position=%I64d %s level=%.5f exitSide=%.5f initialVol=%.2f targetVol=%.2f",
+                  g_posState[stateIdx].positionId, symbol, g_posState[stateIdx].partialLevel,
+                  exitSide, g_posState[stateIdx].initialVolume, g_posState[stateIdx].partialTargetVolume);
      }
 
    if(TimeCurrent() < g_posState[stateIdx].partialNextRetry)
@@ -2545,7 +2109,7 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
       SetPartialState(stateIdx, PARTIAL_SKIPPED, "half volume is below broker min/step or leaves invalid remainder");
       return(false);
      }
-   if(g_posState[stateIdx].partialAttempts >= V130_PARTIAL_MAX_ATTEMPTS)
+   if(g_posState[stateIdx].partialAttempts >= V131C_PARTIAL_MAX_ATTEMPTS)
      {
       SetPartialState(stateIdx, PARTIAL_SKIPPED, "bounded retry limit reached");
       return(false);
@@ -2554,32 +2118,12 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
    trade.SetTypeFillingBySymbol(symbol);
    bool ok = trade.PositionClosePartial(ticket, closeVolume, InpDeviationPoints);
    uint rc = trade.ResultRetcode();
-   // v1.32 A1(a): per-retcode budgets. A closed market / lost connection is NOT a trade-
-   // server rejection: do NOT burn the V130_PARTIAL_MAX_ATTEMPTS budget on it - stay
-   // TRIGGERED and retry every 60s until the market reopens (weekend-skip fix: v1.31
-   // exhausted all 5 retries in ~2.5 min on a late-Friday +1R touch and the validated
-   // 50% bank was SKIPPED forever). MQL5's "no connection" retcode is TRADE_RETCODE_CONNECTION.
-   if(rc == TRADE_RETCODE_MARKET_CLOSED || rc == TRADE_RETCODE_CONNECTION)
-     {
-      g_posState[stateIdx].partialNextRetry = TimeCurrent() + 60;
-      g_posState[stateIdx].partialGapSeen = true;
-      PersistPartialState(stateIdx);
-      return(false);
-     }
-   if(g_posState[stateIdx].partialGapSeen)
-     {
-      // The first attempt after a market-closed gap logs the re-arm exactly once.
-      g_posState[stateIdx].partialGapSeen = false;
-      PrintFormat("v1.32 PARTIAL re-arm after market reopen: position=%I64d %s retcode=%u (%s) - attempt budget intact (%d/%d)",
-                  g_posState[stateIdx].positionId, symbol, rc, trade.ResultRetcodeDescription(),
-                  g_posState[stateIdx].partialAttempts, V130_PARTIAL_MAX_ATTEMPTS);
-     }
    g_posState[stateIdx].partialAttempts++;
-   g_posState[stateIdx].partialNextRetry = TimeCurrent() + MathMax(InpPartialRetrySecondsV130, 5);
+   g_posState[stateIdx].partialNextRetry = TimeCurrent() + MathMax(InpPartialRetrySecondsV131C, 5);
    PersistPartialState(stateIdx);
    if(ok && (rc == TRADE_RETCODE_DONE || rc == TRADE_RETCODE_DONE_PARTIAL))
      {
-      PrintFormat("v1.30 PARTIAL REQUEST position=%I64d %s closeVol=%.2f retcode=%u (%s) deal=%I64u price=%.5f",
+      PrintFormat("v1.31C PARTIAL REQUEST position=%I64d %s closeVol=%.2f retcode=%u (%s) deal=%I64u price=%.5f",
                   g_posState[stateIdx].positionId, symbol, closeVolume, rc,
                   trade.ResultRetcodeDescription(), trade.ResultDeal(), trade.ResultPrice());
       return(true); // avoid a same-heartbeat full-management race; deal event/reconcile finalizes state
@@ -2587,9 +2131,9 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
    if(!PartialRetcodeRetryable(rc))
       SetPartialState(stateIdx, PARTIAL_SKIPPED, StringFormat("non-retryable retcode %u (%s)", rc, trade.ResultRetcodeDescription()));
    else
-      PrintFormat("v1.30 PARTIAL RETRY position=%I64d %s attempt=%d/%d retcode=%u (%s)",
+      PrintFormat("v1.31C PARTIAL RETRY position=%I64d %s attempt=%d/%d retcode=%u (%s)",
                   g_posState[stateIdx].positionId, symbol, g_posState[stateIdx].partialAttempts,
-                  V130_PARTIAL_MAX_ATTEMPTS, rc, trade.ResultRetcodeDescription());
+                  V131C_PARTIAL_MAX_ATTEMPTS, rc, trade.ResultRetcodeDescription());
    return(false);
   }
 
@@ -2602,13 +2146,6 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
 void UpdateBarsClosed(int stateIdx, string symbol)
   {
    datetime entryBar = g_posState[stateIdx].entryBarTime;
-   // v1.32 A9: an unseeded clock with no anchor yet re-anchors to the current bar 0
-   // (same fallback v1.31 used at registration) so the recompute below can retry.
-   if(entryBar <= 0 && !g_posState[stateIdx].barClockSeeded)
-     {
-      entryBar = (datetime)iTime(symbol, InpTimeframe, 0);
-      g_posState[stateIdx].entryBarTime = entryBar;
-     }
    if(entryBar > 0)
      {
       int shift = iBarShift(symbol, InpTimeframe, entryBar, false);
@@ -2617,15 +2154,10 @@ void UpdateBarsClosed(int stateIdx, string symbol)
          // Entry bar at shift s => s bars opened after it => s closes elapsed
          // (the entry bar's own close is counted, matching RegisterPositionState).
          g_posState[stateIdx].barsClosed = shift;
-         g_posState[stateIdx].barClockSeeded = true;   // v1.32 A9: recompute succeeded
          return;
         }
      }
-   // v1.32 A9: the anchor lookup FAILED (unsynced/truncated history) - mark the clock
-   // unseeded and retry the recompute on the next bar close. NEVER blind-increment an
-   // unseeded clock: v1.31's ++ fallback could fire the time exit up to 8 bars late
-   // after a cold restart.
-   g_posState[stateIdx].barClockSeeded = false;
+   g_posState[stateIdx].barsClosed++;   // fallback: old increment semantics
   }
 
 //+------------------------------------------------------------------+
@@ -2676,34 +2208,16 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
             GlobalVariableSet(PositionFrozenAtrGv(positionId), signalAtr);
          GlobalVariablesFlush();
          if(g_posState[existing].entryPrice > 0.0)
-           {
-            // v1.32 A5: keep the R denominator honest with the ACTUAL placed stop when
-            // one is readable (in B3 mode the placed SL is only a disaster backstop).
-            double slNow = 0.0;
-            ulong t5 = 0; string s5 = ""; double v5 = 0.0;
-            if(!g_posState[existing].barCloseStopV132 && FindOpenPositionById(positionId, t5, s5, v5))
-               slNow = posInfo.StopLoss();
-            g_posState[existing].riskPrice = (slNow > 0.0) ? MathAbs(g_posState[existing].entryPrice - slNow)
-                                                           : InpStopAtrMult * signalAtr;
-           }
+            g_posState[existing].riskPrice = InpStopAtrMult * signalAtr;
          RefreshPartialGeometry(existing, symbol);
         }
       return;
      }
 
-   // v1.32 A9: guard DataReady before the first compute; when the entry-bar anchor
-   // cannot be resolved (unsynced history), mark the bar clock UNSEEDED (RAM only) -
-   // UpdateBarsClosed then retries the recompute on every bar close and never
-   // blind-increments (v1.31 fell back to iTime(0) and could time-exit 8 bars late).
    datetime entryBar = (datetime)iTime(symbol, InpTimeframe, 0);
-   bool barSeeded = true;
-   int shift = -1;
-   if(DataReady(symbol))
-      shift = iBarShift(symbol, InpTimeframe, openTime, false);
+   int shift = iBarShift(symbol, InpTimeframe, openTime, false);
    if(shift >= 0)
       entryBar = (datetime)iTime(symbol, InpTimeframe, shift);
-   else
-      barSeeded = false;
 
    // Frozen-ATR persistence: prefer an authoritative position GV, then recover
    // the placement-time ATR through the entry deal's persisted order-ticket GV.
@@ -2766,16 +2280,6 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    g_posState[n].partialTriggerTime = 0;
    g_posState[n].partialNextRetry = 0;
    g_posState[n].partialAttempts = 0;
-   g_posState[n].partialGapSeen = false;        // v1.32 A1(a)
-   g_posState[n].partialTriggerTag = "";        // v1.32 A1(c)
-   g_posState[n].barClockSeeded = barSeeded;    // v1.32 A9
-   // v1.32 B2/B3: restore a persisted research-arm stamp (the position was placed under
-   // an arm and the EA restarted); positions already open at attach have no stamp and
-   // keep the validated bracket/touch semantics.
-   g_posState[n].runnerV132 = (GlobalVariableCheck(PositionRunnerGv(positionId)) &&
-                               GlobalVariableGet(PositionRunnerGv(positionId)) > 0.5);
-   g_posState[n].barCloseStopV132 = (GlobalVariableCheck(PositionBarStopGv(positionId)) &&
-                                     GlobalVariableGet(PositionBarStopGv(positionId)) > 0.5);
 
    // v1.26: populate entry context from the LIVE position so trade-log rows survive
    // registrations outside the DEAL_ENTRY_IN path (reload sync, prune race) -
@@ -2792,12 +2296,7 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
       g_posState[n].dir = (posInfo.PositionType() == POSITION_TYPE_BUY) ? 1 : -1;
       currentVolume = posInfo.Volume();
       double slp = posInfo.StopLoss();
-      // v1.32 A5: honest R from the ACTUAL placed stop when one is readable; in B3
-      // bar-close-stop mode the placed SL is only a disaster backstop, so the intended
-      // stop (InpStopAtrMult * signalAtr) remains the R denominator there.
-      if(slp > 0.0 && !g_posState[n].barCloseStopV132)
-         g_posState[n].riskPrice = MathAbs(g_posState[n].entryPrice - slp);
-      else if(signalAtr > 0.0)
+      if(signalAtr > 0.0)
          g_posState[n].riskPrice = InpStopAtrMult * signalAtr;
       else if(slp > 0.0)
          g_posState[n].riskPrice = MathAbs(g_posState[n].entryPrice - slp);   // degraded fallback only
@@ -2841,8 +2340,6 @@ void PruneClosedPositionStates()
         {
          GlobalVariableDel("DSv121_atr_" + (string)g_posState[i].positionId);
          GlobalVariableDel(PositionFrozenAtrGv(g_posState[i].positionId));
-         GlobalVariableDel(PositionRunnerGv(g_posState[i].positionId));    // v1.32 B2
-         GlobalVariableDel(PositionBarStopGv(g_posState[i].positionId));   // v1.32 B3
          DeletePartialGlobals(g_posState[i].positionId);
          for(int j = i; j < ArraySize(g_posState) - 1; j++)
             g_posState[j] = g_posState[j + 1];
@@ -3075,7 +2572,6 @@ void ResetDailyState()
    g_currentDay      = DayStart(TimeCurrent());
    g_dayStartBalance = AccountInfoDouble(ACCOUNT_BALANCE);
    g_tradesToday     = 0;
-   ArrayResize(g_fillPosIdsToday, 0);   // v1.32 A4: day-scoped distinct-position set resets with the cap
    g_halted          = false;
   }
 
@@ -3087,18 +2583,13 @@ datetime DayStart(datetime t)
    return(StructToTime(st));
   }
 
-// v1.32 A7: magic-scoped risk-ledger GV names (the legacy terminal-global names were
-// shared by every instance of this EA on the terminal -> multi-instance interference).
-string PeakEquityGv()  { return("MPB_" + (string)InpMagicNumber + "_peak_equity"); }
-string InitBalanceGv() { return("MPB_" + (string)InpMagicNumber + "_init_balance"); }
-
 void UpdatePeakEquity()
   {
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    if(eq > g_peakEquity)
      {
       g_peakEquity = eq;
-      GlobalVariableSet(PeakEquityGv(), g_peakEquity);   // v1.26: the trailing halt must see across re-inits (v1.32 A7: magic-scoped)
+      GlobalVariableSet("MPB_peak_equity", g_peakEquity);   // v1.26: the trailing halt must see across re-inits
      }
   }
 
@@ -3166,22 +2657,21 @@ void RestoreRiskLedger()
    g_ledgerValid = true;
 
    g_peakEquity = eq;
-   if(GlobalVariableCheck(PeakEquityGv()))   // v1.32 A7: magic-scoped (migrated in OnInit)
-      g_peakEquity = MathMax(GlobalVariableGet(PeakEquityGv()), eq);
-   GlobalVariableSet(PeakEquityGv(), g_peakEquity);
+   if(GlobalVariableCheck("MPB_peak_equity"))
+      g_peakEquity = MathMax(GlobalVariableGet("MPB_peak_equity"), eq);
+   GlobalVariableSet("MPB_peak_equity", g_peakEquity);
 
    g_initialBalance = InpInitialBalance;
    if(g_initialBalance <= 0.0)
      {
-      if(!GlobalVariableCheck(InitBalanceGv()))   // v1.32 A7: magic-scoped
-         GlobalVariableSet(InitBalanceGv(), bal);
-      g_initialBalance = GlobalVariableGet(InitBalanceGv());
+      if(!GlobalVariableCheck("MPB_init_balance"))
+         GlobalVariableSet("MPB_init_balance", bal);
+      g_initialBalance = GlobalVariableGet("MPB_init_balance");
      }
 
    g_currentDay = DayStart(TimeCurrent());
    double dayPnl = 0.0;
    int placements = 0;
-   ArrayResize(g_fillPosIdsToday, 0);   // v1.32 A4: rebuilt alongside the count below
    if(HistorySelect(g_currentDay, TimeCurrent()))
      {
       int nd = HistoryDealsTotal();
@@ -3197,27 +2687,9 @@ void RestoreRiskLedger()
                  + HistoryDealGetDouble(d, DEAL_SWAP)
                  + HistoryDealGetDouble(d, DEAL_COMMISSION);   // account-wide, matches the FTMO day
          // v1.27 B3: the daily cap counts FILLS now - reconstruct the same way.
-         // v1.32 A4: ...but count DISTINCT positions, not broker fill fragments, so a
-         // restart lands on the same count as the live counter.
          if(HistoryDealGetInteger(d, DEAL_MAGIC) == InpMagicNumber &&
             HistoryDealGetInteger(d, DEAL_ENTRY) == DEAL_ENTRY_IN)
-           {
-            long pid = HistoryDealGetInteger(d, DEAL_POSITION_ID);
-            bool dup = false;
-            for(int s = 0; s < ArraySize(g_fillPosIdsToday); s++)
-               if(g_fillPosIdsToday[s] == pid)
-                 {
-                  dup = true;
-                  break;
-                 }
-            if(!dup)
-              {
-               int np = ArraySize(g_fillPosIdsToday);
-               ArrayResize(g_fillPosIdsToday, np + 1);
-               g_fillPosIdsToday[np] = pid;
-               placements++;
-              }
-           }
+            placements++;
         }
      }
 
@@ -3255,7 +2727,7 @@ int ConsecutiveLossesToday()
       if(duplicate)
          continue;
 
-      // A still-open position has only emitted a v1.30 partial; it is not a
+      // A still-open position has only emitted a v1.31C partial; it is not a
       // completed win/loss and cannot reset or extend the daily streak.
       ulong openTicket = 0; string openSymbol = ""; double openVolume = 0.0;
       if(FindOpenPositionById(posId, openTicket, openSymbol, openVolume))
@@ -3357,7 +2829,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.33-C1  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.31  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
@@ -3381,13 +2853,11 @@ void PanelUpdate()
       double mfe = (si >= 0) ? g_posState[si].mfeR : 0.0;
       double mae = (si >= 0) ? g_posState[si].maeR : 0.0;
       int bars = (si >= 0) ? g_posState[si].barsClosed : 0;
-      // v1.32 B2: display the runner backstop for runner positions (display only).
-      int maxB = (si >= 0 && g_posState[si].runnerV132) ? InpRunnerMaxBarsV132 : InpMaxHoldingBars;
       string so = (si >= 0) ? StringFormat("%s@%.2f", PartialStateText(g_posState[si].partialState),
                                             g_posState[si].partialLevel) : "UNKNOWN";
       PanelSet(ln++, StringFormat("POS %s %s %.2f @ %.2f | b%d/%d | MFE%+.2f MAE%+.2f | SO %s",
                 posInfo.Symbol(), posInfo.PositionType() == POSITION_TYPE_BUY ? "BUY " : "SELL",
-                posInfo.Volume(), posInfo.PriceOpen(), bars, maxB, mfe, mae, so),
+                posInfo.Volume(), posInfo.PriceOpen(), bars, InpMaxHoldingBars, mfe, mae, so),
                 clrDeepSkyBlue);
       shown++;
      }
@@ -3416,7 +2886,7 @@ void PanelUpdate()
    DecisionCsvMaybe();
   }
 
-// One row per closed working-timeframe bar -> monthly CSV (bounded growth; S3 shadow substrate).   // v1.32: was "M15 bar", stale since the H1 default
+// One row per closed M15 bar -> monthly CSV (bounded growth; S3 shadow substrate).
 void DecisionCsvMaybe()
   {
    static datetime s_lastBar = 0;

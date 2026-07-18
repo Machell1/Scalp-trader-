@@ -55,6 +55,16 @@ the FTMO $100k evaluation track.
    gate-grade = 2.5y real Deriv M15 in `backtest/data/`. Epoch conversions must use
    `(dt - Timestamp(0)) // Timedelta(seconds=1)` (two datetime bugs shipped otherwise).
 
+## Research-only v1.31 challenger
+
+`mql5/MomentumPullbackV131ChallengerEA.mq5` is an isolated exit-upgrade candidate;
+`mql5/MomentumPullbackEA.mq5` remains unchanged. It retains the v1.31 H1 entry,
+symbol, risk, and portfolio rules, but banks 66.6666667% at +1R and targets 1.5 ATR
+on the remainder instead of the control's 50% / 2.0 ATR bracket. Order submission is
+disabled by default and the challenger uses a separate magic number and 0.01 hard lot
+cap. Use [`docs/V131_CHALLENGER_TEST_PROMPT.md`](docs/V131_CHALLENGER_TEST_PROMPT.md)
+to rerun the pinned comparison before considering any deployment.
+
 ## What changed in v1.1 (the validated improvement)
 
 The original EA entered with a **STOP order placed just beyond price after a ≥2 ATR
