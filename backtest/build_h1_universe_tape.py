@@ -6,9 +6,10 @@ import json
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 
-from parity_engine import START, prep_symbol
+from parity_engine import MB, START, prep_symbol
 from run_h1_universe_screen import BASE_SOURCES, META_PATH, load_symbol
 from snapshot_h1_universe_meta import SOURCE_TO_FTMO
 from v130_pass_policy import AccountEvent, PassTape
@@ -74,13 +75,18 @@ def build_h1_universe_tape(
     sources: tuple[str, ...], *, stress: bool = True, cost_mode: str = "registered",
     partial_fraction: float = 0.5, target_atr: float = 2.0,
     reference_same_bar_partial: bool = False,
+    momentum_atr_mult: float = 2.0,
 ) -> tuple[PassTape, dict[str, int]]:
     """Build the registered H1 portfolio tape.
 
-    The three exit arguments are additive.  Their defaults preserve the
+    The exit and momentum arguments are additive.  Their defaults preserve the
     historical account-tape bytes.  ``reference_same_bar_partial`` includes a
     +1R partial immediately before a same-bar target/time exit, matching
     ``retest_engine.resolve`` and the tick-checked EA lifecycle.
+
+    ``momentum_atr_mult`` may only tighten the audited 2.0-ATR signal set.  The
+    exact default path is intentionally untouched so the legacy byte regression
+    remains meaningful.
     """
     if not set(BASE_SOURCES).issubset(sources):
         raise ValueError("the live H1 control trio must remain in every portfolio")
@@ -88,6 +94,8 @@ def build_h1_universe_tape(
         raise ValueError("partial_fraction must be in (0, 1)")
     if target_atr <= 1.0:
         raise ValueError("target_atr must be greater than the +1R partial level")
+    if momentum_atr_mult < 2.0:
+        raise ValueError("momentum_atr_mult cannot loosen the audited 2.0 threshold")
     snapshot = json.loads(META_PATH.read_text(encoding="utf-8"))
     events = []
     seq = 0
@@ -105,6 +113,18 @@ def build_h1_universe_tape(
             raise ValueError(f"unknown cost mode: {cost_mode}")
         cost = cost_e1 * (2.0 if stress else 1.0)
         prepared = prep_symbol(h1, cost, source)
+        if momentum_atr_mult > 2.0:
+            n = len(prepared.c)
+            move = np.full(n, np.nan)
+            move[MB - 1:] = prepared.c[:n - (MB - 1)] - prepared.c[MB - 1:]
+            with np.errstate(invalid="ignore", divide="ignore"):
+                impulse_atr = np.abs(move / prepared.atr)
+            keep = (
+                (prepared.side != 0)
+                & np.isfinite(impulse_atr)
+                & (impulse_atr >= momentum_atr_mult)
+            )
+            prepared.side[~keep] = 0
         symbol = loaded.ftmo_symbol
         cluster = CLUSTERS[symbol]
         i = START
