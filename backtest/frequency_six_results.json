@@ -1,0 +1,1487 @@
+{
+  "cells": {
+    "M30": {
+      "coupled": {
+        "account_mc": "NOT_ELIGIBLE",
+        "cell": "M30",
+        "entry_style": "market",
+        "failures": [
+          "EMPTY_SELECTION"
+        ],
+        "screen_pass": false,
+        "selected_sources": [],
+        "selected_symbols": []
+      },
+      "selection": {
+        "AUDJPY": {
+          "calibration": {
+            "average_hold_bars": 4.014,
+            "expectancy": -0.13439738807107302,
+            "n": 500,
+            "profit_factor": 0.7704545733832813,
+            "win_rate": 0.454
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.241545893719807,
+            "expectancy": -0.29818830135942925,
+            "n": 207,
+            "profit_factor": 0.5400078727925712,
+            "win_rate": 0.37681159420289856
+          },
+          "cost_e2_per_side_atr": 0.12825270569535466,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "AUDJPY"
+        },
+        "AUS200.cash": {
+          "calibration": {
+            "average_hold_bars": 4.007832898172324,
+            "expectancy": -0.22872250244514283,
+            "n": 383,
+            "profit_factor": 0.6321203461558081,
+            "win_rate": 0.3733681462140992
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 4.071428571428571,
+            "expectancy": -0.26445319133692563,
+            "n": 140,
+            "profit_factor": 0.5889676680980219,
+            "win_rate": 0.35
+          },
+          "cost_e2_per_side_atr": 0.07925778806019029,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "Australia_200"
+        },
+        "BCHUSD": {
+          "calibration": {
+            "average_hold_bars": 3.733695652173913,
+            "expectancy": -0.3998654013861226,
+            "n": 552,
+            "profit_factor": 0.4521364051076365,
+            "win_rate": 0.34782608695652173
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 3.7155555555555555,
+            "expectancy": -0.2618126341130772,
+            "n": 225,
+            "profit_factor": 0.5954795365672727,
+            "win_rate": 0.39111111111111113
+          },
+          "cost_e2_per_side_atr": 0.15480498542284865,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "BCHUSD"
+        },
+        "BTCUSD": {
+          "calibration": {
+            "average_hold_bars": 3.513368983957219,
+            "expectancy": -0.31729718989259065,
+            "n": 561,
+            "profit_factor": 0.5449777295693233,
+            "win_rate": 0.3868092691622103
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.023696682464455,
+            "expectancy": -0.20701966467618618,
+            "n": 211,
+            "profit_factor": 0.6659881220229645,
+            "win_rate": 0.4312796208530806
+          },
+          "cost_e2_per_side_atr": 0.16373656162166136,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "BTCUSD"
+        },
+        "ETHUSD": {
+          "calibration": {
+            "average_hold_bars": 3.665589660743134,
+            "expectancy": -0.26578565464970033,
+            "n": 619,
+            "profit_factor": 0.5958809232958718,
+            "win_rate": 0.3974151857835218
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 3.950413223140496,
+            "expectancy": -0.1504626588983848,
+            "n": 242,
+            "profit_factor": 0.7458263889225557,
+            "win_rate": 0.4462809917355372
+          },
+          "cost_e2_per_side_atr": 0.1311033412277698,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "ETHUSD"
+        },
+        "EURGBP": {
+          "calibration": {
+            "average_hold_bars": 3.3719512195121952,
+            "expectancy": -0.3286758802323378,
+            "n": 492,
+            "profit_factor": 0.5253559470970779,
+            "win_rate": 0.3597560975609756
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.693121693121693,
+            "expectancy": -0.249370871488642,
+            "n": 189,
+            "profit_factor": 0.593490990247862,
+            "win_rate": 0.38095238095238093
+          },
+          "cost_e2_per_side_atr": 0.1406499612119629,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "EURGBP"
+        },
+        "EURJPY": {
+          "calibration": {
+            "average_hold_bars": 4.005366726296959,
+            "expectancy": -0.20746030843335755,
+            "n": 559,
+            "profit_factor": 0.6558894489210662,
+            "win_rate": 0.40250447227191416
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.0492610837438425,
+            "expectancy": -0.24685204275071082,
+            "n": 203,
+            "profit_factor": 0.6056113184068433,
+            "win_rate": 0.3891625615763547
+          },
+          "cost_e2_per_side_atr": 0.11228382305343948,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "EURJPY"
+        },
+        "EURUSD": {
+          "calibration": {
+            "average_hold_bars": 3.664323374340949,
+            "expectancy": -0.26930454983332,
+            "n": 569,
+            "profit_factor": 0.5782775508245971,
+            "win_rate": 0.35676625659050965
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.112612612612613,
+            "expectancy": -0.18774799603360856,
+            "n": 222,
+            "profit_factor": 0.6858488851206535,
+            "win_rate": 0.42792792792792794
+          },
+          "cost_e2_per_side_atr": 0.1200409535724073,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "EURUSD"
+        },
+        "FRA40.cash": {
+          "calibration": {
+            "average_hold_bars": 3.690082644628099,
+            "expectancy": -0.28434501020852304,
+            "n": 484,
+            "profit_factor": 0.570406010629748,
+            "win_rate": 0.38016528925619836
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.3333333333333335,
+            "expectancy": -0.20888147041697036,
+            "n": 180,
+            "profit_factor": 0.6709986112367936,
+            "win_rate": 0.4
+          },
+          "cost_e2_per_side_atr": 0.11946168914060284,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "France_40"
+        },
+        "GBPJPY": {
+          "calibration": {
+            "average_hold_bars": 3.870201096892139,
+            "expectancy": -0.16316320048067853,
+            "n": 547,
+            "profit_factor": 0.7207179851649951,
+            "win_rate": 0.39853747714808047
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.352941176470588,
+            "expectancy": -0.15891693342157012,
+            "n": 204,
+            "profit_factor": 0.7108031459325774,
+            "win_rate": 0.4068627450980392
+          },
+          "cost_e2_per_side_atr": 0.10163845811157891,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "GBPJPY"
+        },
+        "GBPUSD": {
+          "calibration": {
+            "average_hold_bars": 3.5833333333333335,
+            "expectancy": -0.24195147536927292,
+            "n": 588,
+            "profit_factor": 0.6149520014978987,
+            "win_rate": 0.3707482993197279
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.173076923076923,
+            "expectancy": -0.1284335897536106,
+            "n": 208,
+            "profit_factor": 0.7689302232125099,
+            "win_rate": 0.4230769230769231
+          },
+          "cost_e2_per_side_atr": 0.10680408135081887,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "GBPUSD"
+        },
+        "GER40.cash": {
+          "calibration": {
+            "average_hold_bars": 3.515400410677618,
+            "expectancy": -0.20561745992951874,
+            "n": 487,
+            "profit_factor": 0.6615759366536607,
+            "win_rate": 0.35728952772073924
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.299465240641711,
+            "expectancy": -0.17988114280267842,
+            "n": 187,
+            "profit_factor": 0.7102697050820473,
+            "win_rate": 0.39037433155080214
+          },
+          "cost_e2_per_side_atr": 0.09068662322323753,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "Germany_40"
+        },
+        "HK50.cash": {
+          "calibration": {
+            "average_hold_bars": 3.7,
+            "expectancy": -0.2628338618185281,
+            "n": 490,
+            "profit_factor": 0.591475498765369,
+            "win_rate": 0.37551020408163266
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.9941176470588236,
+            "expectancy": -0.17774358592346798,
+            "n": 170,
+            "profit_factor": 0.6963814124998017,
+            "win_rate": 0.43529411764705883
+          },
+          "cost_e2_per_side_atr": 0.11429100631009263,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "Hong_Kong_50"
+        },
+        "JP225.cash": {
+          "calibration": {
+            "average_hold_bars": 4.056179775280899,
+            "expectancy": -0.21526602634779923,
+            "n": 445,
+            "profit_factor": 0.6482733632379686,
+            "win_rate": 0.3887640449438202
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 4.201086956521739,
+            "expectancy": -0.2564595378786998,
+            "n": 184,
+            "profit_factor": 0.5951950922260457,
+            "win_rate": 0.3858695652173913
+          },
+          "cost_e2_per_side_atr": 0.09726805963316859,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "Japan_225"
+        },
+        "LTCUSD": {
+          "calibration": {
+            "average_hold_bars": 4.031894934333959,
+            "expectancy": -0.2911028017322187,
+            "n": 533,
+            "profit_factor": 0.5576685013184504,
+            "win_rate": 0.3902439024390244
+          },
+          "complete_quarters": 5,
+          "confirmation": {
+            "average_hold_bars": 3.7652582159624415,
+            "expectancy": -0.27152772691338106,
+            "n": 213,
+            "profit_factor": 0.5980166046862297,
+            "win_rate": 0.4225352112676056
+          },
+          "cost_e2_per_side_atr": 0.1609582492392065,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "LTCUSD"
+        },
+        "NATGAS.cash": {
+          "calibration": {
+            "average_hold_bars": 3.547309833024119,
+            "expectancy": -0.5932317696255416,
+            "n": 539,
+            "profit_factor": 0.3088488817988796,
+            "win_rate": 0.36178107606679033
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.1340996168582373,
+            "expectancy": -0.7209556488170841,
+            "n": 261,
+            "profit_factor": 0.24312882931160365,
+            "win_rate": 0.3218390804597701
+          },
+          "cost_e2_per_side_atr": 0.3313308906343139,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "NGAS"
+        },
+        "NZDUSD": {
+          "calibration": {
+            "average_hold_bars": 4.233463035019455,
+            "expectancy": -0.30866694019152835,
+            "n": 514,
+            "profit_factor": 0.5381484715678382,
+            "win_rate": 0.3735408560311284
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.55023923444976,
+            "expectancy": -0.23264818219591374,
+            "n": 209,
+            "profit_factor": 0.6317068177528481,
+            "win_rate": 0.4449760765550239
+          },
+          "cost_e2_per_side_atr": 0.15106438964183805,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "NZDUSD"
+        },
+        "SOLUSD": {
+          "calibration": {
+            "average_hold_bars": 3.8267148014440435,
+            "expectancy": -0.2666515070594502,
+            "n": 554,
+            "profit_factor": 0.5883705634148914,
+            "win_rate": 0.37725631768953066
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.118143459915612,
+            "expectancy": -0.19036843154573407,
+            "n": 237,
+            "profit_factor": 0.6811360214814076,
+            "win_rate": 0.41350210970464135
+          },
+          "cost_e2_per_side_atr": 0.10674719194373189,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "SOLUSD"
+        },
+        "UK100.cash": {
+          "calibration": {
+            "average_hold_bars": 3.8785714285714286,
+            "expectancy": -0.6166289443617723,
+            "n": 420,
+            "profit_factor": 0.2901006516403562,
+            "win_rate": 0.3357142857142857
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.6835443037974684,
+            "expectancy": -0.6472025410131446,
+            "n": 158,
+            "profit_factor": 0.26874296564168876,
+            "win_rate": 0.3227848101265823
+          },
+          "cost_e2_per_side_atr": 0.30442462157168915,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "UK_100"
+        },
+        "UKOIL.cash": {
+          "calibration": {
+            "average_hold_bars": 3.4964028776978417,
+            "expectancy": -0.6363922387568617,
+            "n": 417,
+            "profit_factor": 0.2819477631293093,
+            "win_rate": 0.302158273381295
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.7142857142857144,
+            "expectancy": -0.6567466502646861,
+            "n": 175,
+            "profit_factor": 0.2721441321055967,
+            "win_rate": 0.30857142857142855
+          },
+          "cost_e2_per_side_atr": 0.266974419934414,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "UK_Brent_Oil"
+        },
+        "US100.cash": {
+          "calibration": {
+            "average_hold_bars": 3.2541322314049586,
+            "expectancy": -0.07040346636612285,
+            "n": 484,
+            "profit_factor": 0.8715498978620614,
+            "win_rate": 0.384297520661157
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.5833333333333335,
+            "expectancy": -0.18676559122561975,
+            "n": 204,
+            "profit_factor": 0.6802789405632701,
+            "win_rate": 0.35784313725490197
+          },
+          "cost_e2_per_side_atr": 0.03686380806547096,
+          "positive_quarter_fraction": 0.16666666666666666,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "US_Tech_100"
+        },
+        "US2000.cash": {
+          "calibration": {
+            "average_hold_bars": 3.3483870967741933,
+            "expectancy": -0.5112663222877374,
+            "n": 465,
+            "profit_factor": 0.36204969788607855,
+            "win_rate": 0.31827956989247314
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.4919786096256686,
+            "expectancy": -0.4856929354668043,
+            "n": 187,
+            "profit_factor": 0.3867487956237284,
+            "win_rate": 0.3315508021390374
+          },
+          "cost_e2_per_side_atr": 0.19981325382442638,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "US_Small_Cap_2000"
+        },
+        "US30.cash": {
+          "calibration": {
+            "average_hold_bars": 3.2857142857142856,
+            "expectancy": -0.13995900977621392,
+            "n": 511,
+            "profit_factor": 0.7514648416413486,
+            "win_rate": 0.33659491193737767
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.8518518518518516,
+            "expectancy": -0.06466897083788294,
+            "n": 189,
+            "profit_factor": 0.8762687090966054,
+            "win_rate": 0.4074074074074074
+          },
+          "cost_e2_per_side_atr": 0.0389337948823704,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "Wall_Street_30"
+        },
+        "US500.cash": {
+          "calibration": {
+            "average_hold_bars": 3.5030927835051546,
+            "expectancy": -0.14248459902032787,
+            "n": 485,
+            "profit_factor": 0.7485222797418012,
+            "win_rate": 0.37938144329896906
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.6666666666666665,
+            "expectancy": -0.1703779538766947,
+            "n": 180,
+            "profit_factor": 0.7078299483259789,
+            "win_rate": 0.3888888888888889
+          },
+          "cost_e2_per_side_atr": 0.07192238100307059,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "US_SP_500"
+        },
+        "USDCAD": {
+          "calibration": {
+            "average_hold_bars": 3.4352030947775627,
+            "expectancy": -0.3731515131335699,
+            "n": 517,
+            "profit_factor": 0.4783333155157941,
+            "win_rate": 0.33849129593810445
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.8882978723404253,
+            "expectancy": -0.2756663878648061,
+            "n": 188,
+            "profit_factor": 0.5748059038819564,
+            "win_rate": 0.39361702127659576
+          },
+          "cost_e2_per_side_atr": 0.1460731157151798,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "USDCAD"
+        },
+        "USDCHF": {
+          "calibration": {
+            "average_hold_bars": 3.628517823639775,
+            "expectancy": -0.29406816355735366,
+            "n": 533,
+            "profit_factor": 0.5558239485394395,
+            "win_rate": 0.36397748592870544
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.7761194029850746,
+            "expectancy": -0.23800960743100733,
+            "n": 201,
+            "profit_factor": 0.6291587552079699,
+            "win_rate": 0.38308457711442784
+          },
+          "cost_e2_per_side_atr": 0.11463972301993063,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "USDCHF"
+        },
+        "USDJPY": {
+          "calibration": {
+            "average_hold_bars": 3.8348134991119007,
+            "expectancy": -0.21097592584744468,
+            "n": 563,
+            "profit_factor": 0.6600497792449148,
+            "win_rate": 0.3907637655417407
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.108597285067873,
+            "expectancy": -0.20195816870769023,
+            "n": 221,
+            "profit_factor": 0.6666692149542911,
+            "win_rate": 0.3936651583710407
+          },
+          "cost_e2_per_side_atr": 0.11411976059226857,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "USDJPY"
+        },
+        "USOIL.cash": {
+          "calibration": {
+            "average_hold_bars": 3.3684210526315788,
+            "expectancy": -0.5948283349646982,
+            "n": 475,
+            "profit_factor": 0.3152509240724546,
+            "win_rate": 0.32
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.577319587628866,
+            "expectancy": -0.5720777493318464,
+            "n": 194,
+            "profit_factor": 0.3414733554396785,
+            "win_rate": 0.36597938144329895
+          },
+          "cost_e2_per_side_atr": 0.2705807427685035,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "US_Oil"
+        },
+        "XAGUSD": {
+          "calibration": {
+            "average_hold_bars": 3.7746741154562384,
+            "expectancy": -0.9602563131229193,
+            "n": 537,
+            "profit_factor": 0.13114883059020874,
+            "win_rate": 0.27932960893854747
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.842391304347826,
+            "expectancy": -1.0667403495890275,
+            "n": 184,
+            "profit_factor": 0.09479611805957446,
+            "win_rate": 0.22826086956521738
+          },
+          "cost_e2_per_side_atr": 0.45204390059546457,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XAGUSD"
+        },
+        "XAUUSD": {
+          "calibration": {
+            "average_hold_bars": 3.7431781701444624,
+            "expectancy": -0.19070279320121783,
+            "n": 623,
+            "profit_factor": 0.6854791507992548,
+            "win_rate": 0.39486356340288925
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.949074074074074,
+            "expectancy": -0.13943940889420062,
+            "n": 216,
+            "profit_factor": 0.7570542123300923,
+            "win_rate": 0.4166666666666667
+          },
+          "cost_e2_per_side_atr": 0.10167877788361522,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XAUUSD"
+        },
+        "XCUUSD": {
+          "calibration": {
+            "average_hold_bars": 4.012195121951219,
+            "expectancy": -0.10872179202558849,
+            "n": 82,
+            "profit_factor": 0.7987114618865666,
+            "win_rate": 0.4634146341463415
+          },
+          "complete_quarters": 2,
+          "confirmation": {
+            "average_hold_bars": 4.157894736842105,
+            "expectancy": -0.33950305981351786,
+            "n": 38,
+            "profit_factor": 0.48708551327965816,
+            "win_rate": 0.3157894736842105
+          },
+          "cost_e2_per_side_atr": 0.08451671583807588,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XCUUSD"
+        },
+        "XPTUSD": {
+          "calibration": {
+            "average_hold_bars": 3.921455938697318,
+            "expectancy": -0.19566309418994793,
+            "n": 522,
+            "profit_factor": 0.6624689842005294,
+            "win_rate": 0.3773946360153257
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.8627450980392157,
+            "expectancy": -0.3227094413901296,
+            "n": 153,
+            "profit_factor": 0.4884666392619159,
+            "win_rate": 0.30718954248366015
+          },
+          "cost_e2_per_side_atr": 0.07313491273053593,
+          "positive_quarter_fraction": 0.14285714285714285,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "XPTUSD"
+        },
+        "XRPUSD": {
+          "calibration": {
+            "average_hold_bars": 3.384873949579832,
+            "expectancy": -0.46730123769275583,
+            "n": 595,
+            "profit_factor": 0.40707867868668574,
+            "win_rate": 0.3546218487394958
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.140350877192983,
+            "expectancy": -0.3808799135351318,
+            "n": 228,
+            "profit_factor": 0.4608120015221982,
+            "win_rate": 0.38596491228070173
+          },
+          "cost_e2_per_side_atr": 0.22172020973902762,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XRPUSD"
+        }
+      }
+    },
+    "P30": {
+      "coupled": {
+        "account_mc": "NOT_ELIGIBLE",
+        "cell": "P30",
+        "entry_style": "limit",
+        "failures": [
+          "EMPTY_SELECTION"
+        ],
+        "screen_pass": false,
+        "selected_sources": [],
+        "selected_symbols": []
+      },
+      "selection": {
+        "AUDJPY": {
+          "calibration": {
+            "average_hold_bars": 4.433898305084746,
+            "expectancy": -0.13374715517990787,
+            "n": 295,
+            "profit_factor": 0.7474316289537233,
+            "win_rate": 0.41694915254237286
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.557251908396947,
+            "expectancy": -0.07800123084362819,
+            "n": 131,
+            "profit_factor": 0.8489846248995885,
+            "win_rate": 0.45038167938931295
+          },
+          "cost_e2_per_side_atr": 0.12825270569535466,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "AUDJPY"
+        },
+        "AUS200.cash": {
+          "calibration": {
+            "average_hold_bars": 4.497975708502024,
+            "expectancy": -0.07395834414579944,
+            "n": 247,
+            "profit_factor": 0.8533132395914246,
+            "win_rate": 0.4089068825910931
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 4.202247191011236,
+            "expectancy": -0.014500632240097266,
+            "n": 89,
+            "profit_factor": 0.9722373907371524,
+            "win_rate": 0.449438202247191
+          },
+          "cost_e2_per_side_atr": 0.07925778806019029,
+          "positive_quarter_fraction": 0.5,
+          "positive_quarters": 3,
+          "selected": false,
+          "source": "Australia_200"
+        },
+        "BCHUSD": {
+          "calibration": {
+            "average_hold_bars": 4.574525745257453,
+            "expectancy": -0.2409824242334151,
+            "n": 369,
+            "profit_factor": 0.5902501330140331,
+            "win_rate": 0.3902439024390244
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.468531468531468,
+            "expectancy": -0.16286440627605187,
+            "n": 143,
+            "profit_factor": 0.7111524009518503,
+            "win_rate": 0.42657342657342656
+          },
+          "cost_e2_per_side_atr": 0.15480498542284865,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "BCHUSD"
+        },
+        "BTCUSD": {
+          "calibration": {
+            "average_hold_bars": 4.108991825613079,
+            "expectancy": -0.27909395248680946,
+            "n": 367,
+            "profit_factor": 0.5478104760549383,
+            "win_rate": 0.3678474114441417
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.373134328358209,
+            "expectancy": -0.08368093153170067,
+            "n": 134,
+            "profit_factor": 0.8309316636832786,
+            "win_rate": 0.4626865671641791
+          },
+          "cost_e2_per_side_atr": 0.16373656162166136,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "BTCUSD"
+        },
+        "ETHUSD": {
+          "calibration": {
+            "average_hold_bars": 4.380835380835381,
+            "expectancy": -0.2615031985145009,
+            "n": 407,
+            "profit_factor": 0.5777624222266255,
+            "win_rate": 0.37346437346437344
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.640287769784172,
+            "expectancy": 0.02610326323590602,
+            "n": 139,
+            "profit_factor": 1.05760596892499,
+            "win_rate": 0.49640287769784175
+          },
+          "cost_e2_per_side_atr": 0.1311033412277698,
+          "positive_quarter_fraction": 0.25,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "ETHUSD"
+        },
+        "EURGBP": {
+          "calibration": {
+            "average_hold_bars": 3.589970501474926,
+            "expectancy": -0.21107118294657057,
+            "n": 339,
+            "profit_factor": 0.6381199626737577,
+            "win_rate": 0.3746312684365782
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 3.859375,
+            "expectancy": -0.22145456949431824,
+            "n": 128,
+            "profit_factor": 0.6225152165661662,
+            "win_rate": 0.3828125
+          },
+          "cost_e2_per_side_atr": 0.1406499612119629,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "EURGBP"
+        },
+        "EURJPY": {
+          "calibration": {
+            "average_hold_bars": 4.346385542168675,
+            "expectancy": -0.17979795831599216,
+            "n": 332,
+            "profit_factor": 0.6732445233737081,
+            "win_rate": 0.39457831325301207
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.629032258064516,
+            "expectancy": -0.25160628741560115,
+            "n": 124,
+            "profit_factor": 0.5658977278568001,
+            "win_rate": 0.3629032258064516
+          },
+          "cost_e2_per_side_atr": 0.11228382305343948,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "EURJPY"
+        },
+        "EURUSD": {
+          "calibration": {
+            "average_hold_bars": 4.1767676767676765,
+            "expectancy": -0.10163674232422948,
+            "n": 396,
+            "profit_factor": 0.8003497525697613,
+            "win_rate": 0.4065656565656566
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.514084507042254,
+            "expectancy": -0.13492188988074238,
+            "n": 142,
+            "profit_factor": 0.7322521157251669,
+            "win_rate": 0.4084507042253521
+          },
+          "cost_e2_per_side_atr": 0.1200409535724073,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "EURUSD"
+        },
+        "FRA40.cash": {
+          "calibration": {
+            "average_hold_bars": 3.7034700315457414,
+            "expectancy": -0.16602138001842473,
+            "n": 317,
+            "profit_factor": 0.7041572482844661,
+            "win_rate": 0.38485804416403785
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.8017241379310347,
+            "expectancy": -0.14865582159328328,
+            "n": 116,
+            "profit_factor": 0.7286682242413808,
+            "win_rate": 0.39655172413793105
+          },
+          "cost_e2_per_side_atr": 0.11946168914060284,
+          "positive_quarter_fraction": 0.16666666666666666,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "France_40"
+        },
+        "GBPJPY": {
+          "calibration": {
+            "average_hold_bars": 4.147147147147147,
+            "expectancy": -0.09661539051095819,
+            "n": 333,
+            "profit_factor": 0.808727442832693,
+            "win_rate": 0.3993993993993994
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.544715447154472,
+            "expectancy": -0.11358342934185109,
+            "n": 123,
+            "profit_factor": 0.7748993305525117,
+            "win_rate": 0.42276422764227645
+          },
+          "cost_e2_per_side_atr": 0.10163845811157891,
+          "positive_quarter_fraction": 0.14285714285714285,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "GBPJPY"
+        },
+        "GBPUSD": {
+          "calibration": {
+            "average_hold_bars": 3.8087855297157622,
+            "expectancy": -0.15250098947684626,
+            "n": 387,
+            "profit_factor": 0.7161259041236022,
+            "win_rate": 0.37467700258397935
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.1171875,
+            "expectancy": -0.0010989454169508042,
+            "n": 128,
+            "profit_factor": 0.9975862292861608,
+            "win_rate": 0.453125
+          },
+          "cost_e2_per_side_atr": 0.10680408135081887,
+          "positive_quarter_fraction": 0.14285714285714285,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "GBPUSD"
+        },
+        "GER40.cash": {
+          "calibration": {
+            "average_hold_bars": 3.8509316770186337,
+            "expectancy": -0.051280614935268656,
+            "n": 322,
+            "profit_factor": 0.8974153813972466,
+            "win_rate": 0.40372670807453415
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.564885496183206,
+            "expectancy": -0.06797533353840625,
+            "n": 131,
+            "profit_factor": 0.867120102276691,
+            "win_rate": 0.37404580152671757
+          },
+          "cost_e2_per_side_atr": 0.09068662322323753,
+          "positive_quarter_fraction": 0.3333333333333333,
+          "positive_quarters": 2,
+          "selected": false,
+          "source": "Germany_40"
+        },
+        "HK50.cash": {
+          "calibration": {
+            "average_hold_bars": 3.8996865203761755,
+            "expectancy": -0.27421330807819294,
+            "n": 319,
+            "profit_factor": 0.5546056420535583,
+            "win_rate": 0.3448275862068966
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.5660377358490565,
+            "expectancy": -0.12639473483998007,
+            "n": 106,
+            "profit_factor": 0.7589689117100326,
+            "win_rate": 0.3867924528301887
+          },
+          "cost_e2_per_side_atr": 0.11429100631009263,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "Hong_Kong_50"
+        },
+        "JP225.cash": {
+          "calibration": {
+            "average_hold_bars": 4.407534246575342,
+            "expectancy": -0.06990052472267427,
+            "n": 292,
+            "profit_factor": 0.8613988646455517,
+            "win_rate": 0.4280821917808219
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.6666666666666665,
+            "expectancy": -0.19951385671743566,
+            "n": 105,
+            "profit_factor": 0.6750561385188376,
+            "win_rate": 0.3904761904761905
+          },
+          "cost_e2_per_side_atr": 0.09726805963316859,
+          "positive_quarter_fraction": 0.16666666666666666,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "Japan_225"
+        },
+        "LTCUSD": {
+          "calibration": {
+            "average_hold_bars": 4.702312138728324,
+            "expectancy": -0.18904688219621735,
+            "n": 346,
+            "profit_factor": 0.6526810505755857,
+            "win_rate": 0.40173410404624277
+          },
+          "complete_quarters": 5,
+          "confirmation": {
+            "average_hold_bars": 4.333333333333333,
+            "expectancy": -0.3007381989619169,
+            "n": 135,
+            "profit_factor": 0.5321409697427499,
+            "win_rate": 0.37777777777777777
+          },
+          "cost_e2_per_side_atr": 0.1609582492392065,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "LTCUSD"
+        },
+        "NATGAS.cash": {
+          "calibration": {
+            "average_hold_bars": 3.2613636363636362,
+            "expectancy": -0.5666991595279175,
+            "n": 352,
+            "profit_factor": 0.3247373406562654,
+            "win_rate": 0.36363636363636365
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 2.9281767955801103,
+            "expectancy": -0.6685457149550963,
+            "n": 181,
+            "profit_factor": 0.27762251994709775,
+            "win_rate": 0.3425414364640884
+          },
+          "cost_e2_per_side_atr": 0.3313308906343139,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "NGAS"
+        },
+        "NZDUSD": {
+          "calibration": {
+            "average_hold_bars": 4.336538461538462,
+            "expectancy": -0.24399500015181375,
+            "n": 312,
+            "profit_factor": 0.5814406675938829,
+            "win_rate": 0.3814102564102564
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.520325203252033,
+            "expectancy": -0.0447908554186288,
+            "n": 123,
+            "profit_factor": 0.9116955251036624,
+            "win_rate": 0.4715447154471545
+          },
+          "cost_e2_per_side_atr": 0.15106438964183805,
+          "positive_quarter_fraction": 0.14285714285714285,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "NZDUSD"
+        },
+        "SOLUSD": {
+          "calibration": {
+            "average_hold_bars": 4.447887323943662,
+            "expectancy": -0.1559244714313645,
+            "n": 355,
+            "profit_factor": 0.7110577117031749,
+            "win_rate": 0.38873239436619716
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.27027027027027,
+            "expectancy": -0.2662676799667894,
+            "n": 148,
+            "profit_factor": 0.5701456049373872,
+            "win_rate": 0.3918918918918919
+          },
+          "cost_e2_per_side_atr": 0.10674719194373189,
+          "positive_quarter_fraction": 0.25,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "SOLUSD"
+        },
+        "UK100.cash": {
+          "calibration": {
+            "average_hold_bars": 3.698529411764706,
+            "expectancy": -0.5262133585406543,
+            "n": 272,
+            "profit_factor": 0.34659200197269663,
+            "win_rate": 0.3639705882352941
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 4.114583333333333,
+            "expectancy": -0.3975406834780706,
+            "n": 96,
+            "profit_factor": 0.41822986439972554,
+            "win_rate": 0.3854166666666667
+          },
+          "cost_e2_per_side_atr": 0.30442462157168915,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "UK_100"
+        },
+        "UKOIL.cash": {
+          "calibration": {
+            "average_hold_bars": 3.6690140845070425,
+            "expectancy": -0.4729999220393363,
+            "n": 284,
+            "profit_factor": 0.37124890285648415,
+            "win_rate": 0.33098591549295775
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.861788617886179,
+            "expectancy": -0.5083682824025769,
+            "n": 123,
+            "profit_factor": 0.34010809481998944,
+            "win_rate": 0.34146341463414637
+          },
+          "cost_e2_per_side_atr": 0.266974419934414,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "UK_Brent_Oil"
+        },
+        "US100.cash": {
+          "calibration": {
+            "average_hold_bars": 3.5531914893617023,
+            "expectancy": 0.0745361513760028,
+            "n": 329,
+            "profit_factor": 1.1683863075227927,
+            "win_rate": 0.41641337386018235
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.798507462686567,
+            "expectancy": -0.030790477810944995,
+            "n": 134,
+            "profit_factor": 0.9349013315660811,
+            "win_rate": 0.39552238805970147
+          },
+          "cost_e2_per_side_atr": 0.03686380806547096,
+          "positive_quarter_fraction": 0.6666666666666666,
+          "positive_quarters": 4,
+          "selected": false,
+          "source": "US_Tech_100"
+        },
+        "US2000.cash": {
+          "calibration": {
+            "average_hold_bars": 3.372611464968153,
+            "expectancy": -0.3992235996287001,
+            "n": 314,
+            "profit_factor": 0.44097074151902765,
+            "win_rate": 0.32802547770700635
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.7109375,
+            "expectancy": -0.296340094699178,
+            "n": 128,
+            "profit_factor": 0.5445325303253956,
+            "win_rate": 0.375
+          },
+          "cost_e2_per_side_atr": 0.19981325382442638,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "US_Small_Cap_2000"
+        },
+        "US30.cash": {
+          "calibration": {
+            "average_hold_bars": 3.4080459770114944,
+            "expectancy": 0.11196644291218148,
+            "n": 348,
+            "profit_factor": 1.2557436311464487,
+            "win_rate": 0.4396551724137931
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.805084745762712,
+            "expectancy": -0.06107766770496913,
+            "n": 118,
+            "profit_factor": 0.8747060222548362,
+            "win_rate": 0.4067796610169492
+          },
+          "cost_e2_per_side_atr": 0.0389337948823704,
+          "positive_quarter_fraction": 0.8333333333333334,
+          "positive_quarters": 5,
+          "selected": false,
+          "source": "Wall_Street_30"
+        },
+        "US500.cash": {
+          "calibration": {
+            "average_hold_bars": 3.5127388535031847,
+            "expectancy": 0.004882672053600605,
+            "n": 314,
+            "profit_factor": 1.0105596929563885,
+            "win_rate": 0.4012738853503185
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.5689655172413794,
+            "expectancy": -0.18089283527057573,
+            "n": 116,
+            "profit_factor": 0.6743049776191237,
+            "win_rate": 0.3275862068965517
+          },
+          "cost_e2_per_side_atr": 0.07192238100307059,
+          "positive_quarter_fraction": 0.3333333333333333,
+          "positive_quarters": 2,
+          "selected": false,
+          "source": "US_SP_500"
+        },
+        "USDCAD": {
+          "calibration": {
+            "average_hold_bars": 3.713872832369942,
+            "expectancy": -0.34176149620855856,
+            "n": 346,
+            "profit_factor": 0.4727713959072873,
+            "win_rate": 0.3179190751445087
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.585365853658536,
+            "expectancy": -0.08189249071561164,
+            "n": 123,
+            "profit_factor": 0.8320321216917045,
+            "win_rate": 0.44715447154471544
+          },
+          "cost_e2_per_side_atr": 0.1460731157151798,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "USDCAD"
+        },
+        "USDCHF": {
+          "calibration": {
+            "average_hold_bars": 3.876056338028169,
+            "expectancy": -0.22613432523567564,
+            "n": 355,
+            "profit_factor": 0.6153982572845569,
+            "win_rate": 0.36056338028169016
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.2809917355371905,
+            "expectancy": -0.1956254295984886,
+            "n": 121,
+            "profit_factor": 0.6472774487917236,
+            "win_rate": 0.34710743801652894
+          },
+          "cost_e2_per_side_atr": 0.11463972301993063,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "USDCHF"
+        },
+        "USDJPY": {
+          "calibration": {
+            "average_hold_bars": 4.04696132596685,
+            "expectancy": -0.19470610395994556,
+            "n": 362,
+            "profit_factor": 0.659912241343865,
+            "win_rate": 0.3729281767955801
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.305785123966942,
+            "expectancy": -0.21852042500409335,
+            "n": 121,
+            "profit_factor": 0.6161362939243972,
+            "win_rate": 0.4132231404958678
+          },
+          "cost_e2_per_side_atr": 0.11411976059226857,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "USDJPY"
+        },
+        "USOIL.cash": {
+          "calibration": {
+            "average_hold_bars": 3.2560240963855422,
+            "expectancy": -0.45176232595290855,
+            "n": 332,
+            "profit_factor": 0.41215479491892815,
+            "win_rate": 0.3674698795180723
+          },
+          "complete_quarters": 6,
+          "confirmation": {
+            "average_hold_bars": 3.725925925925926,
+            "expectancy": -0.49968886618274544,
+            "n": 135,
+            "profit_factor": 0.36420618966112234,
+            "win_rate": 0.34074074074074073
+          },
+          "cost_e2_per_side_atr": 0.2705807427685035,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "US_Oil"
+        },
+        "XAGUSD": {
+          "calibration": {
+            "average_hold_bars": 4.240356083086054,
+            "expectancy": -0.817385034891465,
+            "n": 337,
+            "profit_factor": 0.15724873359723174,
+            "win_rate": 0.29673590504451036
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.72,
+            "expectancy": -0.7070174832945819,
+            "n": 125,
+            "profit_factor": 0.17081629399254192,
+            "win_rate": 0.304
+          },
+          "cost_e2_per_side_atr": 0.45204390059546457,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XAGUSD"
+        },
+        "XAUUSD": {
+          "calibration": {
+            "average_hold_bars": 4.139240506329114,
+            "expectancy": -0.09255470099583939,
+            "n": 395,
+            "profit_factor": 0.8198822880363451,
+            "win_rate": 0.42025316455696204
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.0588235294117645,
+            "expectancy": -0.15771776608905785,
+            "n": 136,
+            "profit_factor": 0.7158783090877928,
+            "win_rate": 0.40441176470588236
+          },
+          "cost_e2_per_side_atr": 0.10167877788361522,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XAUUSD"
+        },
+        "XCUUSD": {
+          "calibration": {
+            "average_hold_bars": 3.7547169811320753,
+            "expectancy": 0.14289711542778427,
+            "n": 53,
+            "profit_factor": 1.3307114275839473,
+            "win_rate": 0.4716981132075472
+          },
+          "complete_quarters": 2,
+          "confirmation": {
+            "average_hold_bars": 4.05,
+            "expectancy": -0.25056894280313236,
+            "n": 20,
+            "profit_factor": 0.6102935265482643,
+            "win_rate": 0.45
+          },
+          "cost_e2_per_side_atr": 0.08451671583807588,
+          "positive_quarter_fraction": 0.5,
+          "positive_quarters": 1,
+          "selected": false,
+          "source": "XCUUSD"
+        },
+        "XPTUSD": {
+          "calibration": {
+            "average_hold_bars": 4.2792792792792795,
+            "expectancy": 0.0979159694086013,
+            "n": 333,
+            "profit_factor": 1.2504051049245046,
+            "win_rate": 0.44744744744744747
+          },
+          "complete_quarters": 7,
+          "confirmation": {
+            "average_hold_bars": 4.355769230769231,
+            "expectancy": -0.17345794531211478,
+            "n": 104,
+            "profit_factor": 0.6560881673373461,
+            "win_rate": 0.38461538461538464
+          },
+          "cost_e2_per_side_atr": 0.07313491273053593,
+          "positive_quarter_fraction": 0.5714285714285714,
+          "positive_quarters": 4,
+          "selected": false,
+          "source": "XPTUSD"
+        },
+        "XRPUSD": {
+          "calibration": {
+            "average_hold_bars": 4.235148514851486,
+            "expectancy": -0.34238698838055237,
+            "n": 404,
+            "profit_factor": 0.5029032873125673,
+            "win_rate": 0.400990099009901
+          },
+          "complete_quarters": 4,
+          "confirmation": {
+            "average_hold_bars": 4.645833333333333,
+            "expectancy": -0.30920194514816074,
+            "n": 144,
+            "profit_factor": 0.5331288244494323,
+            "win_rate": 0.4236111111111111
+          },
+          "cost_e2_per_side_atr": 0.22172020973902762,
+          "positive_quarter_fraction": 0.0,
+          "positive_quarters": 0,
+          "selected": false,
+          "source": "XRPUSD"
+        }
+      }
+    }
+  },
+  "protocol_sha256": "5748232e24bd8d78bb4349704a4ac9ab7f4c80d4e35a75902146103a1acb22fe"
+}
