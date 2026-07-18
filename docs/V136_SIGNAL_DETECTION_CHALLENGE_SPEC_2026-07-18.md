@@ -185,6 +185,15 @@ outcomes are reported.
 
 A cell failing any discovery gate is killed and does not enter account MC.
 
+The repository's DSR gate is also binding. For each cell's full stitched-OOS
+filled-trade R distribution, compute
+`sr0 = dsr_hurdle(n_trials=300, n_obs=N)` and
+`DSR = psr(oos_r, sr0)` using the existing audited functions. The frozen
+trial count 300 is a conservative program-wide count that exceeds the last
+explicit repository ledger of 211 and includes the known v1.31-v1.44 external
+screens plus all three cells here. DSR must be at least `0.95`; A1's paired
+value is reported for context. No smaller trial count may be substituted.
+
 ## Account Stage 1: 20,000-path screen
 
 All discovery survivors and A1 use one common eligible-flat-block intersection,
