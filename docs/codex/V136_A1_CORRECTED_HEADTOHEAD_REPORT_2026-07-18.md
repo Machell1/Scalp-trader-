@@ -231,8 +231,11 @@ control P2 `{1: 88902, 4: 65, 6: 5378, 7: 5655}`, A1 P1
 
 [MEASURED: SHA256 @ `e3461c2`]
 
-- Result JSON:
-  `64e9082e938ca3e19b457349b2d985bbe582094477a52118917b8d744fafa54a`.
+- Result JSON committed LF blob:
+  `712bd41522d7874dd8a20dff6ccea8d919b6e167ee70d5937f646e0c27d82c3d`.
+  The pre-stage Windows working-tree CRLF form was
+  `64e9082e938ca3e19b457349b2d985bbe582094477a52118917b8d744fafa54a`;
+  Git normalization changed line endings only.
 - Builder:
   `cccbfc12c6ae45b524a3873b7f7d59a54ec60e3f1f2165d36491ecb50472031b`.
 - Runner:
