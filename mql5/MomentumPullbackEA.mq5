@@ -1,4 +1,17 @@
 //+------------------------------------------------------------------+
+//|   v1.36-A1 RELEASE (2026-07-18): A+ SIGNAL THRESHOLD on the      |
+//|     confirmed v1.33-C1 geometry. The only executable strategy    |
+//|     change is a versioned momentum input:                         |
+//|       * InpMomentumAtrMultV136 = 3.0 (was 2.0).                  |
+//|     The rename prevents a chart-saved 2.0 value from surviving.  |
+//|     Corrected-fidelity confirmation: 100,000 paired E2-stress    |
+//|     paths, 90.994% modeled both-phase pass vs 88.902% control,   |
+//|     paired conservative lower bound +1.7366pp, hard halt 0.035%. |
+//|     Trade-off: about 40% of C1 fills retained and modeled median |
+//|     completion increased from 499 to 978 days. Forward demo      |
+//|     execution remains the live validation.                       |
+//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
 //|   v1.33-C1 CANDIDATE (2026-07-18): GEOMETRY RESET of the failed  |
 //|     E3 challenger, owner-authorized. Two input renames with new  |
 //|     defaults (house convention: chart-saved V130 values cannot    |
@@ -149,9 +162,9 @@
 //|   raw-points bug class as Trading-EA PR #1.                       |
 //+------------------------------------------------------------------+
 #property copyright "Momentum pullback EA"
-#property version   "1.33"
+#property version   "1.36"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.33-C1: bank 75% @ +1R, TP 1.5 ATR. Corrected-fidelity 100k confirmation passed; forward demo remains live validation. USDJPY 0.05% sleeve; trio 0.30%; v1.32 fidelity fixes ON; arms B1-B3 OFF."
+#property description "Multi-symbol H1 momentum pullback EA v1.36-A1: confirmed A+ impulses >= 3.0 ATR on v1.33-C1 geometry (bank 75% @ +1R, TP 1.5 ATR, pullback 0.6). USDJPY 0.05% sleeve; trio 0.30%; v1.32 fidelity fixes ON; arms B1-B3 OFF."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -195,7 +208,8 @@ input group "=== Momentum Strategy ==="
 input ENUM_TIMEFRAMES InpTimeframeV131 = PERIOD_H1; // Confirmed H1 working timeframe; versioned to supersede saved M15 values
 #define InpTimeframe InpTimeframeV131
 input int    InpMomentumBars     = 6;     // Lookback bars for the move
-input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to count as "rapid"
+input double InpMomentumAtrMultV136 = 3.0;  // v1.36-A1 confirmed: A+ impulses only. Versioned so chart-saved 2.0 cannot survive.
+#define InpMomentumAtrMult InpMomentumAtrMultV136
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
 
@@ -429,7 +443,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.33-C1 initialized: requested=%s ready=%s",
+   PrintFormat("Panel v1.36-A1 initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -456,9 +470,10 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.33-C1 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
+   PrintFormat("MomentumPullbackEA v1.36-A1 ready. Entry=%s. MomATR>=%.2f. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" :
                 (InpEntryMode == ENTRY_MARKET ? "MARKET(research)" : "BREAKOUT(stop)")),
+               InpMomentumAtrMult,
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
@@ -3357,7 +3372,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.33-C1  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.36-A1  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
