@@ -8,6 +8,21 @@ candidate tape, placebo, or Monte Carlo path is generated. Results may be
 appended only after the registered run. This study authorizes no MT5 write,
 EA attachment, compilation, or deployment.
 
+Pre-execution clarification amendment: before any candidate tape was built,
+the runner audit found two ambiguities that are frozen here. Calendar-quarter
+completeness is determined separately for each symbol because the pinned
+symbol histories have different endpoints. When a symbol has at least three
+OOS quarters, its first and last OOS quarters are partial; pooled quarter
+expectancy uses only filled trades from symbol-quarter slices classified as
+complete, while every partial slice is reported separately. Also, the
+100,000-path Stage-2 confirmation uses fresh path IDs `20000..119999`; the
+20,000-path screen uses `0..19999`. Thus Stage 2 is independent of the screen,
+although A1 and its selected challenger continue to use common random numbers
+within each stage. Empty observed or placebo fill arms are reported verbatim
+as unavailable and fail the relevant discovery gates; they never terminate
+the all-cell report. These clarifications change no signal definition,
+threshold, gate, or candidate count.
+
 ## Provenance and decision question
 
 Parent evidence commit: `7ff8ab5281e753498ad435dd0b2fd104eb8a4e9b`.
@@ -154,8 +169,10 @@ silently repaired and rerun inside these cells.
 Data and costs are frozen to the same manifest and E2 stress convention used
 for A1. For each symbol, the last 30% of its completed H1 bars by chronological
 index is OOS. Signal placement time assigns OOS quarter and side. Calendar-edge
-partial quarters are reported but excluded from the complete-quarter stability
-fraction when at least three OOS quarters exist.
+partial quarters are classified per symbol and reported but excluded from the
+complete-quarter stability fraction when that symbol has at least three OOS
+quarters. A pooled quarter contains only filled trades whose own symbol-quarter
+slice is complete; partial slices never leak into the 60% gate.
 
 For `R_STRUCT` and `R_DRIVE`, generate exactly 200 random re-admission masks
 with seed `20260711`. Each placebo matches the candidate's marginal raw-signal
@@ -217,10 +234,10 @@ frozen before execution.
 ## Account Stage 2: 100,000-path confirmation
 
 Only the predeclared Stage-1 winner may run 100,000 paired paths against A1,
-using the same seed, block length, E2 cost, policy, chunking, and five gates,
-including the familywise McNemar threshold. Both rows and every simulator
-counter are reported. A screen failure cannot be repaired; no runner-up may be
-substituted after seeing results.
+using fresh path IDs `20000..119999` with the same seed, block length, E2 cost,
+policy, chunking, and five gates, including the familywise McNemar threshold.
+Both rows and every simulator counter are reported. A screen failure cannot be
+repaired; no runner-up may be substituted after seeing results.
 
 Possible final verdicts are:
 
