@@ -1,6 +1,6 @@
 # Scalp-trader — MomentumPullbackEA (FTMO build)
 
-Multi-symbol M15 momentum **pullback** EA + the Python research harness that designed,
+Multi-symbol H1 momentum **pullback** EA + the Python research harness that designed,
 gated, and continuously audits it. Formerly DerivScalperEA; the live deployment is now
 the FTMO $100k evaluation track.
 
@@ -14,26 +14,28 @@ the FTMO $100k evaluation track.
 
 ## LIVE STATE (2026-07-18) — do not regress
 
-- **EA:** `mql5/MomentumPullbackEA.mq5` **v1.33-C1**, live on FTMO demo (login 1513946641),
+- **EA:** `mql5/MomentumPullbackEA.mq5` **v1.36-A1**, live on FTMO demo (login 1513946641),
   magic **771025**, hosted on the BTCUSD,H1 chart (host chart is irrelevant — 5s timer).
 - **Universe (earned per-symbol through gates):** `US30.cash, US100.cash, JP225.cash, USDJPY`,
   clusters `US30.cash|US100.cash;JP225.cash;USDJPY`. Crypto is COST-DEAD on FTMO (measured
   commission ≈3.25 bps/side); gold failed six independent methods — do not re-add.
-- **Entry engine (FROZEN — this is the strategy):** momentum 6 bars ≥ 2.0 ATR (Wilder 14,
+- **Entry engine (FROZEN — this is the strategy):** momentum 6 bars ≥ 3.0 ATR (Wilder 14,
   self-computed, Python-parity 0.00000), pullback LIMIT 0.6 ATR, expiry 3 bars
   (bar-counted), **W2 candle filter: signal bar must carry an adverse-side wick ≥ 0.30 ATR**
   (contested impulses continue; clean climax bars are the WORST trades — 58k-trade result).
-- **Exits (CONFIRMED C1):** SL 1.0 ATR, bank 75% once at +1.0R, remainder TP 1.5 ATR,
-  and 8-bar time exit. The corrected-fidelity 100,000-path head-to-head measured 88.274%
-  modeled both-phase pass versus 76.823% for v1.31; forward demo execution remains validation.
+- **Exits (CONFIRMED C1 geometry, retained by A1):** SL 1.0 ATR, bank 75% once at +1.0R,
+  remainder TP 1.5 ATR, and 8-bar time exit. The corrected-fidelity 100,000-path A1
+  head-to-head measured 90.994% modeled both-phase pass versus 88.902% for paired C1;
+  forward demo execution remains validation. A1's trade-off is materially lower frequency.
 - **Risk:** 0.3%/trade on the index trio and 0.05%/trade on USDJPY; no fixed lots.
   Guards: daily −3% pause/−4% halt (cancels pendings), trailing 8% + static 91% floor
   (restart-proof ledger), max 8 fills/day, 1/cluster, freshness + news guards, panel.
 
 ## Rules for changes (Cursor: these are hard constraints)
 
-1. **The v1.33-C1 entry/exit engine and W2 filter are frozen.** Adaptation lives in research,
-   not live logic. Performance-chasing is 0-for-5 here (entry AND sizing forms).
+1. **The v1.36-A1 entry/exit engine and W2 filter are frozen.** Adaptation lives in research,
+   not live logic. The post-A1 Kimi signal challenge in PR #50 was 0-for-3; no idea survived
+   its gates.
 2. **Nothing ships without the gate:** pre-registered hashed spec → stitched-quarter OOS
    at real per-instrument cost → beats matched random/placebo controls → ≥8/12 symbol
    stability → DSR ≥ 0.95 at the CURRENT trial ledger (129) → 2× cost stress → challenge
