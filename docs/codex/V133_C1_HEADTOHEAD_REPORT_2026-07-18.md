@@ -25,8 +25,11 @@ SUPPLIED OR DEPLOYMENT-VALIDATED.**
 - [MEASURED: `python backtest/v130_risk_policy.py --self-test` @ `748390c`]
   16 synthetic risk-policy tests passed.
 - [MEASURED: `Get-FileHash backtest/v133_c1_headtohead_results.json` @
-  `748390c`] Result JSON SHA256:
+  `748390c`] Run-emitted Windows working-tree JSON SHA256:
   `e49e9f5212c56a4943f09bbc46a8addcf75e16fd9f15a037f4b79669abc74431`.
+- [MEASURED: SHA256 of `git show b2dee80:backtest/v133_c1_headtohead_results.json`]
+  Committed LF-normalized result JSON SHA256:
+  `3c8b009f1b67c3c19e3e487a46bf9e83f7e27cc8512727d18f9e2eceffbd8f2a`.
 
 ## Frozen comparison
 
