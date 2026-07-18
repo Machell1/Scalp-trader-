@@ -12,10 +12,10 @@
 //|     (0/20k vs E3 2/20k vs v1.31 167/20k), cut timeout to 11.15%   |
 //|     and median completion to 374d (v1.31: 562d); +8.48pp vs v1.31 |
 //|     with paired lower bound +7.55pp.                              |
-//|     STATUS: CONFIRMED on the owner's corrected-fidelity harness:  |
-//|     100,000 paired E2-stress paths, 88.274% modeled pass,         |
-//|     0.266% hard halt, paired lower +11.0265pp vs v1.31.          |
-//|     The forward demo remains live execution validation.           |
+//|     STATUS: CANDIDATE ONLY. The repo harness is the optimistic    |
+//|     bar-resolution generation. PROMOTE ONLY IF the owner's        |
+//|     corrected-fidelity harness shows hard-halt <= 0.370% AND      |
+//|     paired lower vs v1.31 > 0 at 20k, then the 100k confirmation. |
 //|     Everything else is v1.32 unchanged (fidelity fixes A1-A9,     |
 //|     gated arms B1-B3 default OFF).                                |
 //+------------------------------------------------------------------+
@@ -151,7 +151,7 @@
 #property copyright "Momentum pullback EA"
 #property version   "1.33"
 #property strict
-#property description "Multi-symbol H1 momentum pullback EA v1.33-C1: bank 75% @ +1R, TP 1.5 ATR. Corrected-fidelity 100k confirmation passed; forward demo remains live validation. USDJPY 0.05% sleeve; trio 0.30%; v1.32 fidelity fixes ON; arms B1-B3 OFF."
+#property description "Multi-symbol H1 momentum pullback EA v1.33-C1 CANDIDATE: bank 75% @ +1R, TP 1.5 ATR. NOT validated - do not deploy until the corrected-fidelity head-to-head + 100k confirmation pass and the owner signs off. USDJPY 0.05% sleeve; trio 0.30%; v1.32 fidelity fixes ON; arms B1-B3 OFF."
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -456,7 +456,7 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.33-C1 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
+   PrintFormat("MomentumPullbackEA v1.33-C1 CANDIDATE ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" :
                 (InpEntryMode == ENTRY_MARKET ? "MARKET(research)" : "BREAKOUT(stop)")),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
