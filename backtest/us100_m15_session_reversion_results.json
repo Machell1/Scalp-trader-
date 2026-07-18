@@ -1,0 +1,743 @@
+{
+  "binding_quarters": {
+    "C1": {
+      "E0_EXEC": {
+        "2025Q3": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2025Q4": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q1": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q2": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E1_MEASURED": {
+        "2025Q3": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2025Q4": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q1": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q2": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E2_STRESS": {
+        "2025Q3": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2025Q4": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q1": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q2": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      }
+    },
+    "MR3": {
+      "E0_EXEC": {
+        "2025Q3": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2025Q4": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q1": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q2": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E1_MEASURED": {
+        "2025Q3": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2025Q4": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q1": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q2": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E2_STRESS": {
+        "2025Q3": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2025Q4": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q1": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "2026Q2": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      }
+    }
+  },
+  "cells": {
+    "C1": {
+      "E0_EXEC": {
+        "BINDING_OOS": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DEVELOPMENT": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_30": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_70": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "FULL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "POST_OOS_PARTIAL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E1_MEASURED": {
+        "BINDING_OOS": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DEVELOPMENT": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_30": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_70": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "FULL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "POST_OOS_PARTIAL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E2_STRESS": {
+        "BINDING_OOS": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DEVELOPMENT": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_30": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_70": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "FULL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "POST_OOS_PARTIAL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      }
+    },
+    "MR3": {
+      "E0_EXEC": {
+        "BINDING_OOS": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DEVELOPMENT": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_30": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_70": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "FULL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "POST_OOS_PARTIAL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E1_MEASURED": {
+        "BINDING_OOS": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DEVELOPMENT": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_30": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_70": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "FULL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "POST_OOS_PARTIAL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      },
+      "E2_STRESS": {
+        "BINDING_OOS": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DEVELOPMENT": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_30": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "DIAGNOSTIC_70": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "FULL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        },
+        "POST_OOS_PARTIAL": {
+          "expectancy": null,
+          "longest_loss_streak": 0,
+          "max_drawdown_r": 0.0,
+          "median_r": null,
+          "n": 0,
+          "profit_factor": null,
+          "total_r": 0.0,
+          "win_rate": null
+        }
+      }
+    }
+  },
+  "frames": {
+    "BINDING_OOS": {
+      "eligible_dates": 248,
+      "first_date": "2025-07-01",
+      "last_date": "2026-06-30"
+    },
+    "DEVELOPMENT": {
+      "eligible_dates": 358,
+      "first_date": "2024-01-22",
+      "last_date": "2025-06-30"
+    },
+    "DIAGNOSTIC_30": {
+      "eligible_dates": 183,
+      "first_date": "2025-10-07",
+      "last_date": "2026-07-02"
+    },
+    "DIAGNOSTIC_70": {
+      "eligible_dates": 425,
+      "first_date": "2024-01-22",
+      "last_date": "2025-10-06"
+    },
+    "FULL": {
+      "eligible_dates": 608,
+      "first_date": "2024-01-22",
+      "last_date": "2026-07-02"
+    },
+    "POST_OOS_PARTIAL": {
+      "eligible_dates": 2,
+      "first_date": "2026-07-01",
+      "last_date": "2026-07-02"
+    }
+  },
+  "frequency_and_geometry": {
+    "eligible_complete_sessions": 608,
+    "entry_spread_r_min_median_max": [],
+    "holding_bars_min_median_max": [],
+    "long_trades": 0,
+    "mean_trades_per_eligible_calendar_week": 0.0,
+    "qualifying_sessions": 0,
+    "risk_distance_min_median_max": [],
+    "short_trades": 0,
+    "trades_per_eligible_session": 0.0,
+    "trades_per_five_eligible_sessions": 0.0
+  },
+  "funnel": {
+    "candidate_sessions": 608,
+    "complete_sessions": 608,
+    "completed_trades": 0,
+    "consolidation_box": 0,
+    "opening_impulse": 386,
+    "structure_trigger": 0,
+    "valid_atr": 608,
+    "valid_reward": 0,
+    "volume_fade": 0
+  },
+  "gates": {
+    "G1_oos_n_at_least_50": false,
+    "G2_e1_and_e2_expectancy_positive": false,
+    "G3_e2_bootstrap_lower_above_zero": false,
+    "G4_paired_delta_and_lower_bound": false,
+    "G5_sign_flip_p_at_most_005": false,
+    "G6_quarter_count_and_sign": false,
+    "G7_dsr_at_least_095": false
+  },
+  "inference": {
+    "block_length_trades": 5,
+    "bootstrap_replicates": 20000,
+    "dsr_trials": 278,
+    "latest_binding_quarter_positive": false,
+    "mr3_e2_bootstrap_95_lower": null,
+    "mr3_e2_dsr": null,
+    "mr3_e2_expectancy": null,
+    "oos_pairs": 0,
+    "paired_e2_bootstrap_95_lower": null,
+    "paired_e2_mean_delta": null,
+    "paired_sign_flip_pvalue": null,
+    "positive_binding_quarters": 0,
+    "rng": "numpy.default_rng_PCG64",
+    "seed": 13020260713
+  },
+  "provenance": {
+    "calendar_sha256": "a019c12412906f681b7d5fd9279f30ac850548f1acd21c24ca5fdf6f87f89791",
+    "canonical_verification": "verified 46 OK, 0 missing, 0 mismatched",
+    "commit": "5b354762ca2b437bda0d3682215ff1a7092607b6",
+    "data_sha256": "f62bf95c4a7a6ef1e3cd56582db24d5f6a713815647b1beda4098b91dfd946d9",
+    "first_utc": "2024-01-22T10:30:00+00:00",
+    "last_utc": "2026-07-03T00:00:00+00:00",
+    "protocol_sha256": "26810e10f82d65bc2c68a284e8acb663bb6f9cac1d95d8ffec489d3ce338b2f1",
+    "rows": 57689
+  },
+  "study": "US100_M15_SESSION_REVERSION_MR3",
+  "trades": {
+    "C1": [],
+    "MR3": []
+  },
+  "trial_ledger": {
+    "charged_cells": [
+      "MR3",
+      "C1"
+    ],
+    "global_after_derived": 278,
+    "global_start_derived": 276,
+    "increment": 2
+  },
+  "verdict": "KILL — NO ACCOUNT TEST"
+}
