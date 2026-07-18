@@ -71,7 +71,8 @@ def ftmo_metas(sources: tuple[str, ...]) -> dict[str, SymbolMeta]:
 
 
 def build_h1_universe_tape(
-    sources: tuple[str, ...], *, stress: bool = True, cost_mode: str = "registered"
+    sources: tuple[str, ...], *, stress: bool = True, cost_mode: str = "registered",
+    tp_mult: float = 2.0, partial_r: float = 1.0, bank_frac: float = 0.5,
 ) -> tuple[PassTape, dict[str, int]]:
     if not set(BASE_SOURCES).issubset(sources):
         raise ValueError("the live H1 control trio must remain in every portfolio")
@@ -133,7 +134,7 @@ def build_h1_universe_tape(
                 i += 4
                 continue
             stop = entry - signal_atr * side
-            target = entry + 2.0 * signal_atr * side
+            target = entry + tp_mult * signal_atr * side
             partial = None
             exit_bar = None
             exit_price = None
@@ -142,7 +143,7 @@ def build_h1_universe_tape(
                     if prepared.l[bar] <= stop:
                         exit_bar, exit_price = bar, stop
                         break
-                    if partial is None and prepared.h[bar] >= entry + signal_atr:
+                    if partial is None and prepared.h[bar] >= entry + partial_r * signal_atr:
                         partial = bar
                     if prepared.h[bar] >= target:
                         exit_bar, exit_price = bar, target
@@ -151,7 +152,7 @@ def build_h1_universe_tape(
                     if prepared.h[bar] >= stop:
                         exit_bar, exit_price = bar, stop
                         break
-                    if partial is None and prepared.l[bar] <= entry - signal_atr:
+                    if partial is None and prepared.l[bar] <= entry - partial_r * signal_atr:
                         partial = bar
                     if prepared.l[bar] <= target:
                         exit_bar, exit_price = bar, target
@@ -173,8 +174,8 @@ def build_h1_universe_tape(
                     events.append(_event(
                         f"{trade_id}:partial", trade_id, symbol, cluster, side,
                         _epoch(h1.iloc[bar]["time"]) + 3599, seq, "partial",
-                        price=entry + side * signal_atr, stop_distance=signal_atr,
-                        fixed_slippage_r=0.0, remaining_fraction=0.5,
+                        price=entry + side * partial_r * signal_atr, stop_distance=signal_atr,
+                        fixed_slippage_r=0.0, remaining_fraction=1.0 - bank_frac,
                         mark_role="favorable",
                     ))
                     continue
@@ -185,7 +186,7 @@ def build_h1_universe_tape(
                     _epoch(h1.iloc[bar]["time"]) + 3599, seq, "mark",
                     price=mark_price, stop_distance=signal_atr,
                     fixed_slippage_r=0.0,
-                    remaining_fraction=0.5 if partial is not None and bar > partial else 1.0,
+                    remaining_fraction=(1.0 - bank_frac) if partial is not None and bar > partial else 1.0,
                     mark_role="favorable" if (mark_price - entry) * side > 0 else "adverse",
                 ))
             final_epoch = _epoch(h1.iloc[exit_bar]["time"]) + 3599
