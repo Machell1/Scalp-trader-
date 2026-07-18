@@ -1,0 +1,604 @@
+{
+  "block_length": 20,
+  "candidate_ea_implementation": {
+    "path": "mql5\\MomentumPullbackEA_v136_A1.mq5",
+    "sha256": "397ece9d1c8b841bbe3ed763ef2a6d8ddb3cd207f9ea69244d8857f162feef82"
+  },
+  "chunk_size": 500,
+  "code_sha256": {
+    "backtest\\build_h1_universe_tape.py": "cccbfc12c6ae45b524a3873b7f7d59a54ec60e3f1f2165d36491ecb50472031b",
+    "backtest\\run_v136_a1_headtohead.py": "db6a70de2433cea74f5c411370a5281695ec725e55bff5cff4bc946cfd50a04d",
+    "backtest\\v130_pass_policy.py": "fffda607baed126c5de6cd1963282a3f0eaff8340c55d35ba6913d230c84a95c",
+    "backtest\\v130_pass_policy_csharp.py": "9a500b4fa407eb418bcca064dd254b0780317165a9a4e2fdd245154ff7b54bcd",
+    "backtest\\v130_pass_policy_kernel.cs": "8106219eec3531211e126a4a75fb97c274a95b2204389635bb7690514b48ca1e",
+    "backtest\\v130_risk_policy.py": "69a2f133999d10b549bc987043b0b315fa9c5614e506d5d99c1d123d1124a0a2",
+    "mql5\\MomentumPullbackEA_v136_A1.mq5": "397ece9d1c8b841bbe3ed763ef2a6d8ddb3cd207f9ea69244d8857f162feef82"
+  },
+  "common_eligible_blocks": 389,
+  "confirmation": {
+    "candidate": {
+      "counter_totals": {
+        "p1": {
+          "completed": 22789256,
+          "daily_halts": 0,
+          "entries": 22789283,
+          "ignored_lifecycle": 21207537,
+          "max_active": 200000,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 13239584,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 38268719,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 15466683,
+          "pending_cancel_target": 12749,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 0,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 7559782,
+          "swap_events": 0
+        },
+        "p2": {
+          "completed": 11170179,
+          "daily_halts": 0,
+          "entries": 11170188,
+          "ignored_lifecycle": 23127970,
+          "max_active": 190876,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 6496592,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 18759007,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 7576600,
+          "pending_cancel_target": 12218,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 0,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 8239882,
+          "swap_events": 0
+        }
+      },
+      "reason_counts": {
+        "p1": {
+          "1": 95438,
+          "4": 26,
+          "6": 4536
+        },
+        "p2": {
+          "1": 90994,
+          "4": 9,
+          "6": 4435,
+          "7": 4562
+        }
+      },
+      "row_sha256": "2c5b5d61f104ca6fcc010d0dd5ffac3baa6b7b0145cb974dd71699c112ee97fd",
+      "summary": {
+        "both_passes": 90994,
+        "both_probability": 0.90994,
+        "both_wilson_lower": 0.9084398712037983,
+        "both_wilson_upper": 0.9114179471866634,
+        "firm_probability": 0.0,
+        "firm_wilson_upper": 2.7054702564219857e-05,
+        "hard_probability": 0.00035,
+        "hard_wilson_upper": 0.000461744990583226,
+        "median_total_days_success": 978.0,
+        "p90_total_days_success": 1508.0,
+        "paths": 100000,
+        "phase1_passes": 95438,
+        "phase1_probability": 0.95438,
+        "phase2_conditional_probability": 0.9534357383851296,
+        "timeout_probability": 0.08971,
+        "timeout_wilson_upper": 0.0912075280294822
+      }
+    },
+    "candidate_minus_control": {
+      "both_probability": 0.02091999999999994,
+      "both_wilson_lower": 0.021064232241252312,
+      "hard_probability": -0.00156,
+      "median_total_days_success": 479.0,
+      "p90_total_days_success": 693.0,
+      "phase1_probability": 0.010929999999999995,
+      "phase2_conditional_probability": 0.011128249911972588,
+      "timeout_probability": -0.019360000000000002
+    },
+    "control": {
+      "counter_totals": {
+        "p1": {
+          "completed": 30281305,
+          "daily_halts": 0,
+          "entries": 30281452,
+          "ignored_lifecycle": 75725564,
+          "max_active": 200000,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 17260821,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 51376843,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 21079512,
+          "pending_cancel_target": 15850,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 12163,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 26767533,
+          "swap_events": 0
+        },
+        "p2": {
+          "completed": 14691175,
+          "daily_halts": 0,
+          "entries": 14691252,
+          "ignored_lifecycle": 77497406,
+          "max_active": 188690,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 8378874,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 24916757,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 10210389,
+          "pending_cancel_target": 15099,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 6104,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 27397846,
+          "swap_events": 0
+        }
+      },
+      "reason_counts": {
+        "p1": {
+          "1": 94345,
+          "4": 126,
+          "6": 5529
+        },
+        "p2": {
+          "1": 88902,
+          "4": 65,
+          "6": 5378,
+          "7": 5655
+        }
+      },
+      "row_sha256": "c95758cc00f260aec6009ce9a3fac0f83bda5c37cab34f8a9c11a0a25be553ef",
+      "summary": {
+        "both_passes": 88902,
+        "both_probability": 0.88902,
+        "both_wilson_lower": 0.887375638962546,
+        "both_wilson_upper": 0.890643311396671,
+        "firm_probability": 0.0,
+        "firm_wilson_upper": 2.7054702564219857e-05,
+        "hard_probability": 0.00191,
+        "hard_wilson_upper": 0.0021509781548140995,
+        "median_total_days_success": 499.0,
+        "p90_total_days_success": 815.0,
+        "paths": 100000,
+        "phase1_passes": 94345,
+        "phase1_probability": 0.94345,
+        "phase2_conditional_probability": 0.942307488473157,
+        "timeout_probability": 0.10907,
+        "timeout_wilson_upper": 0.11070203212560423
+      }
+    },
+    "failures": [],
+    "paired": {
+      "lower": 0.01736559202686215,
+      "mcnemar_exact_one_sided_p_value": 4.563894255373358e-55,
+      "n01_control_only_pass": 7974,
+      "n10_candidate_only_pass": 10066,
+      "p01_clopper_pearson_upper": 0.08143618156300776,
+      "p10_clopper_pearson_lower": 0.09880177358986991,
+      "point_delta": 0.02092
+    },
+    "pass": true,
+    "paths": 100000
+  },
+  "data_verification": "verified 46 OK, 0 missing, 0 mismatched",
+  "gates": {
+    "hard_no_greater_than": 0.0037,
+    "paired_lower_strictly_greater": 0.0
+  },
+  "legacy_default_regression": {
+    "actual_events_sha256": "3f51b01dfca92bd5d5fd2b01b1579d9e971661bc689ffee219f29dfaf347005f",
+    "counts": {
+      "JP225.cash": 426,
+      "US100.cash": 271,
+      "US30.cash": 440,
+      "USDJPY": 508
+    },
+    "events": 7317,
+    "expected_events_sha256": "3f51b01dfca92bd5d5fd2b01b1579d9e971661bc689ffee219f29dfaf347005f",
+    "pass": true,
+    "trades": 1645
+  },
+  "path0_python_csharp": {
+    "candidate": {
+      "exact": true,
+      "row": {
+        "both": 0,
+        "firm": 0,
+        "hard": 0,
+        "p1_balance": 110317.41089662655,
+        "p1_completed": 121,
+        "p1_daily_halts": 0,
+        "p1_days": 343,
+        "p1_entries": 121,
+        "p1_ignored_lifecycle": 0,
+        "p1_max_active": 2,
+        "p1_min_equity": 99658.55563964587,
+        "p1_min_lot_rejections": 0,
+        "p1_min_lot_substitutions": 0,
+        "p1_partial_executed": 80,
+        "p1_partial_skipped_rounding": 0,
+        "p1_peak_equity": 110317.41089662655,
+        "p1_pending_admitted": 203,
+        "p1_pending_cancel_daily_halt": 0,
+        "p1_pending_cancel_source": 81,
+        "p1_pending_cancel_target": 1,
+        "p1_positive_swap_suppressed": 0,
+        "p1_reason": 1,
+        "p1_skipped_consecutive": 0,
+        "p1_skipped_daily_halt": 0,
+        "p1_skipped_fill_cap": 0,
+        "p1_skipped_target_freeze": 0,
+        "p1_status": 1,
+        "p1_swap_events": 0,
+        "p1_trading_days": 92,
+        "p2_balance": 104967.82073617168,
+        "p2_completed": 75,
+        "p2_daily_halts": 0,
+        "p2_days": 3650,
+        "p2_entries": 75,
+        "p2_ignored_lifecycle": 5642,
+        "p2_max_active": 2,
+        "p2_min_equity": 98732.86707652679,
+        "p2_min_lot_rejections": 0,
+        "p2_min_lot_substitutions": 0,
+        "p2_partial_executed": 46,
+        "p2_partial_skipped_rounding": 0,
+        "p2_peak_equity": 105125.12659869966,
+        "p2_pending_admitted": 113,
+        "p2_pending_cancel_daily_halt": 0,
+        "p2_pending_cancel_source": 38,
+        "p2_pending_cancel_target": 0,
+        "p2_positive_swap_suppressed": 0,
+        "p2_reason": 6,
+        "p2_skipped_consecutive": 0,
+        "p2_skipped_daily_halt": 0,
+        "p2_skipped_fill_cap": 0,
+        "p2_skipped_target_freeze": 2015,
+        "p2_status": 4,
+        "p2_swap_events": 0,
+        "p2_trading_days": 61,
+        "path_id": 0,
+        "timeout": 1,
+        "total_days": 3993
+      },
+      "row_sha256": "b8940aee8e2eb7bac8ca396f55ebccd37235dcb4c78b6d13958608464360b2ca"
+    },
+    "control": {
+      "exact": true,
+      "row": {
+        "both": 1,
+        "firm": 0,
+        "hard": 0,
+        "p1_balance": 110103.6439139862,
+        "p1_completed": 166,
+        "p1_daily_halts": 0,
+        "p1_days": 169,
+        "p1_entries": 166,
+        "p1_ignored_lifecycle": 0,
+        "p1_max_active": 2,
+        "p1_min_equity": 99009.5175803723,
+        "p1_min_lot_rejections": 0,
+        "p1_min_lot_substitutions": 0,
+        "p1_partial_executed": 100,
+        "p1_partial_skipped_rounding": 0,
+        "p1_peak_equity": 110269.7101379569,
+        "p1_pending_admitted": 287,
+        "p1_pending_cancel_daily_halt": 0,
+        "p1_pending_cancel_source": 120,
+        "p1_pending_cancel_target": 1,
+        "p1_positive_swap_suppressed": 0,
+        "p1_reason": 1,
+        "p1_skipped_consecutive": 0,
+        "p1_skipped_daily_halt": 0,
+        "p1_skipped_fill_cap": 0,
+        "p1_skipped_target_freeze": 0,
+        "p1_status": 1,
+        "p1_swap_events": 0,
+        "p1_trading_days": 92,
+        "p2_balance": 105280.32187592276,
+        "p2_completed": 324,
+        "p2_daily_halts": 0,
+        "p2_days": 428,
+        "p2_entries": 324,
+        "p2_ignored_lifecycle": 0,
+        "p2_max_active": 2,
+        "p2_min_equity": 97491.59213438237,
+        "p2_min_lot_rejections": 0,
+        "p2_min_lot_substitutions": 0,
+        "p2_partial_executed": 180,
+        "p2_partial_skipped_rounding": 0,
+        "p2_peak_equity": 105280.32187592276,
+        "p2_pending_admitted": 536,
+        "p2_pending_cancel_daily_halt": 0,
+        "p2_pending_cancel_source": 212,
+        "p2_pending_cancel_target": 0,
+        "p2_positive_swap_suppressed": 0,
+        "p2_reason": 1,
+        "p2_skipped_consecutive": 0,
+        "p2_skipped_daily_halt": 0,
+        "p2_skipped_fill_cap": 0,
+        "p2_skipped_target_freeze": 0,
+        "p2_status": 1,
+        "p2_swap_events": 0,
+        "p2_trading_days": 181,
+        "path_id": 0,
+        "timeout": 0,
+        "total_days": 597
+      },
+      "row_sha256": "dcbfd8b755fa00cb3c3433e7e44b2be72b5be602b79d313b5aec9d7d8247308a"
+    }
+  },
+  "risk_fraction_by_symbol_both_phases": {
+    "JP225.cash": 0.003,
+    "US100.cash": 0.003,
+    "US30.cash": 0.003,
+    "USDJPY": 0.0005
+  },
+  "screen": {
+    "candidate": {
+      "counter_totals": {
+        "p1": {
+          "completed": 4553660,
+          "daily_halts": 0,
+          "entries": 4553667,
+          "ignored_lifecycle": 4229720,
+          "max_active": 40000,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 2645695,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 7644318,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 3088113,
+          "pending_cancel_target": 2536,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 0,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 1508225,
+          "swap_events": 0
+        },
+        "p2": {
+          "completed": 2247503,
+          "daily_halts": 0,
+          "entries": 2247504,
+          "ignored_lifecycle": 4645594,
+          "max_active": 38176,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 1306057,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 3774918,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 1524922,
+          "pending_cancel_target": 2491,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 0,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 1653539,
+          "swap_events": 0
+        }
+      },
+      "reason_counts": {
+        "p1": {
+          "1": 19088,
+          "4": 7,
+          "6": 905
+        },
+        "p2": {
+          "1": 18193,
+          "4": 1,
+          "6": 894,
+          "7": 912
+        }
+      },
+      "row_sha256": "ecfba59cccce36172b15284d20854cc3ee15743b3bf7b7b0585b19c21b066f13",
+      "summary": {
+        "both_passes": 18193,
+        "both_probability": 0.90965,
+        "both_wilson_lower": 0.9062599885646637,
+        "both_wilson_upper": 0.9129291938388303,
+        "firm_probability": 0.0,
+        "firm_wilson_upper": 0.00013525887526654124,
+        "hard_probability": 0.0004,
+        "hard_wilson_upper": 0.0007097495161567804,
+        "median_total_days_success": 979.0,
+        "p90_total_days_success": 1505.0,
+        "paths": 20000,
+        "phase1_passes": 19088,
+        "phase1_probability": 0.9544,
+        "phase2_conditional_probability": 0.9531119027661358,
+        "timeout_probability": 0.08995,
+        "timeout_wilson_upper": 0.0933334100266494
+      }
+    },
+    "candidate_minus_control": {
+      "both_probability": 0.020100000000000007,
+      "both_wilson_lower": 0.02040850759270041,
+      "hard_probability": -0.0018000000000000002,
+      "median_total_days_success": 476.0,
+      "p90_total_days_success": 688.0,
+      "phase1_probability": 0.010950000000000015,
+      "phase2_conditional_probability": 0.0102426463137536,
+      "timeout_probability": -0.018299999999999997
+    },
+    "control": {
+      "counter_totals": {
+        "p1": {
+          "completed": 6068651,
+          "daily_halts": 0,
+          "entries": 6068683,
+          "ignored_lifecycle": 15108506,
+          "max_active": 40000,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 3458402,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 10294958,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 4223211,
+          "pending_cancel_target": 3058,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 2329,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 5344909,
+          "swap_events": 0
+        },
+        "p2": {
+          "completed": 2961642,
+          "daily_halts": 0,
+          "entries": 2961660,
+          "ignored_lifecycle": 15285363,
+          "max_active": 37738,
+          "min_lot_rejections": 0,
+          "min_lot_substitutions": 0,
+          "partial_executed": 1688222,
+          "partial_skipped_rounding": 0,
+          "pending_admitted": 5025337,
+          "pending_cancel_daily_halt": 0,
+          "pending_cancel_source": 2060624,
+          "pending_cancel_target": 3048,
+          "positive_swap_suppressed": 0,
+          "skipped_consecutive": 1224,
+          "skipped_daily_halt": 0,
+          "skipped_fill_cap": 0,
+          "skipped_target_freeze": 5405950,
+          "swap_events": 0
+        }
+      },
+      "reason_counts": {
+        "p1": {
+          "1": 18869,
+          "4": 28,
+          "6": 1103
+        },
+        "p2": {
+          "1": 17791,
+          "4": 16,
+          "6": 1062,
+          "7": 1131
+        }
+      },
+      "row_sha256": "a3cf941dfb3b1828f81f3732292a07aa1ef411b418dbc419b3f0bb4ed7a081a5",
+      "summary": {
+        "both_passes": 17791,
+        "both_probability": 0.88955,
+        "both_wilson_lower": 0.8858514809719633,
+        "both_wilson_upper": 0.8931431388383164,
+        "firm_probability": 0.0,
+        "firm_wilson_upper": 0.00013525887526654124,
+        "hard_probability": 0.0022,
+        "hard_wilson_upper": 0.0028163750841599102,
+        "median_total_days_success": 503.0,
+        "p90_total_days_success": 817.0,
+        "paths": 20000,
+        "phase1_passes": 18869,
+        "phase1_probability": 0.94345,
+        "phase2_conditional_probability": 0.9428692564523822,
+        "timeout_probability": 0.10825,
+        "timeout_wilson_upper": 0.11191679576473178
+      }
+    },
+    "failures": [],
+    "paired": {
+      "lower": 0.012111609071824361,
+      "mcnemar_exact_one_sided_p_value": 1.2498199294805204e-11,
+      "n01_control_only_pass": 1608,
+      "n10_candidate_only_pass": 2010,
+      "p01_clopper_pearson_upper": 0.08425474159578869,
+      "p10_clopper_pearson_lower": 0.09636635066761305,
+      "point_delta": 0.0201
+    },
+    "pass": true,
+    "paths": 20000
+  },
+  "seed": 13020260711,
+  "spec": "docs\\V136_A1_CORRECTED_HEADTOHEAD_SPEC_2026-07-18.md",
+  "spec_sha256": "2cea62afeb05e1fcbe38500c393c28db408f7b3c9e1e43561609591bae3aace1",
+  "stress": "E2_STRESS",
+  "tapes": {
+    "candidate": {
+      "accepted_trades_by_symbol": {
+        "JP225.cash": 160,
+        "US100.cash": 118,
+        "US30.cash": 208,
+        "USDJPY": 176
+      },
+      "event_kinds": {
+        "entry": 395,
+        "final": 395,
+        "mark": 869,
+        "partial": 231,
+        "pending_cancel": 267,
+        "pending_open": 662
+      },
+      "events": 2819,
+      "events_sha256": "3c38f90cf3b36de09718eca8fb5796fb154a589ba514254e71ce6ee87b70c573",
+      "n_days": 1032,
+      "parameters": {
+        "momentum_atr_mult": 3.0,
+        "partial_at_r": 1.0,
+        "partial_fraction": 0.75,
+        "reference_same_bar_partial": true,
+        "target_atr": 1.5
+      },
+      "same_bar_partial_and_final": 93,
+      "trades": 662,
+      "trades_with_partial_source_event": 231,
+      "trades_without_partial_source_event": 431
+    },
+    "control": {
+      "accepted_trades_by_symbol": {
+        "JP225.cash": 437,
+        "US100.cash": 282,
+        "US30.cash": 450,
+        "USDJPY": 515
+      },
+      "event_kinds": {
+        "entry": 987,
+        "final": 987,
+        "mark": 2232,
+        "partial": 558,
+        "pending_cancel": 697,
+        "pending_open": 1684
+      },
+      "events": 7145,
+      "events_sha256": "b294ebe5f4e54a4bc97c2ff010754d58900268d69db12ff0d2cdd9f567ba4187",
+      "n_days": 1032,
+      "parameters": {
+        "momentum_atr_mult": 2.0,
+        "partial_at_r": 1.0,
+        "partial_fraction": 0.75,
+        "reference_same_bar_partial": true,
+        "target_atr": 1.5
+      },
+      "same_bar_partial_and_final": 218,
+      "trades": 1684,
+      "trades_with_partial_source_event": 558,
+      "trades_without_partial_source_event": 1126
+    }
+  },
+  "tested_commit": "e3461c231e1332bba3799ba7fb157cd0a85253f9",
+  "trial_charge": {
+    "confirmatory_cells": 1,
+    "discovery_cells": 0
+  },
+  "verdict": "A1_CONFIRMED_BEATS_V133_C1"
+}
