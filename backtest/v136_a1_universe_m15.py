@@ -298,7 +298,7 @@ def _signal_mask(
     bounds: SplitBounds,
     segment: str,
     momentum_atr_mult: float,
-) -> tuple[SymData, int]:
+) -> tuple[SymData, int, int]:
     if segment not in {"discovery", "validation", "full"}:
         raise ValueError(f"unknown segment: {segment}")
     if momentum_atr_mult not in {MOMENTUM_C1, MOMENTUM_A1}:
@@ -318,19 +318,13 @@ def _signal_mask(
         base.cluster,
     )
     right_censored = 0
+    missing_next_open = 0
     for raw_index, h1_index in context.h1_index_by_raw.items():
         side = int(lifted.side[raw_index])
         if side == 0:
             continue
         signal_open = int(lifted.ep[raw_index]) - 2700
-        placement = int(lifted.ep[raw_index]) + BAR_SEC
-        if signal_open < bounds.start_epoch or placement >= bounds.end_epoch:
-            lifted.side[raw_index] = 0
-            continue
-        if segment == "discovery" and placement >= bounds.cutoff_epoch:
-            lifted.side[raw_index] = 0
-            continue
-        if segment == "validation" and placement < bounds.cutoff_epoch:
+        if signal_open < bounds.start_epoch:
             lifted.side[raw_index] = 0
             continue
         if momentum_atr_mult > MOMENTUM_C1:
@@ -348,10 +342,25 @@ def _signal_mask(
             np.isfinite(lifted.watr[raw_index])
             and lifted.watr[raw_index] >= WICK_ATR
         )
+        if raw_index + 1 >= len(lifted.ep):
+            lifted.side[raw_index] = 0
+            if passes_w2:
+                missing_next_open += 1
+            continue
+        placement = int(lifted.ep[raw_index + 1])
+        if placement >= bounds.end_epoch:
+            lifted.side[raw_index] = 0
+            continue
+        if segment == "discovery" and placement >= bounds.cutoff_epoch:
+            lifted.side[raw_index] = 0
+            continue
+        if segment == "validation" and placement < bounds.cutoff_epoch:
+            lifted.side[raw_index] = 0
+            continue
         if passes_w2 and not _full_horizon_available(context, raw_index, bounds):
             lifted.side[raw_index] = 0
             right_censored += 1
-    return lifted, right_censored
+    return lifted, right_censored, missing_next_open
 
 
 class A1M15Execution:
@@ -652,6 +661,10 @@ def build_tape(
         contexts[source].symbol: int(row[1])
         for source, row in zip(sources, lifted_rows)
     }
+    missing_next_open = {
+        contexts[source].symbol: int(row[2])
+        for source, row in zip(sources, lifted_rows)
+    }
     symbols_by_name = {data.name: data for data in lifted}
     contexts_by_symbol = {contexts[source].symbol: contexts[source] for source in sources}
     clusters = {contexts[source].symbol: contexts[source].cluster_name for source in sources}
@@ -740,6 +753,7 @@ def build_tape(
         "split": bounds.as_dict(),
         "straddling_lifecycles_excluded": straddlers,
         "right_censored_signals_excluded": right_censored,
+        "missing_next_open_signals_excluded": missing_next_open,
         "fills": len(trade_rows),
         "fills_by_symbol": dict(sorted(by_symbol.items())),
         "fills_by_symbol_side": dict(sorted(by_side.items())),

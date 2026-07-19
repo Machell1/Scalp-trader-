@@ -10,7 +10,10 @@ symbols, strategy, risk, gates, path ranges, or trial charge.
 - Quarter attribution uses the pending-placement epoch. This is consistent
   with the specification's placement-based lifecycle ownership and prevents a
   signal closing at `23:45` from being assigned to the prior quarter when its
-  pending is placed at `00:00` in the new quarter.
+  pending is placed at `00:00` in the new quarter. Placement is the actual next
+  observed M15 open, never signal time plus a nominal 15 minutes; this governs
+  segment ownership across weekends and session gaps. A missing next open is
+  explicitly excluded and counted.
 - A W2-passing signal is outcome-blindly excluded when the common right edge
   cannot contain its complete 12-M15 pending window and the worst-case eighth-
   H1 TIME lifecycle, including the actual next observed open after a session

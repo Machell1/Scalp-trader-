@@ -427,12 +427,15 @@ def self_test() -> dict:
     censor_bounds = SplitBounds(
         int(censor_data.ep[0]), int(censor_data.ep[24]), int(censor_data.ep[-1]) + 900
     )
-    masked, censored = _signal_mask(
+    masked, censored, missing_next = _signal_mask(
         censor_context, censor_bounds, "full", 2.0
     )
     _check(
         "right_censored_signal_excluded",
-        masked.side[3] == 1 and masked.side[35] == 0 and censored == 1,
+        masked.side[3] == 1
+        and masked.side[35] == 0
+        and censored == 1
+        and missing_next == 0,
         passed,
     )
 
@@ -440,7 +443,7 @@ def self_test() -> dict:
     non_w2_data.side[35] = 1
     non_w2_data.atr[35] = 1.0
     non_w2_data.watr[35] = 0.20
-    non_w2_masked, non_w2_censored = _signal_mask(
+    non_w2_masked, non_w2_censored, non_w2_missing = _signal_mask(
         non_w2_context, censor_bounds, "full", 2.0
     )
     non_w2_events: list[dict] = []
@@ -455,10 +458,53 @@ def self_test() -> dict:
     _check(
         "near_end_non_w2_remains_predicate_rejection",
         non_w2_censored == 0
+        and non_w2_missing == 0
         and non_w2_masked.side[35] == 1
         and len(non_w2_events) == 1
         and non_w2_events[0]["kind"] == "signal_rejection"
         and non_w2_events[0]["reason"] == "pre_entry_predicate",
+        passed,
+    )
+
+    placement_data, placement_context = _synthetic("PLACEMENT", 0, hours=16)
+    placement_data.side[3] = 1
+    placement_data.atr[3] = 1.0
+    placement_data.watr[3] = 0.50
+    placement_data.ep[4:] += 72 * 3600
+    placement_bounds = SplitBounds(
+        int(placement_data.ep[0]),
+        int(placement_data.ep[0]) + 24 * 3600,
+        int(placement_data.ep[-1]) + 900,
+    )
+    discovery_mask, _, _ = _signal_mask(
+        placement_context, placement_bounds, "discovery", 2.0
+    )
+    validation_mask, _, _ = _signal_mask(
+        placement_context, placement_bounds, "validation", 2.0
+    )
+    _check(
+        "segment_uses_actual_next_observed_open",
+        discovery_mask.side[3] == 0 and validation_mask.side[3] == 1,
+        passed,
+    )
+
+    missing_data, missing_context = _synthetic("MISSINGOPEN", 0, hours=16)
+    missing_data.side[-1] = 1
+    missing_data.atr[-1] = 1.0
+    missing_data.watr[-1] = 0.50
+    missing_bounds = SplitBounds(
+        int(missing_data.ep[0]),
+        int(missing_data.ep[20]),
+        int(missing_data.ep[-1]) + 900,
+    )
+    missing_mask, missing_censored, missing_count = _signal_mask(
+        missing_context, missing_bounds, "full", 2.0
+    )
+    _check(
+        "missing_next_open_is_explicitly_excluded",
+        missing_mask.side[-1] == 0
+        and missing_censored == 0
+        and missing_count == 1,
         passed,
     )
 

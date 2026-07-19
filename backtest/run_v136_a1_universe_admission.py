@@ -392,6 +392,96 @@ def _quarter(epoch: int) -> str:
     return str(timestamp.to_period("Q"))
 
 
+def _payload_sha256(value: Any) -> str:
+    payload = json.dumps(
+        json_safe(value), sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def assert_e1_e2_structural_parity(
+    e1: BuiltTape, e2: BuiltTape, label: str
+) -> dict:
+    if (e1.tape.first_day, e1.tape.last_day) != (
+        e2.tape.first_day,
+        e2.tape.last_day,
+    ):
+        raise RuntimeError(f"{label}: E1/E2 calendar frames changed")
+
+    trade_e1 = [
+        {key: value for key, value in row.items() if key != "r"}
+        for row in e1.trades
+    ]
+    trade_e2 = [
+        {key: value for key, value in row.items() if key != "r"}
+        for row in e2.trades
+    ]
+    def source_structure(row: dict) -> dict:
+        normalized = dict(row)
+        normalized.pop("total_r", None)
+        if normalized["kind"] == "entry_fill":
+            normalized.pop("r_component", None)
+        return normalized
+
+    def policy_structure(event) -> dict:
+        normalized = asdict(event)
+        kind = normalized["kind"]
+        if getattr(kind, "value", str(kind)) == "entry":
+            normalized.pop("fixed_slippage_r", None)
+        return normalized
+
+    source_e1 = [source_structure(row) for row in e1.source_events]
+    source_e2 = [source_structure(row) for row in e2.source_events]
+    policy_e1 = [policy_structure(event) for event in e1.tape.events]
+    policy_e2 = [policy_structure(event) for event in e2.tape.events]
+    mismatches = []
+    if trade_e1 != trade_e2:
+        mismatches.append("trade_geometry")
+    if source_e1 != source_e2:
+        mismatches.append("source_lifecycle")
+    if policy_e1 != policy_e2:
+        mismatches.append("policy_lifecycle")
+    if mismatches:
+        raise RuntimeError(
+            f"{label}: E1/E2 structural parity failed: {mismatches}"
+        )
+    entry_cost_e1 = np.asarray(
+        [
+            event.fixed_slippage_r for event in e1.tape.events
+            if event.normalized_kind().value == "entry"
+        ],
+        dtype=float,
+    )
+    entry_cost_e2 = np.asarray(
+        [
+            event.fixed_slippage_r for event in e2.tape.events
+            if event.normalized_kind().value == "entry"
+        ],
+        dtype=float,
+    )
+    if entry_cost_e1.shape != entry_cost_e2.shape or not np.allclose(
+        entry_cost_e2, 2.0 * entry_cost_e1, rtol=0.0, atol=1e-15
+    ):
+        raise RuntimeError(f"{label}: E2 entry cost is not exactly twice E1")
+    e1_r = np.asarray([row["r"] for row in e1.trades], dtype=float)
+    e2_r = np.asarray([row["r"] for row in e2.trades], dtype=float)
+    if not np.isfinite(e1_r).all() or not np.isfinite(e2_r).all():
+        raise RuntimeError(f"{label}: non-finite E1/E2 return")
+    deltas = e1_r - e2_r
+    return {
+        "pass": True,
+        "trades": len(trade_e1),
+        "source_events": len(source_e1),
+        "policy_events": len(policy_e1),
+        "trade_geometry_sha256": _payload_sha256(trade_e1),
+        "source_lifecycle_sha256": _payload_sha256(source_e1),
+        "policy_lifecycle_sha256": _payload_sha256(policy_e1),
+        "entry_costs_checked": len(entry_cost_e1),
+        "e1_minus_e2_r_min": float(deltas.min()) if len(deltas) else None,
+        "e1_minus_e2_r_max": float(deltas.max()) if len(deltas) else None,
+    }
+
+
 def trade_stats(rows: Iterable[dict]) -> dict:
     rows = list(rows)
     values = np.asarray([row["r"] for row in rows], dtype=float)
@@ -515,11 +605,16 @@ def discovery_cell(contexts, bounds, source: str, order_index: int) -> dict:
             momentum_atr_mult=MOMENTUM_C1,
         ),
     }
-    for left, right in (("discovery_e1", "discovery_e2"), ("validation_e1", "validation_e2")):
-        left_ids = [row["trade_id"] for row in cells[left].trades]
-        right_ids = [row["trade_id"] for row in cells[right].trades]
-        if left_ids != right_ids:
-            raise RuntimeError(f"{source}: E1/E2 lifecycle identities changed")
+    structural_parity = {
+        "discovery": assert_e1_e2_structural_parity(
+            cells["discovery_e1"], cells["discovery_e2"],
+            f"{source}:discovery",
+        ),
+        "validation": assert_e1_e2_structural_parity(
+            cells["validation_e1"], cells["validation_e2"],
+            f"{source}:validation",
+        ),
+    }
     summaries = {name: trade_stats(cell.trades) for name, cell in cells.items()}
     validation_values = np.asarray(
         [row["r"] for row in cells["validation_e2"].trades], dtype=float
@@ -583,6 +678,7 @@ def discovery_cell(contexts, bounds, source: str, order_index: int) -> dict:
         "positive_complete_quarters": positive_complete,
         "dsr": {"trials": DSR_TRIALS, "n": len(validation_values), "hurdle": hurdle, "value": dsr},
         "placebo": placebos,
+        "e1_e2_structural_parity": structural_parity,
         "summaries": summaries,
         "tapes": {
             name: {
@@ -968,10 +1064,9 @@ def main() -> None:
     )
     if event_hash(control_first.tape) != event_hash(control_second.tape):
         raise RuntimeError("M15 A1 control did not reproduce identical event bytes")
-    control_e1_ids = [row["trade_id"] for row in control_e1.trades]
-    control_e2_ids = [row["trade_id"] for row in control_first.trades]
-    if control_e1_ids != control_e2_ids:
-        raise RuntimeError("M15 A1 control E1/E2 lifecycle identities changed")
+    control_structural_parity = assert_e1_e2_structural_parity(
+        control_e1, control_first, "A1_CONTROL:discovery"
+    )
     print(
         "M15_CONTROL_DETERMINISM PASS",
         f"e1_events_sha256={event_hash(control_e1.tape)}",
@@ -1001,7 +1096,7 @@ def main() -> None:
         "m15_control_determinism": {
             "e1_event_sha256": event_hash(control_e1.tape),
             "e1_diagnostics": control_e1.diagnostics,
-            "e1_e2_trade_identities_equal": True,
+            "e1_e2_structural_parity": control_structural_parity,
             "event_sha256": event_hash(control_first.tape),
             "diagnostics": control_first.diagnostics,
         },
