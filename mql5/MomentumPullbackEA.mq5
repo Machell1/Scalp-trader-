@@ -156,7 +156,7 @@
 
 // v1.33-C1r1: single source for the version tag used in prints and the panel.
 // (#property description above cannot expand macros - keep it in sync manually.)
-#define MPB_VERSION "v1.33-C1r1"
+#define MPB_VERSION "v1.33-C1r2"
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -915,13 +915,8 @@ bool BlockedByHour()
    return(false);
   }
 
-bool NewsSoon(string symbol)
+bool NewsSoonForCurrency(string ccy, datetime now, int win)
   {
-   int win = InpNewsBlockMins * 60;
-   if(win <= 0)
-      return(false);
-   datetime now = TimeCurrent();
-   string ccy = SymbolInfoString(symbol, SYMBOL_CURRENCY_PROFIT);
    MqlCalendarValue vals[];
    // v1.26: CalendarValueHistory returns bool, NOT a count (audit P1: the old int
    // assignment inspected at most vals[0] and crashed on true-with-empty-array).
@@ -934,7 +929,7 @@ bool NewsSoon(string symbol)
       if(TimeCurrent() - s_calWarn >= 3600)
         {
          s_calWarn = TimeCurrent();
-         PrintFormat("WARNING: CalendarValueHistory failed for %s (err %d) - news guard INOPERATIVE (entries are NOT news-blocked)",
+         PrintFormat("WARNING: CalendarValueHistory failed for %s (err %d) - news guard INOPERATIVE for this currency (entries are NOT news-blocked)",
                      ccy, GetLastError());
         }
       return(false);
@@ -948,6 +943,26 @@ bool NewsSoon(string symbol)
       if(ev.importance == CALENDAR_IMPORTANCE_HIGH)
          return(true);
      }
+   return(false);
+  }
+
+bool NewsSoon(string symbol)
+  {
+   int win = InpNewsBlockMins * 60;
+   if(win <= 0)
+      return(false);
+   datetime now = TimeCurrent();
+   // v1.33-C1r2 (owner-approved behavior change, 2026-07-20): guard BOTH sides of
+   // the pair. The profit-currency-only check left USDJPY blind to USD events on
+   // the base side; for the index CFDs base==profit (USD-class) so nothing changes
+   // there. Base is checked only when it is a distinct 3-letter currency code, so
+   // exotic CFD base units can never feed the calendar a non-currency filter.
+   string profit = SymbolInfoString(symbol, SYMBOL_CURRENCY_PROFIT);
+   string base   = SymbolInfoString(symbol, SYMBOL_CURRENCY_BASE);
+   if(NewsSoonForCurrency(profit, now, win))
+      return(true);
+   if(StringLen(base) == 3 && base != profit && NewsSoonForCurrency(base, now, win))
+      return(true);
    return(false);
   }
 
