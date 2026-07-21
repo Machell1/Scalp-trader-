@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|   v1.33-C1 CANDIDATE (2026-07-18): GEOMETRY RESET of the failed  |
+//|   v1.33-C1 (2026-07-18, harness-CONFIRMED): GEOMETRY RESET of failed |
 //|     E3 challenger, owner-authorized. Two input renames with new  |
 //|     defaults (house convention: chart-saved V130 values cannot    |
 //|     survive):                                                     |
@@ -91,9 +91,10 @@
 //|       this lifted the entry from 5/29 to 18/29 instruments        |
 //|       positive (OOS), the only change in the whole study to do so.|
 //|     * Take-profit = 3.0 ATR (let winners run) -- also validated.   |
-//|     * Default universe is restricted to where the edge actually   |
-//|       exists: CRYPTO + global/US INDICES. Continuation works on   |
-//|       trending assets; it LOSES on the mean-reverting FX majors.  |
+//|     * Default universe WAS restricted (v1.1, Deriv M15 era) to    |
+//|       crypto + indices; superseded by the v1.31 FTMO H1 whitelist.|
+//|       Continuation worked on trending assets and LOST on the      |
+//|       mean-reverting FX majors (that era's testing).              |
 //|                                                                  |
 //|   *** HONESTY -- this is an OBSERVE / MINIMUM-SIZE experiment, not |
 //|   a proven money-maker. Even the validated pullback edge is small |
@@ -104,9 +105,9 @@
 //|   guarantees profit. See README.md / backtest/RESULTS.md. ***     |
 //|                                                                  |
 //|   v1.2 (2026-06): validated against REAL Deriv spread cost.       |
-//|   At Deriv's actual spreads the pullback edge is POSITIVE net of  |
+//|   At Deriv's actual spreads the pullback edge WAS POSITIVE net of |
 //|   cost on a spread-gated set of majors (+0.044R, t+4, PF 1.11 OOS)|
-//|   but a few wide-spread names (LTC, BCH, Mid Cap 400, etc.) lose. |
+//|   but a few wide-spread names (LTC, BCH, Mid Cap 400, etc.) lost. |
 //|   So v1.2: (a) universe pruned to spread<=0.05 ATR/side majors,   |
 //|   (b) a LIVE spread/ATR gate (InpMaxSpreadAtr) skips any symbol    |
 //|   whose spread is too wide right now, (c) AVWAP OFF by default     |
@@ -152,6 +153,10 @@
 #property version   "1.33"
 #property strict
 #property description "Multi-symbol H1 momentum pullback EA v1.33-C1: bank 75% @ +1R, TP 1.5 ATR. Corrected-fidelity 100k confirmation passed; forward demo remains live validation. USDJPY 0.05% sleeve; trio 0.30%; v1.32 fidelity fixes ON; arms B1-B3 OFF."
+
+// v1.33-C1r1: single source for the version tag used in prints and the panel.
+// (#property description above cannot expand macros - keep it in sync manually.)
+#define MPB_VERSION "v1.33-C1r1"
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -218,10 +223,10 @@ input group "=== Risk & Exits ==="
 input double InpRiskPercent      = 0.3;   // Corrected-engine MC sizing; current FTMO chart already uses 0.3%
 input double InpUSDJPYRiskPercentV131 = 0.05; // Confirmed USDJPY sleeve; dynamic cash risk, not a fixed lot size
 input double InpStopAtrMult      = 1.0;   // Initial stop distance (ATR) - tight = fast loss cut
-input double InpTakeProfitAtrMultV133 = 1.5;  // v1.33 C1 candidate: TP 1.5 ATR. Renamed again so chart-saved V130=2.0 cannot survive. Revert to 2.0 to restore v1.31 behavior
+input double InpTakeProfitAtrMultV133 = 1.5;  // v1.33 C1: TP 1.5 ATR. Renamed again so chart-saved V130=2.0 cannot survive. Revert to 2.0 to restore v1.31 behavior
 #define InpTakeProfitAtrMultV130 InpTakeProfitAtrMultV133
 input bool   InpUsePartialCloseV130   = true; // Corrected-engine finalist: bank one partial, then leave the remainder on its bracket
-input double InpPartialCloseFractionV133 = 0.75; // v1.33 C1 candidate: bank 75% at the trigger (E3 ran 0.67; v1.31 ran 0.50). Renamed so chart-saved V130 values cannot survive. Revert to 0.50 for v1.31 behavior
+input double InpPartialCloseFractionV133 = 0.75; // v1.33 C1: bank 75% at the trigger (E3 ran 0.67; v1.31 ran 0.50). Renamed so chart-saved V130 values cannot survive. Revert to 0.50 for v1.31 behavior
 #define InpPartialCloseFractionV130 InpPartialCloseFractionV133
 input double InpPartialCloseAtRV130   = 1.0;  // Trigger in initial R, using frozen signal ATR * InpStopAtrMult
 input int    InpPartialRetrySecondsV130 = 30; // Reconcile before a bounded retry after a transient server result
@@ -243,10 +248,13 @@ input double InpStaticFloorPct   = 9.0;   // v1.26: HARD halt if equity <= initi
 input int    InpMaxConsecLosses  = 4;     // Pause for the day after this many losses in a row
 input int    InpMaxSpreadPtsRaw  = 0;     // Raw POINTS spread cap — OFF (v1.24). Points scale with nominal price, so the old 200 cap structurally blocked BTCUSD/ETHUSD/Japan 225 (validated symbols that PASS the ATR gate). Use InpMaxSpreadAtr below; >0 re-enables at your own risk. (Renamed from InpMaxSpreadPoints so the new default supersedes chart-saved values on upgrade.)
 input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spread > this many ATR PER SIDE (0.05 = validated ceiling; the edge dies above it, e.g. LTC/BCH/Mid Cap). 0 = off.
-// P3 (brief §4): correlation-aware concurrency. OFF (0) by default - adoption requires the
-// acceptance study (lower drawdown at equal pooled expectancy). Day-1 saw 4 same-direction
-// Tech-100-cluster entries in 70 min stacking ~1.5% correlated heat.
-input int    InpMaxPerCluster    = 1;     // Max open+pending per correlation cluster (0 = off, current behavior)
+// P3 (brief §4): correlation-aware concurrency - ON by compiled default (1 seat per
+// cluster, spec on the next line: US30|US100 share one seat; JP225 and USDJPY are
+// independent). 0 disables. Originally shipped OFF pending the acceptance study;
+// Day-1 saw 4 same-direction Tech-100-cluster entries in 70 min stacking ~1.5%
+// correlated heat. NOTE: a chart-saved value under this (unversioned) input name
+// overrides the compiled default.
+input int    InpMaxPerCluster    = 1;     // Max open+pending per correlation cluster (0 = off; compiled default 1 = ON)
 input string InpClusterSpecV131  = "US30.cash|US100.cash;JP225.cash;USDJPY";  // US pair shares a seat; JP225 and USDJPY are independent
 #define InpClusterSpec InpClusterSpecV131
 
@@ -276,13 +284,15 @@ input int    InpMaxTickAgeSec     = 60;    // Max age (s) of the latest tick bef
 input bool   InpTradeLog          = true;  // Write a per-trade CSV (MFE/MAE in R, spread@entry, exit reason) = the doc's "post-trade learning" data. Pure observability.
 input string InpTradeLogFile      = "MomentumPullback_trades.csv";
 input string InpPartialLogFileV130= "MomentumPullback_partials_v130.csv"; // Actual partial fill + level-vs-fill slippage
-// Protective but they DO alter the validated trade distribution -> OFF by default; flip on deliberately.
+// Protective but they DO alter the validated trade distribution. InpBlockHours is OFF
+// by default; InpNewsBlockMins defaults ON at 3 min (conservative FTMO-evaluation
+// guard - see its own comment).
 input int    InpNewsBlockMins     = 3;     // Protective entry block is ON; evaluation accounts allow news, but this conservative gate remains chart-compatible. 0=off.
-input string InpBlockHours        = "";
+input string InpBlockHours        = "";    // Server hours to block NEW entries, comma-sep e.g. "20,21,22" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically.
 
 input group "=== v1.28 Thought-Process Panel (observability only) ==="
 input bool   InpShowPanel         = true;  // On-chart panel: per-symbol scan verdicts, trade state, risk ledger
-input int    InpPanelRefreshSec   = 10;    // Panel refresh throttle (never per-tick)    // Server hours to block NEW entries, comma-sep e.g. "20,21,22" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically for this crypto/index universe.
+input int    InpPanelRefreshSec   = 10;    // Panel refresh throttle (never per-tick)
 
 //--- Globals ---------------------------------------------------------
 CTrade        trade;
@@ -330,7 +340,6 @@ struct PositionMgmtState
    double   partialTargetVolume;
    double   partialLevel;
    int      partialState;
-   datetime partialTriggerTime;
    datetime partialNextRetry;
    int      partialAttempts;
    // v1.32 A1: RAM-only partial-trigger bookkeeping (not persisted; worst case after a
@@ -429,7 +438,7 @@ int OnInit()
    PanelInit();   // v1.28 (no-op when InpShowPanel=false)
    bool panelReady = !InpShowPanel ||
                      (ObjectFind(0, "MPBPANEL_BG") >= 0 && ObjectFind(0, "MPBPANEL_L0") >= 0);
-   PrintFormat("Panel v1.33-C1 initialized: requested=%s ready=%s",
+   PrintFormat("Panel " + MPB_VERSION + " initialized: requested=%s ready=%s",
                InpShowPanel ? "yes" : "no", panelReady ? "yes" : "no");
 
    // Register any positions already open (e.g. after EA reload).
@@ -439,9 +448,13 @@ int OnInit()
    // Python engine on the same bars; also proves the estimator is alive).
    for(int i = 0; i < ArraySize(g_symbols); i++)
      {
-      double wa;
-      if(WilderAtrForSymbol(g_symbols[i], wa))
-         PrintFormat("Wilder ATR(%d) %s = %.5f", InpAtrPeriod, g_symbols[i], wa);
+      double wa = 0.0;
+      // v1.33-C1r1: only print when the estimator succeeded and wa > 0 - dividing the
+      // wick sizes by a failed (0.0) ATR filled the CandleParity line with inf garbage
+      // during a cold start with unsynced history, defeating the cross-check.
+      if(!WilderAtrForSymbol(g_symbols[i], wa) || wa <= 0.0)
+         continue;
+      PrintFormat("Wilder ATR(%d) %s = %.5f", InpAtrPeriod, g_symbols[i], wa);
       // v1.29: wick-parity line (verify vs Python candle_features on same bars)
       string ps = "";
       for(int sh = 1; sh <= 3; sh++)
@@ -456,7 +469,7 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA v1.33-C1 ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
+   PrintFormat("MomentumPullbackEA " + MPB_VERSION + " ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" :
                 (InpEntryMode == ENTRY_MARKET ? "MARKET(research)" : "BREAKOUT(stop)")),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
@@ -613,9 +626,11 @@ string Trim(string s)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-   // v1.26: with the 5s timer + bar-close management every decision is bar-gated,
-   // so the per-tick pipeline (incl. full-day HistorySelect) is pure waste on a
-   // 24/7 host chart. Per-tick mode is kept for the legacy per-tick config.
+   // v1.26/v1.32: the 5s OnTimer heartbeat already runs the full pipeline (scans are
+   // bar-gated; the v1.30 partial and A2 time exit are heartbeat-checked), so per-tick
+   // execution adds only redundant load (incl. full-day HistorySelect) on a 24/7 host
+   // chart. Ticks drive the pipeline only when the heartbeat is off (0) or the legacy
+   // per-tick manager is selected.
    if(InpHeartbeatSeconds > 0 && InpManageOnBarClose)
       return;
    Heartbeat();
@@ -658,6 +673,7 @@ void Heartbeat()
    ManageAll();
    ScanAllOnNewBars();
    PanelUpdate();   // v1.28: display only, throttled, fails soft
+   DecisionCsvMaybe();   // v1.33-C1r1: decoupled from the panel input/throttle (self-gated to one row per closed bar)
   }
 
 //+------------------------------------------------------------------+
@@ -693,7 +709,7 @@ void ScanAllOnNewBars()
       if(CountOpenAndPending() >= InpMaxConcurrent)
          continue;
 
-      ScanSymbol(g_symbols[i], g_atrHandle[i]);
+      ScanSymbol(g_symbols[i]);
      }
   }
 
@@ -797,11 +813,11 @@ void OnTradeTransaction(const MqlTradeTransaction &trans,
          double vstep = SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP);
          if(g_posState[si].partialState == PARTIAL_SKIPPED &&
             priorTargetVolume <= 0.0 && g_posState[si].partialTargetVolume > 0.0)
-            SetPartialState(si, PARTIAL_ARMED, "entry fill made the 50% target volume feasible");
+            SetPartialState(si, PARTIAL_ARMED, "entry fill made the partial-close target volume feasible");
          else if(g_posState[si].partialState == PARTIAL_DONE &&
             g_posState[si].partialTargetVolume > 0.0 &&
             outVol + 0.5 * vstep < g_posState[si].partialTargetVolume)
-            SetPartialState(si, PARTIAL_TRIGGERED, "entry fill increased the 50% target; closing the remainder");
+            SetPartialState(si, PARTIAL_TRIGGERED, "entry fill increased the partial-close target; closing the remainder");
          PersistPartialState(si);
          double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
          double sprPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
@@ -910,7 +926,19 @@ bool NewsSoon(string symbol)
    // v1.26: CalendarValueHistory returns bool, NOT a count (audit P1: the old int
    // assignment inspected at most vals[0] and crashed on true-with-empty-array).
    if(!CalendarValueHistory(vals, now - win, now + win, NULL, ccy))
+     {
+      // v1.33-C1r1: calendar unavailable (disabled in terminal settings / never synced /
+      // unsupported feed) means the news guard is silently inoperative - warn once per
+      // hour so the operator knows. Behavior unchanged: still fail-open (no block).
+      static datetime s_calWarn = 0;
+      if(TimeCurrent() - s_calWarn >= 3600)
+        {
+         s_calWarn = TimeCurrent();
+         PrintFormat("WARNING: CalendarValueHistory failed for %s (err %d) - news guard INOPERATIVE (entries are NOT news-blocked)",
+                     ccy, GetLastError());
+        }
       return(false);
+     }
    int cnt = ArraySize(vals);
    for(int i = 0; i < cnt; i++)
      {
@@ -1002,16 +1030,45 @@ void LogClosedTrade(ulong dealTicket, long posId, string symbol)
    else if(riskPx > 0.0 && entryPx > 0.0 && dir != 0)
       realR = dir * (exitPx - entryPx) / riskPx;
 
-   int h = FileOpen(InpTradeLogFile, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   string hdr = "close_time,symbol,dir,entry,exit,risk_px,realized_R,mfe_R,mae_R,spread_atr_entry,bars,exit_reason,profit";
+   int h = FileOpen(InpTradeLogFile, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
+   // v1.33-C1r1: header-schema verification - the filename is unversioned, so a future
+   // column change would silently mix schemas (the partials-CSV bug class). On mismatch
+   // sideline the old file and start fresh with the current header.
+   if(h != INVALID_HANDLE && FileSize(h) > 0)
+     {
+      FileSeek(h, 0, SEEK_SET);
+      string firstLine = FileReadString(h);
+      if(firstLine != hdr)
+        {
+         FileClose(h);
+         string bak = InpTradeLogFile + ".schema.bak";
+         FileMove(InpTradeLogFile, 0, bak, FILE_REWRITE);
+         h = FileOpen(InpTradeLogFile, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
+         PrintFormat("v1.33-C1r1: stale trades CSV header detected - old file moved to %s; writing the current header", bak);
+        }
+     }
    if(h != INVALID_HANDLE)
      {
       if(FileSize(h) == 0)
-         FileWriteString(h, "close_time,symbol,dir,entry,exit,risk_px,realized_R,mfe_R,mae_R,spread_atr_entry,bars,exit_reason,profit\r\n");
+         FileWriteString(h, hdr + "\r\n");
       FileSeek(h, 0, SEEK_END);
+      // v1.33-C1r1: close_time = the deal's DEAL_TIME (was TimeCurrent(), which drifts
+      // from the actual close after event delays; the partials CSV already uses DEAL_TIME).
       FileWriteString(h, StringFormat("%s,%s,%s,%.5f,%.5f,%.5f,%.3f,%.3f,%.3f,%.4f,%d,%s,%.2f\r\n",
-                      TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS), symbol, dir > 0 ? "BUY" : (dir < 0 ? "SELL" : "NA"),
+                      TimeToString((datetime)HistoryDealGetInteger(dealTicket, DEAL_TIME), TIME_DATE | TIME_SECONDS), symbol, dir > 0 ? "BUY" : (dir < 0 ? "SELL" : "NA"),
                       entryPx, exitPx, riskPx, realR, mfe, mae, sprE, bars, rtxt, profit));
       FileClose(h);
+     }
+   else
+     {
+      // v1.33-C1r1: never drop a row silently (throttled 60s)
+      static datetime s_openWarn = 0;
+      if(TimeCurrent() - s_openWarn >= 60)
+        {
+         s_openWarn = TimeCurrent();
+         PrintFormat("WARN: %s open failed (err %d) - row dropped", InpTradeLogFile, GetLastError());
+        }
      }
   }
 
@@ -1037,8 +1094,9 @@ bool DetectImpulse(string symbol, double atr, int &dir, double &impulseAtr, bool
 
    // spread/ATR/side replica - used ONLY to keep the reject-log arguments identical to
    // v1.31 (the spread GATE itself stays in ScanSymbol; this never filters here).
+   // v1.33-C1r1: skipped on the forExit path - its only consumers are !forExit LogSkip calls.
    double spreadAtrSide = 0.0;
-   if(InpMaxSpreadAtr > 0.0)
+   if(!forExit && InpMaxSpreadAtr > 0.0)
      {
       double pt = SymbolInfoDouble(symbol, SYMBOL_POINT);
       double spreadPrice = (double)SymbolInfoInteger(symbol, SYMBOL_SPREAD) * pt;
@@ -1062,11 +1120,11 @@ bool DetectImpulse(string symbol, double atr, int &dir, double &impulseAtr, bool
    bool risingFast  = (-moveAtr >= InpMomentumAtrMult) && (close1 > open1);
 
    // v1.29 W2 candle filter: the signal bar must be CONTESTED (adverse-side wick
-   // >= InpMinAdvWickAtr ATR). Gate evidence: quarter-stitched WF at real cost
-   // +0.120R vs +0.078R baseline, beats random-drop placebo, 9/12 symbols,
-   // 2x cost OK; direction confirmed on never-used FTMO M15 both symbols and on
-   // 24k never-analyzed IS trades. A SELL continuation needs a LOWER wick
-   // (buyers fought = still fuel); a BUY needs an UPPER wick. Skips only.
+   // >= InpMinAdvWickAtr ATR). NOTE (2026-07-12 parity audit): the original expectancy
+   // evidence for W2 (+0.120R quarter-stitched WF etc.) was OVERTURNED by live-parity
+   // enumeration - W2 is retained as the forward-test SIGNAL DEFINITION only (see the
+   // Candle Filter input group). A SELL continuation needs a LOWER wick (buyers fought
+   // = still fuel); a BUY needs an UPPER wick. Skips only.
    if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))
      {
       double high1 = iHigh(symbol, InpTimeframe, 1);
@@ -1127,7 +1185,7 @@ bool DetectImpulse(string symbol, double atr, int &dir, double &impulseAtr, bool
 //+------------------------------------------------------------------+
 //| Evaluate one symbol and place a pending order if momentum is hot |
 //+------------------------------------------------------------------+
-void ScanSymbol(string symbol, int atrHandle)
+void ScanSymbol(string symbol)
   {
    if(HasExposure(symbol))           // already trading this symbol
       return;
@@ -1169,7 +1227,7 @@ void ScanSymbol(string symbol, int atrHandle)
       LogSkip(symbol, "blocked server hour");
       return;
      }
-   if(InpNewsBlockMins > 0 && NewsSoon(symbol))       // v1.25: optional HIGH-impact news blackout (off by default)
+   if(InpNewsBlockMins > 0 && NewsSoon(symbol))       // v1.25: optional HIGH-impact news blackout (ON by default, 3 min)
      {
       LogSkip(symbol, "news blackout");
       return;
@@ -1283,7 +1341,6 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
                   double impulseAtr, double spreadAtrSide)
   {
    double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
-   int    digits= (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
    double stopsLevel = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
 
    bool isMarket = (type == ORDER_TYPE_BUY || type == ORDER_TYPE_SELL);   // v1.32 B1: ENTRY_MARKET
@@ -1322,10 +1379,12 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
    ENUM_ORDER_TYPE_TIME ttype = ORDER_TIME_GTC;
    if(InpPendingExpiryBars > 0)
      {
-      // v1.27 B2: the engine's 3-bar fill window is counted on the SYMBOL'S OWN
-      // clock (session breaks produce no bars). Precise expiry = the bar-counted
-      // check in ManagePendingOrders; the broker wall-clock expiry stays only as
-      // a +3-day backstop for when the EA itself is dead.
+      // v1.27 B2: the engine's fill window (w4 at the default 3: remainder of the placement
+      // bar + InpPendingExpiryBars full bars - Bars() omits the placement bar, see the
+      // InpPendingExpiryBars input comment) is counted on the SYMBOL'S OWN clock (session
+      // breaks produce no bars). Precise expiry = the bar-counted check in
+      // ManagePendingOrders; the broker wall-clock expiry stays only as a +3-day backstop
+      // for when the EA itself is dead.
       expiry = (datetime)(TimeCurrent() + (long)InpPendingExpiryBars * PeriodSeconds(InpTimeframe) + 259200);
       ttype  = ORDER_TIME_SPECIFIED;
      }
@@ -1587,13 +1646,19 @@ void ManagePendingOrders()
       if(!isStop && !isLimit)
          continue;
 
-      // Manual expiry safety net for ANY of our pendings (in case the broker ignores
-      // ORDER_TIME_SPECIFIED). Applies to both stop and limit orders.
+      // PRIMARY expiry: this bar-counted check is the engine's precise fill window. The
+      // broker-side ORDER_TIME_SPECIFIED expiry is set +3 days LATE at placement and is
+      // only a backstop for when the EA itself is dead (see PlacePending). Applies to
+      // both stop and limit orders.
       if(InpPendingExpiryBars > 0)
         {
-         // v1.27 B2: engine parity - the fill window is InpPendingExpiryBars BARS on
-         // the symbol's own clock (placement bar = 1). Wall-clock aging expired
-         // pendings mid-session-break after fewer tradable bars than validated.
+         // v1.27 B2 / v1.29.1: engine parity - the fill window is counted on the SYMBOL'S OWN
+         // clock via Bars(TimeSetup, now), which OMITS the placement bar (its open predates
+         // TimeSetup). Deletion fires when ageBars > InpPendingExpiryBars, so the order lives
+         // the remainder of the placement bar + InpPendingExpiryBars full bars (w4 at the
+         // default 3 - the measured live behavior the v1.30 retest assumes; see the input
+         // comment on InpPendingExpiryBars). Wall-clock aging expired pendings mid-session-
+         // break after fewer tradable bars than validated.
          int ageBars = Bars(symbol, InpTimeframe, ordInfo.TimeSetup(), TimeCurrent());
          if(ageBars > InpPendingExpiryBars)
            {
@@ -1614,7 +1679,6 @@ void ManagePendingOrders()
          continue;
 
       double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
-      int digits   = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
       double stopsLevel = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
       double offset = MathMax(stopsLevel, InpEntryOffsetAtr * atr);
       double stopDist = MathMax(atr * InpStopAtrMult, stopsLevel * 1.5);
@@ -1865,9 +1929,11 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
      }
 
    // v1.23 PURE BRACKET: with the lock/trail ladder disabled there is nothing to manage
-   // between fill and exit — the broker-side SL/TP set at placement ARE the exit engine,
-   // plus the bar-count time exit above. (Exit-ladder study: the ladder cut avg win from
-   // 1.72R to 1.02R and cost ~0.027R/trade of OOS expectancy.)
+   // here between fill and exit - the broker-side SL/TP set at placement ARE the exit
+   // engine, plus the v1.30 +1R partial bank and the bar-count time exit, both evaluated
+   // every heartbeat in ManageOpenPositions (time exit moved there in v1.32 A2).
+   // (Exit-ladder study: the ladder cut avg win from 1.72R to 1.02R and cost
+   // ~0.027R/trade of OOS expectancy.)
    if(!InpUseLockTrail)
       return;
 
@@ -2139,8 +2205,12 @@ void StorePendingSigAtr(ulong orderTicket, double atr)
 
 double TakePendingSigAtr(ulong orderTicket)
   {
-   double atr = PeekPendingSigAtr(orderTicket);
+   // v1.33-C1r1: single FindPendingSigAtr lookup (was scanned twice via Peek);
+   // RAM-first-then-GV order, removal, GV delete and flush preserved exactly.
    int idx = FindPendingSigAtr(orderTicket);
+   double atr = (idx >= 0) ? g_pendingSigAtr[idx].atr
+                           : (GlobalVariableCheck(PendingSigAtrGv(orderTicket))
+                              ? GlobalVariableGet(PendingSigAtrGv(orderTicket)) : 0.0);
    if(idx >= 0)
      {
       for(int j = idx; j < ArraySize(g_pendingSigAtr) - 1; j++)
@@ -2219,7 +2289,24 @@ void LogPartialDeal(ulong dealTicket, long posId, string symbol)
    int dir = (si >= 0) ? g_posState[si].dir : 0;
    double slipPrice = (dir != 0 && level > 0.0) ? dir * (fill - level) : 0.0;
    double slipR = (risk > 0.0) ? slipPrice / risk : 0.0;
-   int h = FileOpen(InpPartialLogFileV130, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   int h = FileOpen(InpPartialLogFileV130, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
+   // v1.33-C1r1: header-schema verification. v1.32 appended a 14th column (trigger_tag)
+   // to the row schema while keeping the v1.30 filename, so a file created pre-v1.32
+   // carries a stale 13-column header under 14-field rows (this blocked a downstream
+   // audit). Sideline such a file once and start fresh with the current header.
+   if(h != INVALID_HANDLE && FileSize(h) > 0)
+     {
+      FileSeek(h, 0, SEEK_SET);
+      string firstLine = FileReadString(h);
+      if(StringFind(firstLine, "trigger_tag") < 0)
+        {
+         FileClose(h);
+         string bak = InpPartialLogFileV130 + ".pre_v132.bak";
+         FileMove(InpPartialLogFileV130, 0, bak, FILE_REWRITE);
+         h = FileOpen(InpPartialLogFileV130, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
+         PrintFormat("v1.33-C1r1: stale pre-v1.32 partials CSV header detected - old file moved to %s; writing the current header", bak);
+        }
+     }
    if(h != INVALID_HANDLE)
      {
       if(FileSize(h) == 0)
@@ -2232,6 +2319,16 @@ void LogPartialDeal(ulong dealTicket, long posId, string symbol)
                       (si >= 0) ? PartialStateText(g_posState[si].partialState) : "UNKNOWN",
                       (si >= 0) ? g_posState[si].partialTriggerTag : ""));   // v1.32 A1(c): "bar-catchup" when the catch-up armed the trigger
       FileClose(h);
+     }
+   else
+     {
+      // v1.33-C1r1: never drop a row silently (throttled 60s)
+      static datetime s_openWarn = 0;
+      if(TimeCurrent() - s_openWarn >= 60)
+        {
+         s_openWarn = TimeCurrent();
+         PrintFormat("WARN: %s open failed (err %d) - row dropped", InpPartialLogFileV130, GetLastError());
+        }
      }
    PrintFormat("v1.30 PARTIAL FILL position=%I64d deal=%I64u %s vol=%.2f level=%.5f fill=%.5f slip=%+.5f (%+.4fR)",
                posId, dealTicket, symbol, vol, level, fill, slipPrice, slipR);
@@ -2278,7 +2375,7 @@ double PartialTargetVolume(string symbol, double initialVolume)
       return(0.0);
    double minVol = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MIN);
    double raw = initialVolume * InpPartialCloseFractionV130;
-   if(raw + 1e-12 < minVol)                 // binding: never round a sub-min half upward
+   if(raw + 1e-12 < minVol)                 // binding: never round a sub-min partial upward
       return(0.0);
    double target = FloorVolumeToStep(symbol, raw);
    if(target + 1e-12 < minVol)
@@ -2372,8 +2469,6 @@ void PersistPartialState(int stateIdx)
    GlobalVariableSet(PartialStateGv(id), (double)g_posState[stateIdx].partialState);
    if(g_posState[stateIdx].initialVolume > 0.0)
       GlobalVariableSet(PartialVolumeGv(id), g_posState[stateIdx].initialVolume);
-   if(g_posState[stateIdx].partialTriggerTime > 0)
-      GlobalVariableSet(PartialTriggerGv(id), (double)g_posState[stateIdx].partialTriggerTime);
    GlobalVariableSet(PartialAttemptsGv(id), (double)g_posState[stateIdx].partialAttempts);
    GlobalVariablesFlush();
   }
@@ -2415,8 +2510,6 @@ void RestorePartialState(int stateIdx, string symbol, double currentVolume)
 
    if(GlobalVariableCheck(PartialStateGv(id)))
       g_posState[stateIdx].partialState = (int)GlobalVariableGet(PartialStateGv(id));
-   if(GlobalVariableCheck(PartialTriggerGv(id)))
-      g_posState[stateIdx].partialTriggerTime = (datetime)GlobalVariableGet(PartialTriggerGv(id));
    if(GlobalVariableCheck(PartialAttemptsGv(id)))
       g_posState[stateIdx].partialAttempts = (int)GlobalVariableGet(PartialAttemptsGv(id));
 
@@ -2510,7 +2603,6 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
       if(!reached)
          return(false);
       g_posState[stateIdx].partialState = PARTIAL_TRIGGERED;
-      g_posState[stateIdx].partialTriggerTime = TimeCurrent();
       g_posState[stateIdx].partialNextRetry = 0;
       g_posState[stateIdx].partialAttempts = 0;
       g_posState[stateIdx].partialGapSeen = false;                                  // v1.32 A1(a)
@@ -2542,7 +2634,7 @@ bool ManagePartialClose(ulong ticket, int stateIdx)
    double closeVolume = FloorVolumeToStep(symbol, remaining);
    if(closeVolume + 1e-12 < minVol || currentVolume - closeVolume + 1e-12 < minVol)
      {
-      SetPartialState(stateIdx, PARTIAL_SKIPPED, "half volume is below broker min/step or leaves invalid remainder");
+      SetPartialState(stateIdx, PARTIAL_SKIPPED, "partial volume is below broker min/step or leaves invalid remainder");
       return(false);
      }
    if(g_posState[stateIdx].partialAttempts >= V130_PARTIAL_MAX_ATTEMPTS)
@@ -2629,12 +2721,12 @@ void UpdateBarsClosed(int stateIdx, string symbol)
   }
 
 //+------------------------------------------------------------------+
-//| ATR for any symbol we hold a position in - falls back to an       |
-//| on-demand iATR handle when the symbol is no longer in the         |
-//| whitelist universe (review P4: whitelist-orphan positions kept    |
-//| their time exit but silently lost lock/trail).                    |
-//| iATR returns the SAME cached handle for identical parameters, so  |
-//| calling it repeatedly does not leak handles.                      |
+//| Single ATR accessor - thin alias for WilderAtrForSymbol (v1.27:   |
+//| one estimator everywhere, CopyRates on closed bars; no iATR       |
+//| handles involved). Works for ANY symbol including whitelist-      |
+//| orphan positions - only the per-symbol CACHE is universe-indexed. |
+//| g_atrHandle survives solely for startup data-sync tracking        |
+//| (see AddSymbol).                                                  |
 //+------------------------------------------------------------------+
 bool ReadAtrForSymbol(string symbol, double &value)
   {
@@ -2724,7 +2816,7 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
 
    // Legacy fallback GV can contain a current-ATR recovery from older versions;
    // retain it for continuity but never label it authoritative.
-   string gvName = "DSv121_atr_" + (string)positionId;
+   string gvName = "DSv121_atr_" + (string)positionId;   // legacy DerivScalper-era GV name, kept for cross-version restart continuity
    if(signalAtr <= 0.0 && GlobalVariableCheck(gvName))
       signalAtr = GlobalVariableGet(gvName);
    if(signalAtr <= 0.0)
@@ -2763,7 +2855,6 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    g_posState[n].partialTargetVolume = 0.0;
    g_posState[n].partialLevel = 0.0;
    g_posState[n].partialState = PARTIAL_ARMED;
-   g_posState[n].partialTriggerTime = 0;
    g_posState[n].partialNextRetry = 0;
    g_posState[n].partialAttempts = 0;
    g_posState[n].partialGapSeen = false;        // v1.32 A1(a)
@@ -2918,17 +3009,6 @@ double SnapPrice(string symbol, double price)
       return(price);
    int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
    return(NormalizeDouble(MathRound(price / tick) * tick, digits));
-  }
-
-bool ReadAtr(int handle, double &value)
-  {
-   double tmp[];
-   if(handle == INVALID_HANDLE)
-      return(false);
-   if(CopyBuffer(handle, 0, 1, 1, tmp) != 1)
-      return(false);
-   value = tmp[0];
-   return(value > 0.0);
   }
 
 //+------------------------------------------------------------------+
@@ -3357,7 +3437,7 @@ void PanelUpdate()
    double eq = AccountInfoDouble(ACCOUNT_EQUITY);
    double dayPnl = eq - g_dayStartBalance;
    int ln = 0;
-   PanelSet(ln++, StringFormat("MomentumPullbackEA v1.33-C1  THOUGHT PROCESS   %s srv",
+   PanelSet(ln++, StringFormat("MomentumPullbackEA " + MPB_VERSION + "  THOUGHT PROCESS   %s srv",
              TimeToString(now, TIME_DATE | TIME_SECONDS)), clrGoldenrod);
 
    for(int i = 0; i < ArraySize(g_symbols) && ln < MPB_PANEL_LINES - 4; i++)
@@ -3413,7 +3493,6 @@ void PanelUpdate()
    while(ln < MPB_PANEL_LINES)
       PanelSet(ln++, " ");
    ChartRedraw(0);
-   DecisionCsvMaybe();
   }
 
 // One row per closed working-timeframe bar -> monthly CSV (bounded growth; S3 shadow substrate).   // v1.32: was "M15 bar", stale since the H1 default
@@ -3429,11 +3508,36 @@ void DecisionCsvMaybe()
    MqlDateTime st;
    TimeToStruct(TimeCurrent(), st);
    string fn = StringFormat("MomentumPullback_decisions_v130_%04d%02d.csv", st.year, st.mon);
-   int h = FileOpen(fn, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI);
+   string hdr = "time,verdicts,fills,day_pnl,halted,hard,positions,pendings,partial_states";
+   int h = FileOpen(fn, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
+   // v1.33-C1r1: header-schema verification (same guard as the trades/partials CSVs;
+   // monthly rotation already bounds exposure - the check makes it zero).
+   if(h != INVALID_HANDLE && FileSize(h) > 0)
+     {
+      FileSeek(h, 0, SEEK_SET);
+      string firstLine = FileReadString(h);
+      if(firstLine != hdr)
+        {
+         FileClose(h);
+         string bak = fn + ".schema.bak";
+         FileMove(fn, 0, bak, FILE_REWRITE);
+         h = FileOpen(fn, FILE_READ | FILE_WRITE | FILE_TXT | FILE_ANSI | FILE_SHARE_READ);
+         PrintFormat("v1.33-C1r1: stale decisions CSV header detected - old file moved to %s; writing the current header", bak);
+        }
+     }
    if(h == INVALID_HANDLE)
+     {
+      // v1.33-C1r1: never drop a row silently (throttled 60s)
+      static datetime s_openWarn = 0;
+      if(TimeCurrent() - s_openWarn >= 60)
+        {
+         s_openWarn = TimeCurrent();
+         PrintFormat("WARN: %s open failed (err %d) - row dropped", fn, GetLastError());
+        }
       return;
+     }
    if(FileSize(h) == 0)
-      FileWriteString(h, "time,verdicts,fills,day_pnl,halted,hard,positions,pendings,partial_states\r\n");
+      FileWriteString(h, hdr + "\r\n");
    FileSeek(h, 0, SEEK_END);
    string vs = "";
    for(int i = 0; i < ArraySize(g_symbols); i++)

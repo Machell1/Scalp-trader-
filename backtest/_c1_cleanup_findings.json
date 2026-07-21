@@ -1,0 +1,612 @@
+{
+ "A": [
+  {
+   "lines": "2923-2932",
+   "what": "Function ReadAtr(int handle, double &value) is truly unreachable \u2014 zero call sites in the file",
+   "proposed_edit": "Delete lines 2923-2932 (the entire ReadAtr function)",
+   "batch": "A_inert",
+   "rationale": "Grep for 'ReadAtr(' matches only the definition at 2923 (the regex requires '(' immediately after, so ReadAtrForSymbol does not collide). Every ATR consumer routes elsewhere: ReadAtrForSymbol (2639) delegates directly to WilderAtrForSymbol; ScanSymbol (1179), ManagePendingOrders (1613), ManagePositionBarClose (1774/1821/1877), ManagePositionPerTick (2023), OnTradeTransaction (753), LogClosedTrade (981), RegisterPositionState (2731) all call WilderAtrForSymbol or ReadAtrForSymbol. ReadAtr is a leftover of the pre-v1.27 iATR-buffer estimator that the v1.27 Wilder rewrite orphaned. Deleting an uncalled function cannot change behavior under any input combination.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1286",
+   "what": "Local variable 'digits' in PlacePending is written but never read",
+   "proposed_edit": "Delete line 1286 (int digits= (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);)",
+   "batch": "A_inert",
+   "rationale": "Grep of every 'digits' occurrence shows none between 1286 and the end of PlacePending (1432); the next use is line 1886 inside a different function (ManagePositionBarClose). All price normalization in PlacePending goes through SnapPrice, which performs its own SYMBOL_DIGITS lookup (2919). SymbolInfoInteger is a pure read with no side effects, so removing the dead assignment is provably inert.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1617",
+   "what": "Local variable 'digits' in ManagePendingOrders is written but never read",
+   "proposed_edit": "Delete line 1617 (int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);)",
+   "batch": "A_inert",
+   "rationale": "No 'digits' use exists within ManagePendingOrders (1549-1661); the trail branch normalizes prices exclusively via SnapPrice (1639, 1643-1644, 1651, 1655-1656). Same proof pattern as line 1286: the next 'digits' occurrence is line 1886 in another function. Pure-read call, no side effects.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1130, 696",
+   "what": "ScanSymbol's 'int atrHandle' parameter is never used in its body \u2014 vestige of the pre-v1.27 iATR value path",
+   "proposed_edit": "Change signature at 1130 to 'void ScanSymbol(string symbol)' and the call at 696 to 'ScanSymbol(g_symbols[i]);'",
+   "batch": "A_inert",
+   "rationale": "The only occurrence of 'atrHandle' (lowercase) inside ScanSymbol (1130-1274) is the parameter declaration itself; the function's ATR comes from WilderAtrForSymbol (1179). The g_atrHandle ARRAY stays untouched (see the separate C finding) \u2014 only the dead parameter and its argument are removed, which cannot change behavior under any inputs. This is not an 'input' declaration, so the chart-persistence rule does not apply.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1172, 279-280",
+   "what": "Stale comments claiming the news blackout is 'off by default': line 1172 says '// v1.25: optional HIGH-impact news blackout (off by default)' and the block comment at 279 says '-> OFF by default; flip on deliberately', but InpNewsBlockMins defaults to 3 (ON) and is ON in the live config (line 280's own caption already says 'Protective entry block is ON')",
+   "proposed_edit": "Rewrite line 1172's trailing comment to '// v1.25/v1.31: HIGH-impact news blackout (ON by default, InpNewsBlockMins=3)' and line 279's block comment to 'Protective gates that DO alter the validated trade distribution: news block ON by default (conservative, chart-compatible); hour block OFF.'",
+   "batch": "A_inert",
+   "rationale": "Pure comment text inside the file body (line 1172 is not an input caption; 279 is a free comment line). No token that the compiler, chart persistence, or logs consume changes. The current text contradicts the actual default and the live config, which is exactly the misleading-comment class this cleanup targets.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "94-96, 106-113",
+   "what": "Header changelog blocks v1.1/v1.2 describe the CURRENT default universe as 'CRYPTO + global/US INDICES' on Deriv M15 with a spread-gated majors set \u2014 stale three generations over: the v1.31+ default whitelist is the FTMO H1 quartet US30.cash/US100.cash/JP225.cash/USDJPY (line 185)",
+   "proposed_edit": "Rewrite the present-tense claims to past tense, e.g. line 94-96: 'Default universe WAS restricted (v1.1, Deriv M15 era) to crypto + indices; superseded by the v1.31 FTMO H1 whitelist' \u2014 keep the rest of the historical narrative untouched",
+   "batch": "A_inert",
+   "rationale": "Comment/changelog text only; no compiled token changes. The header is the first thing a reader sees and currently asserts a default universe that the InpSymbolWhitelistV131 declaration contradicts. Tense-marking preserves the audit trail (the history itself is accurate as history) while removing the false present-tense claim.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "2281",
+   "what": "Comment '// binding: never round a sub-min half upward' says 'half' \u2014 stale since InpPartialCloseFractionV133 default became 0.75 (v1.33) after 0.50 (v1.31)",
+   "proposed_edit": "Rewrite to '// binding: never round a sub-min partial target upward'",
+   "batch": "A_inert",
+   "rationale": "Comment-only; the code below it already uses the generic InpPartialCloseFractionV130 alias so only the English is wrong.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1272",
+   "what": "Redundant condition: 'else if(risingFast && InpTradeBothSides)' \u2014 InpTradeBothSides is provably true whenever risingFast holds here",
+   "proposed_edit": "Optionally simplify to 'else if(risingFast)' with a comment noting DetectImpulse already enforced InpTradeBothSides; acceptable to leave as belt-and-suspenders",
+   "batch": "A_inert",
+   "rationale": "Proof: risingFast at 1272 is (impDir > 0), possibly cleared (never set) by the VWAP block. DetectImpulse(forExit=false) returns true with dir=+1 only via 'accepted = fallingFast || (risingFast && (forExit || InpTradeBothSides))' (line 1094) with fallingFast false and forExit false \u2014 i.e. only when InpTradeBothSides is true. So under EVERY input combination the extra conjunct is a tautology at this site. Marked lowest priority: zero payoff beyond one token, and the redundancy is self-documenting.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "2674, 2727-2733, 2842",
+   "what": "NOT DEAD \u2014 noting for the record: the 'DSv121_atr_' GV prefix is a DerivScalper-era name but is an ACTIVE legacy-continuity path (written at 2674/2733, read at 2728, deleted at 2842)",
+   "proposed_edit": "No edit; at most add a comment '// legacy DerivScalper-era GV name, kept for cross-version restart continuity' at 2727",
+   "batch": "A_inert",
+   "rationale": "Renaming the GV would break signal-ATR recovery across an upgrade restart (live positions' GVs carry the old name) \u2014 behavior-affecting. Explicitly recording it as checked-and-kept so a future cleanup pass does not mistake the vestigial NAME for dead code. The optional comment addition is the only inert action available.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1594-1596",
+   "what": "THE KNOWN CLASS: comment in ManagePendingOrders claims the fill window counts '(placement bar = 1)', but the code yields a 4-bar window. `ageBars = Bars(symbol, InpTimeframe, ordInfo.TimeSetup(), TimeCurrent())` (line 1597) counts only bars whose OPEN time is >= TimeSetup; an order placed mid-bar means the placement bar is NOT counted (its open predates TimeSetup). ageBars reaches InpPendingExpiryBars+1 (deletion trigger `ageBars > InpPendingExpiryBars`, line 1598) only when the 4th bar after placement opens, so with the live default 3 the order survives the remainder of the placement bar PLUS 3 full bars (w4). The file's own input comment at line 213 proves this is the intended, measured behavior: 'Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.30 retest assumes w4'.",
+   "proposed_edit": "Replace lines 1594-1596 with: `// v1.27 B2 / v1.29.1: engine parity - the fill window is counted on the SYMBOL'S OWN` / `// clock via Bars(TimeSetup, now), which OMITS the placement bar (its open predates` / `// TimeSetup). Deletion fires when ageBars > InpPendingExpiryBars, so the order lives` / `// the remainder of the placement bar + InpPendingExpiryBars full bars (w4 at the` / `// default 3 - the measured live behavior the v1.30 retest assumes; see the input` / `// comment on InpPendingExpiryBars). Wall-clock aging expired pendings mid-session-` / `// break after fewer tradable bars than validated.`",
+   "batch": "A_inert",
+   "rationale": "Comment-only edit; no code touched. The replacement states the true window arithmetic, proven by lines 1597-1598 (the count and the strict > comparison) and line 213 (the versioned input comment that documents w4 as measured live behavior).",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "1590-1591",
+   "what": "Comment calls the bar-counted expiry a 'Manual expiry safety net ... in case the broker ignores ORDER_TIME_SPECIFIED'. That inverts the actual design: the bar-counted check IS the primary, precise expiry, and the broker-side ORDER_TIME_SPECIFIED expiry is deliberately set ~3 days LATE as the backstop. Proof: lines 1325-1329 in PlacePending \u2014 'Precise expiry = the bar-counted check in ManagePendingOrders; the broker wall-clock expiry stays only as a +3-day backstop for when the EA itself is dead', and the code `expiry = TimeCurrent() + bars*PeriodSeconds + 259200` (line 1329) which pads +3 days so the broker can never expire the order first.",
+   "proposed_edit": "Replace lines 1590-1591 with: `// PRIMARY expiry: this bar-counted check is the engine's precise fill window. The` / `// broker-side ORDER_TIME_SPECIFIED expiry is set +3 days LATE at placement and is` / `// only a backstop for when the EA itself is dead (see PlacePending). Applies to` / `// both stop and limit orders.`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. The current text tells a reader the broker expiry is authoritative and this check is defensive; the placement code (1321-1331) proves the roles are the opposite.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "1325-1328",
+   "what": "Sibling of the placement-bar rot: comment says 'the engine's 3-bar fill window'. The effective window under the default InpPendingExpiryBars=3 is FOUR bars of exposure (remainder of the placement bar + 3 full bars), because the deletion check omits the placement bar (see lines 1597-1598) \u2014 exactly the w4 behavior line 213 documents. Calling it a '3-bar fill window' restates the disproven counting.",
+   "proposed_edit": "Replace line 1325's text so the block reads: `// v1.27 B2: the engine's fill window (w4 at the default 3: remainder of the placement` / `// bar + InpPendingExpiryBars full bars - Bars() omits the placement bar, see the` / `// InpPendingExpiryBars input comment) is counted on the SYMBOL'S OWN clock (session` / `// breaks produce no bars). Precise expiry = the bar-counted check in` / `// ManagePendingOrders; the broker wall-clock expiry stays only as a +3-day backstop` / `// for when the EA itself is dead.`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proven by lines 213, 1597-1598 (same arithmetic as the primary finding).",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "279",
+   "what": "Section comment above InpNewsBlockMins/InpBlockHours says these protective gates are '-> OFF by default; flip on deliberately', but InpNewsBlockMins defaults to 3 (ON) on line 280 \u2014 and its own inline comment says 'Protective entry block is ON'. Only InpBlockHours (line 281, empty string) is off by default. The live config also runs the news guard ON (InpNewsBlockMins=3). The section comment contradicts both the code one line below it and the live state.",
+   "proposed_edit": "Replace line 279 with: `// Protective but they DO alter the validated trade distribution. InpBlockHours is OFF` / `// by default; InpNewsBlockMins defaults ON at 3 min (conservative FTMO-evaluation` / `// guard - see its own comment).`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proof: line 280 `input int InpNewsBlockMins = 3;` with inline text 'Protective entry block is ON ... 0=off', line 281 `input string InpBlockHours = \"\"`. The gate fires at line 1172 whenever InpNewsBlockMins > 0.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "1172",
+   "what": "Sibling of the news-guard rot: the gate call site comment reads '// v1.25: optional HIGH-impact news blackout (off by default)' \u2014 wrong; the default is InpNewsBlockMins=3 (ON, line 280). The adjacent hour-blackout comment on line 1167 ('off by default') is correct (InpBlockHours=\"\") and needs no change.",
+   "proposed_edit": "Replace the trailing comment on line 1172 with `// v1.25: HIGH-impact news blackout (ON by default: 3-min window; 0 disables)`.",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proof: line 280 default 3; NewsSoon (lines 902-924) returns false only when InpNewsBlockMins*60 <= 0.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "2632-2637",
+   "what": "ReadAtrForSymbol's header comment describes a function that no longer exists: 'falls back to an on-demand iATR handle when the symbol is no longer in the whitelist universe ... iATR returns the SAME cached handle for identical parameters, so calling it repeatedly does not leak handles.' The body (lines 2639-2642) is a one-line alias: `return(WilderAtrForSymbol(symbol, value));` \u2014 v1.27 replaced the iATR path entirely. WilderAtrForSymbol (2867-2908) uses CopyRates, never iATR, and works for any symbol (whitelist-orphans included; only the cache is universe-indexed). No iATR handle is created here under any input combination.",
+   "proposed_edit": "Replace the header block (lines 2632-2637) with: `//| Single ATR accessor - thin alias for WilderAtrForSymbol (v1.27: one estimator` / `//| everywhere, CopyRates on closed bars; no iATR handles involved). Works for ANY` / `//| symbol including whitelist-orphan positions - only the per-symbol CACHE is` / `//| universe-indexed. g_atrHandle survives solely for startup data-sync tracking` / `//| (see AddSymbol).`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proof: body lines 2639-2642; WilderAtrForSymbol lines 2867-2908 (CopyRates path, cache guarded by `idx >= 0` so orphans still compute); line 555 comment confirming g_atrHandle is 'retained for startup data-sync tracking only'.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "2923-2932",
+   "what": "Dead helper: `bool ReadAtr(int handle, double &value)` \u2014 the pre-v1.27 iATR CopyBuffer reader \u2014 has ZERO call sites. Grep across the file finds only the definition (ReadAtrForSymbol is a different, called function). It is unreachable under every input combination; MQL5 has no dynamic dispatch that could invoke it.",
+   "proposed_edit": "Delete lines 2923-2932. (Conservative alternative if the owner prefers zero deletions in this pass: prepend `// DEAD since v1.27 - no callers; kept for reference` above it.)",
+   "batch": "A_inert",
+   "rationale": "Truly unreachable code, the one non-comment category the task rules allow in batch A: not behind any flag, simply never called. Removing it cannot change behavior; it also removes the last artifact of the misleading iATR-fallback story in the ReadAtrForSymbol header.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "1064-1069",
+   "what": "The W2 candle-filter comment in DetectImpulse presents OVERTURNED evidence as current justification: 'Gate evidence: quarter-stitched WF at real cost +0.120R vs +0.078R baseline, beats random-drop placebo, 9/12 symbols, 2x cost OK; direction confirmed...'. The file's own input-group text (lines 190-191, 'parity-corrected 2026-07-12') states: 'W2 remains the forward-test signal definition; its old post-hoc expectancy claim was overturned by live-parity enumeration.' The two blocks contradict each other; the DetectImpulse block is the stale one (the 2026-07-12 parity audit voided that harness family's expectancy claims).",
+   "proposed_edit": "Replace lines 1064-1069 with: `// v1.29 W2 candle filter: the signal bar must be CONTESTED (adverse-side wick` / `// >= InpMinAdvWickAtr ATR). NOTE (2026-07-12 parity audit): the original expectancy` / `// evidence for W2 (+0.120R quarter-stitched WF etc.) was OVERTURNED by live-parity` / `// enumeration - W2 is retained as the forward-test SIGNAL DEFINITION only (see the` / `// Candle Filter input group). A SELL continuation needs a LOWER wick (buyers fought` / `// = still fuel); a BUY needs an UPPER wick. Skips only.`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proof of contradiction is inside the same file: lines 190-191. Leaving the old numbers standing invites re-citing dead evidence in future work on this filter.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "1867-1870",
+   "what": "The v1.23 PURE BRACKET comment in ManagePositionBarClose says the exit engine is broker SL/TP 'plus the bar-count time exit above' \u2014 stale twice: (a) the time exit is no longer above in this function; v1.32 A2 moved it to ManageOpenPositions where it is evaluated every heartbeat (lines 1717-1738, and this same function says so at 1763-1764); (b) since v1.30 the default exit engine also includes the +1R partial bank (ManagePartialClose, called at line 1714, InpUsePartialCloseV130=true default).",
+   "proposed_edit": "Replace lines 1867-1870 with: `// v1.23 PURE BRACKET: with the lock/trail ladder disabled there is nothing to manage` / `// here between fill and exit - the broker-side SL/TP set at placement ARE the exit` / `// engine, plus the v1.30 +1R partial bank and the bar-count time exit, both evaluated` / `// every heartbeat in ManageOpenPositions (time exit moved there in v1.32 A2).` / `// (Exit-ladder study: the ladder cut avg win from 1.72R to 1.02R and cost` / `// ~0.027R/trade of OOS expectancy.)`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proof: time-exit block at 1724-1738 in ManageOpenPositions; the move is documented at 1763-1764; partial check at 1714 with default ON (line 223).",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "616-618",
+   "what": "OnTick comment claims 'every decision is bar-gated' \u2014 not true since v1.30/v1.32: the +1R partial trigger is tick-price-checked on every heartbeat (line 1711-1712 says exactly that) and the A2 time exit is heartbeat-evaluated. The operative conclusion (per-tick execution is redundant when the 5s timer runs the same pipeline) is correct; the stated rationale is not. It also under-describes when per-tick mode still runs: the guard `InpHeartbeatSeconds > 0 && InpManageOnBarClose` (line 619) means ticks drive the pipeline when the heartbeat is 0 OR legacy per-tick management is selected.",
+   "proposed_edit": "Replace lines 616-618 with: `// v1.26/v1.32: the 5s OnTimer heartbeat already runs the full pipeline (scans are` / `// bar-gated; the v1.30 partial and A2 time exit are heartbeat-checked), so per-tick` / `// execution adds only redundant load (incl. full-day HistorySelect) on a 24/7 host` / `// chart. Ticks drive the pipeline only when the heartbeat is off (0) or the legacy` / `// per-tick manager is selected.`",
+   "batch": "A_inert",
+   "rationale": "Comment-only. Proof: guard at line 619; partial tick-check note at 1711-1712; A2 heartbeat time exit at 1717-1738.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "2281",
+   "what": "Stale comment in PartialTargetVolume: 'binding: never round a sub-min half upward' \u2014 the quantity being floored is initialVolume * InpPartialCloseFractionV133 = 75%, not a half (proof: line 2280 `raw = initialVolume * InpPartialCloseFractionV130` with the V130 macro aliased to V133=0.75 at line 225).",
+   "proposed_edit": "Replace the trailing comment with `// binding: never round a sub-min partial upward`.",
+   "batch": "A_inert",
+   "rationale": "Comment-only, same '50% era' rot family as the log strings but with zero output impact.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "2923-2932",
+   "what": "Dead function ReadAtr(int handle, double &value) \u2014 superseded by WilderAtrForSymbol in v1.27; zero call sites anywhere in the file (verified: the only grep match for 'ReadAtr(' is the definition; ReadAtrForSymbol is a different identifier).",
+   "proposed_edit": "Delete lines 2923-2932 (the entire ReadAtr function).",
+   "batch": "A_inert",
+   "rationale": "Unreachable under EVERY input combination \u2014 no caller exists, so deletion cannot change any behavior. Compiler-provable.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "1130, 696",
+   "what": "ScanSymbol(string symbol, int atrHandle) declares parameter atrHandle that is never referenced anywhere in the function body (all ATR values come from WilderAtrForSymbol).",
+   "proposed_edit": "Change line 1130 signature to 'void ScanSymbol(string symbol)' and line 696 call to 'ScanSymbol(g_symbols[i]);'. Do NOT touch the g_atrHandle array machinery itself (creation/retry/release) \u2014 iATR handle creation can drive history sync, so removing that would be batch C.",
+   "batch": "A_inert",
+   "rationale": "Passing an int that is never read has no observable effect; removal is compile-time provable. The handle array itself stays.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "1286",
+   "what": "Unused local in PlacePending: 'int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);' \u2014 never read in the function (grep confirms no 'digits' reference between 1286 and 1617; all rounding goes through SnapPrice, which fetches digits itself).",
+   "proposed_edit": "Delete line 1286.",
+   "batch": "A_inert",
+   "rationale": "SymbolInfoInteger is a pure read with no side effects; the value is never consumed under any input combination.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "1617",
+   "what": "Unused local in ManagePendingOrders trail block: 'int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);' \u2014 never read (grep confirms no 'digits' reference between 1617 and 1886; entry/SL/TP all go through SnapPrice).",
+   "proposed_edit": "Delete line 1617.",
+   "batch": "A_inert",
+   "rationale": "Pure read, value never consumed under any input combination, including the BREAKOUT+trail config.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "1040-1046",
+   "what": "DetectImpulse computes the spreadAtrSide log-replica unconditionally, but on the forExit=true path (runner exit, called every managed bar close when B2 is armed) the value is provably never read: its only consumers are the LogSkip calls at lines 1084 and 1116, both inside if(!forExit) blocks.",
+   "proposed_edit": "Change line 1041 from 'if(InpMaxSpreadAtr > 0.0)' to 'if(!forExit && InpMaxSpreadAtr > 0.0)'.",
+   "batch": "A_inert",
+   "rationale": "SymbolInfoDouble/SymbolInfoInteger are side-effect-free reads. With forExit=false the computation is unchanged, so every log/verdict string stays byte-identical; with forExit=true the value is dead, so skipping it changes nothing observable under any input combination.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "2140-2153",
+   "what": "TakePendingSigAtr performs FindPendingSigAtr twice per call: once inside PeekPendingSigAtr (line 2141) and again directly (line 2143). Minor duplicate linear scan of g_pendingSigAtr.",
+   "proposed_edit": "Rewrite TakePendingSigAtr to call FindPendingSigAtr once: 'int idx = FindPendingSigAtr(orderTicket); double atr = (idx >= 0) ? g_pendingSigAtr[idx].atr : (GlobalVariableCheck(PendingSigAtrGv(orderTicket)) ? GlobalVariableGet(PendingSigAtrGv(orderTicket)) : 0.0);' then keep the existing removal + GlobalVariableDel + flush + return(atr) exactly as-is.",
+   "batch": "A_inert",
+   "rationale": "Pure refactor of one call chain: RAM-first-then-GV lookup order is preserved exactly, the array cannot change between the two lookups within one call, and all side effects (element removal, GV delete, flush) are untouched. Low priority \u2014 array is tiny; apply only if the small diff is acceptable.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "2923-2932",
+   "what": "Dead function: ReadAtr(int handle, double &value) has zero call sites (verified by search \u2014 the only occurrence of `ReadAtr(` besides its definition is the differently-named ReadAtrForSymbol). It is the pre-v1.27 iATR-buffer reader superseded by WilderAtrForSymbol and is unreachable under every input combination.",
+   "proposed_edit": "Delete lines 2923-2932 entirely.",
+   "batch": "A_inert",
+   "rationale": "Provably no behavior change: the symbol is never referenced, the compiler emits it as an unused function only.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "696, 1130",
+   "what": "Unused parameter: ScanSymbol(string symbol, int atrHandle) never references atrHandle in its body (ATR values come from WilderAtrForSymbol; verified \u2014 the only body-scope occurrences of `atrHandle` are the signature and the call site). NOTE the surrounding g_atrHandle machinery (AddSymbol handle creation, RetryFailedAtrHandles, OnDeinit release) must NOT be removed: creating iATR handles triggers/tracks terminal history synchronization for each symbol/timeframe and produces the recovery log line, so ripping it out is not provably inert (would be batch C-adjacent).",
+   "proposed_edit": "Change the signature to `void ScanSymbol(string symbol)` (line 1130) and the call at line 696 to `ScanSymbol(g_symbols[i]);`. Leave g_atrHandle, AddSymbol, RetryFailedAtrHandles, and OnDeinit untouched.",
+   "batch": "A_inert",
+   "rationale": "Removing a never-read function parameter cannot change behavior under any input; it is not an `input` declaration so rule 1 does not apply.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "1338-1441",
+   "what": "KNOWN DEFECT (1) sendMarket wrong-side-limit race -> 10015 loss: STATUS = RESOLVED/MITIGATED in v1.32 A6. The marketable-limit->market conversion guards are at 1358-1362 (BUY: entry >= ask - stopsLevel) and 1373-1377 (SELL: entry <= bid + stopsLevel), using bid/ask fetched at 1342-1343 inside the retry loop. A stale-quote race can still produce 10015 (TRADE_RETCODE_INVALID_PRICE), but EntryRetcodePriceClass (1437-1441) includes 10015/10004/10020/10021 and the loop (1340) resends up to InpEntryMaxRetriesV132=3 times (input line 263), re-fetching quotes and re-evaluating the conversion each attempt, aborting only when the signal bar rolls (1424-1428) or a non-price retcode occurs. Residual: 4 consecutive price-class rejections or a bar roll still loses the signal (logged at 1420-1421/1426).",
+   "proposed_edit": "No code edit. Mark this defect RESOLVED (v1.32 A6 bounded retry) in the external defect list; any further hardening (e.g. widening the conversion buffer beyond stopsLevel) would be batch C.",
+   "batch": "A_inert",
+   "rationale": "The one-shot loss no longer exists under the live config (InpEntryMaxRetriesV132=3 default ON); the remaining exposure is a bounded, logged residual. Touching the placement math or retry classifier would alter live order flow.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "279, 1172",
+   "what": "KNOWN DEFECT (2) news guard default/comment contradiction: STATUS = PRESENT (comments wrong, code right). InpNewsBlockMins default is 3 (line 280, guard ON, matching the live FTMO config and line 280's own trailing comment 'Protective entry block is ON'), but the block comment at 279 says '-> OFF by default; flip on deliberately' and the call-site comment at 1172 says '(off by default)'. The gate itself (1172-1176, NewsSoon 902-924) is active.",
+   "proposed_edit": "Rewrite comment line 279 to: 'Protective; they DO alter the validated trade distribution. InpNewsBlockMins is ON by default (3 min, conservative FTMO gate); InpBlockHours is OFF by default.' Rewrite the line 1172 trailing comment from '(off by default)' to '(ON by default, 3 min)'. Do NOT touch the input declaration, name, or default (chart-persistence rule).",
+   "batch": "A_inert",
+   "rationale": "Pure comment text on non-input lines (279 is a standalone comment; 1172 is an inline code comment). Zero compiled-behavior or dialog-label change. Leaving it invites a future 'cleanup' that flips the default to match the comment - the dangerous direction.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "213, 1592-1606",
+   "what": "KNOWN DEFECT (5) pending expiry Bars() arithmetic - code yields a 4-bar window, comment claims 3: STATUS = code behavior is the INTENDED/validated one; the v1.27 comment is stale. Code (1597-1598): ageBars = Bars(symbol, tf, ordInfo.TimeSetup(), TimeCurrent()); delete when ageBars > InpPendingExpiryBars (=3). Because placement happens a few seconds after bar open (5s heartbeat), the placement bar's open time predates TimeSetup and Bars() OMITS it, so ageBars first exceeds 3 when the 4th post-placement bar opens: the order lives the placement bar + 3 full bars ~= a 4-bar (w4) fill window. The comment block at 1593-1597 ('the fill window is InpPendingExpiryBars BARS ... placement bar = 1') describes a 3-bar window and is WRONG; the input comment at line 213 is the authoritative record ('Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.30 retest assumes w4'). Changing the arithmetic to a true 3-bar window would BREAK parity with the v1.30+ retests.",
+   "proposed_edit": "Rewrite the comment at 1593-1597 to: 'v1.27 B2 / v1.29.1: bar-counted expiry on the symbol's own clock. Bars() omits the mid-bar placement bar, so ageBars > N deletes at the open of post-placement bar N+1 = an effective (N+1)-bar fill window (w4 at the default 3). This measured live behavior is what the v1.30+ retests assume - do NOT change to placement-bar=1 arithmetic. Broker wall-clock expiry (+3d) remains the dead-EA backstop.' No code change.",
+   "batch": "A_inert",
+   "rationale": "Comment-only. The mismatch is documentation, and the stale text actively invites a parity-breaking 'fix' of correct code.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "2923-2932",
+   "what": "NEW: dead function. ReadAtr(int handle, double &value) has zero call sites (grep-verified: only the definition matches). All ATR reads route through WilderAtrForSymbol/ReadAtrForSymbol since v1.27. Unreachable under EVERY input combination.",
+   "proposed_edit": "Delete lines 2923-2932.",
+   "batch": "A_inert",
+   "rationale": "Provably uncalled - not flag-gated feature code, simply orphaned by the v1.27 estimator switch. Removal cannot change behavior.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "1130, 696, 1286, 1617",
+   "what": "NEW: unused parameter and unused locals. (a) ScanSymbol's `int atrHandle` parameter (1130) is never read in the body (ATR comes from WilderAtrForSymbol at 1179); call site 696 passes g_atrHandle[i]. (b) `int digits` in PlacePending (1286) and in ManagePendingOrders (1617) are computed but never used in their scopes - all price normalization there goes through SnapPrice (grep-verified: every NormalizeDouble(..., digits) use is in other functions). Keep the g_atrHandle ARRAY itself - it is live infrastructure (startup sync tracking, RetryFailedAtrHandles, OnDeinit release).",
+   "proposed_edit": "Change signature to ScanSymbol(string symbol) and call site 696 to ScanSymbol(g_symbols[i]); delete the two dead `digits` declarations at 1286 and 1617.",
+   "batch": "A_inert",
+   "rationale": "SymbolInfoInteger(SYMBOL_DIGITS) is a pure read with no side effects; the parameter and locals are never referenced. Compiled behavior is bit-identical under any inputs.",
+   "dim": "defect-reconciliation"
+  }
+ ],
+ "B": [
+  {
+   "lines": "154, 432, 459, 3360",
+   "what": "The version string 'v1.33-C1' is hand-maintained in four places (property description, panel-init print, ready print, panel header) \u2014 the 'duplicate version strings in prints' class; a version bump that misses one copy would produce contradictory logs",
+   "proposed_edit": "Add '#define MPB_VERSION \"v1.33-C1\"' near line 152 and substitute it into the three PrintFormat/PanelSet format strings (432, 459, 3360); the #property description (154) must stay literal (preprocessor macros are not expanded inside #property), so add a '// keep in sync with MPB_VERSION' note there",
+   "batch": "B_telemetry",
+   "rationale": "Emitted bytes are identical today (compile-time string concatenation), so no live behavior or log content changes now; classed B not A only because the format strings themselves are edited and the panel/log are the touched surface. Prevents future version-skew in logs.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "799, 804, 2545",
+   "what": "Stale hardcoded '50%'/'half' in live log strings: 'entry fill made the 50% target volume feasible' (799), 'entry fill increased the 50% target; closing the remainder' (804), 'half volume is below broker min/step or leaves invalid remainder' (2545) \u2014 the banked fraction has been 0.75 since v1.33",
+   "proposed_edit": "Reword to fraction-neutral text: 'entry fill made the partial target volume feasible', 'entry fill increased the partial target; closing the remainder', 'partial volume is below broker min/step or leaves invalid remainder' (or interpolate 100*InpPartialCloseFractionV130)",
+   "batch": "B_telemetry",
+   "rationale": "These strings are the 'reason' argument of SetPartialState, which only feeds PrintFormat (2451-2452) \u2014 verified SetPartialState stores reason nowhere and PersistPartialState (2372-2378) persists only state/volume/trigger/attempts. Log-text-only change; the misstatement matters because the journal is used for live forensics and currently claims a 50% bank on a 75% config.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "333, 2242, 2375-2376, 2418-2419, 2513, 2766",
+   "what": "PositionMgmtState.partialTriggerTime and its GV (MPB_v130_so_trigger_*) are write-only telemetry: set on trigger (2513), persisted (2375-6), restored (2418-9), initialized (2766), deleted (2385) \u2014 never read by any decision, print, CSV, or panel",
+   "proposed_edit": "Delete the struct field (333), the writes (2513, 2766), the persist pair (2375-2376), and the restore pair (2418-2419); KEEP PartialTriggerGv (2242) and the GlobalVariableDel at 2385 so stale GVs from the live version still get cleaned up on position close",
+   "batch": "B_telemetry",
+   "rationale": "Exhaustive occurrence list above is complete (grep-verified). The field's only 'read' is the >0 guard on its own re-persist (2375) \u2014 fully circular. No trading path, log line, or CSV column consumes it. Classed B rather than A because the terminal global variable is user-visible diagnostic state (F3 window) whose disappearance is an observable telemetry change; it cannot alter trading under any inputs. Low priority \u2014 it is 8 lines and does no harm.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "440-457",
+   "what": "OnInit's CandleParity print divides by 'wa' even when WilderAtrForSymbol failed: on failure wa is set to 0.0 (WilderAtrForSymbol assigns value=0.0 on entry, line 2869), so the wick ratios print as inf/-inf garbage during a cold start with unsynced history",
+   "proposed_edit": "Capture the success flag: 'bool waOk = WilderAtrForSymbol(g_symbols[i], wa); if(waOk) PrintFormat(...ATR line...);' and wrap the CandleParity loop + print in 'if(waOk && wa > 0.0)'",
+   "batch": "B_telemetry",
+   "rationale": "Log-only defect and log-only fix: the CandleParity line exists solely for cross-checking against the Python engine, and an inf-laden line defeats that purpose. No trading code reads wa afterward (it is local to the OnInit loop). Division by zero on doubles in MQL5 yields inf, not a crash, so this is cosmetic \u2014 hence B, not C.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1189-1201, 1041-1046",
+   "what": "Duplicate spread/ATR-per-side computation: ScanSymbol computes spreadAtrSide for the gate (1189-1201), then DetectImpulse recomputes an explicitly-labeled 'replica' (1041-1046) used only in its reject-log arguments; SYMBOL_SPREAD can tick between the two reads so the logged value can differ microscopically from the gated value",
+   "proposed_edit": "OPTIONAL: pass spreadAtrSide into DetectImpulse as a parameter and delete the replica block 1039-1046; the comment at 1038-1039 shows the duplication was a deliberate zero-diff refactor choice, so leaving it is also defensible",
+   "batch": "B_telemetry",
+   "rationale": "The replica feeds only LogSkip/SetVerdict argument lists inside DetectImpulse (1084, 1116) \u2014 never a filter (the comment itself says 'this never filters here'). Consolidating changes at most the logged spread value on reject lines (to the gate-time snapshot) and touches a live function signature, so it is telemetry-grade with mild churn risk; flagged low priority.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "1203-1210",
+   "what": "Duplicate missing-bar-data check: ScanSymbol re-fetches close1/closePast/open1 and logs 'missing bar data' (1206-1210), duplicating DetectImpulse's identical check (1048-1056). close1/open1 themselves are NOT dead (close1 anchors PlacePending at 1271/1273; both feed the VWAP branch), only the early-exit is redundant under the live config",
+   "proposed_edit": "OPTIONAL: leave as-is (recommended). If removed, under VWAP-off (live) DetectImpulse emits the byte-identical LogSkip; under VWAP-on the verdict text could change ('VWAP not calibrated' instead of 'missing bar data') though no trade occurs either way",
+   "batch": "B_telemetry",
+   "rationale": "Proof no trade can slip through removal: if close1==0, DetectImpulse (1051) returns false before any PlacePending call, and the VWAP path with a missing bar 1 yields anchorTime/vwap of 0 -> 'VWAP not calibrated' skip. Net effect is log-ordering only in a config-dead branch. Recommending no action \u2014 the guard also protects the VWAP block's reads and costs nothing.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "800, 804",
+   "what": "Stale log strings: SetPartialState reasons say 'entry fill made the 50% target volume feasible' and 'entry fill increased the 50% target; closing the remainder'. The partial fraction has been 0.75 since v1.33 (line 224, InpPartialCloseFractionV133 = 0.75; PartialTargetVolume multiplies by it at line 2280). '50%' was true in v1.31 only.",
+   "proposed_edit": "Line 800: replace the reason string with \"entry fill made the partial-close target volume feasible\". Line 804: replace with \"entry fill increased the partial-close target; closing the remainder\". (Fraction-agnostic wording so the string can never rot again.)",
+   "batch": "B_telemetry",
+   "rationale": "Changes only the text of a PrintFormat'd state-transition log line (SetPartialState, lines 2443-2453); no state, level, or volume computation touched.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "2545",
+   "what": "Stale log string: PARTIAL_SKIPPED reason 'half volume is below broker min/step or leaves invalid remainder' \u2014 the close volume is 75% of initial (line 224 / 2280), not half. 'half' dates from the v1.30/v1.31 50% era.",
+   "proposed_edit": "Replace the reason string with \"partial volume is below broker min/step or leaves invalid remainder\".",
+   "batch": "B_telemetry",
+   "rationale": "Log-text only, inside SetPartialState's reason argument. The sibling historical reference on line 2561 ('the validated 50% bank was SKIPPED forever') describes a v1.31 incident and is CORRECT as history \u2014 do not touch it.",
+   "dim": "comment-rot"
+  },
+  {
+   "lines": "281, 285",
+   "what": "The input-dialog label comment for InpBlockHours ('Server hours to block NEW entries, comma-sep e.g. \"20,21,22\" ...') is glued onto the end of InpPanelRefreshSec's line 285, while InpBlockHours on line 281 has no trailing comment. In MT5 the trailing comment IS the property-dialog label, so InpPanelRefreshSec currently shows a garbled double label and InpBlockHours shows its raw variable name.",
+   "proposed_edit": "On line 285, truncate the comment after 'Panel refresh throttle (never per-tick)'. On line 281, append the displaced text as InpBlockHours' trailing comment: 'input string InpBlockHours = \"\";     // Server hours to block NEW entries, comma-sep e.g. \"20,21,22\" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically.' Do NOT rename either input identifier.",
+   "batch": "B_telemetry",
+   "rationale": "Only the inputs-dialog display labels change; identifiers, defaults, and chart-stored values are untouched, so trading behavior is identical. Classified B (visible UI text), not A.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "800, 804, 2545",
+   "what": "Stale hardcoded '50%'/'half' wording in three runtime partial-state log strings ('entry fill made the 50% target volume feasible', 'entry fill increased the 50% target; closing the remainder', 'half volume is below broker min/step or leaves invalid remainder'). The live v1.33 fraction is 0.75, so the logs misstate the banked fraction.",
+   "proposed_edit": "Replace with fraction-neutral wording: line 800 -> \"entry fill made the partial target volume feasible\"; line 804 -> \"entry fill increased the partial target; closing the remainder\"; line 2545 -> \"partial volume is below broker min/step or leaves invalid remainder\". Leave the v1.30 changelog header (line 67) and the historical v1.31 comment (line 2561) untouched \u2014 those are accurate history.",
+   "batch": "B_telemetry",
+   "rationale": "SetPartialState reason strings feed only PrintFormat and (via state text, unaffected) the CSV; no branch reads them. Pure log-text correction.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "440-457",
+   "what": "OnInit CandleParity block: 'double wa;' is set to 0.0 when WilderAtrForSymbol fails (the function zeroes its out-param first), yet the parity loop still divides wick sizes by wa, printing 'inf' values in the CandleParity log line for any symbol whose ATR was unavailable at init.",
+   "proposed_edit": "Restructure so the parity loop only runs on success: 'double wa = 0.0; if(WilderAtrForSymbol(g_symbols[i], wa) && wa > 0.0) { PrintFormat(\"Wilder ATR...\"); /* parity loop + CandleParity print */ }'. Identical output whenever the ATR is available (the live steady state).",
+   "batch": "B_telemetry",
+   "rationale": "Both prints are init-time observability only (cross-check vs the Python engine); nothing reads them. Double division by zero in MQL5 yields inf (no crash), so this is purely a garbage-log fix. Output changes only in the failure case where the current output is already meaningless.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "3416, 3420-3465",
+   "what": "DecisionCsvMaybe (documented 'one row per closed working-timeframe bar') is invoked only from the tail of PanelUpdate, so the decision CSV is silently disabled when InpShowPanel=false and its row timing is quantized by the InpPanelRefreshSec throttle even when the panel is on.",
+   "proposed_edit": "OPTIONAL: move the DecisionCsvMaybe() call from line 3416 (end of PanelUpdate) to Heartbeat(), immediately after PanelUpdate() on line 660. DecisionCsvMaybe has its own per-bar dedup (s_lastBar), so row cadence stays one per closed bar.",
+   "batch": "B_telemetry",
+   "rationale": "Changes only CSV row presence (panel-off case) and per-row timestamp/equity sampling (up to ~InpPanelRefreshSec earlier). Live config has panel ON so live effect is a slightly earlier sample; still strictly telemetry. Skip if zero-CSV-diff is preferred for this cleanup.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "2222-2234",
+   "what": "CONFIRMED instance of the known bug class: the partials CSV writer emits its header only when FileSize(h)==0, but v1.32 appended a 14th column (trigger_tag) to the row schema while keeping the same default filename (MomentumPullback_partials_v130.csv, input InpPartialLogFileV130). Any partials file created by v1.30/v1.31 and appended to by v1.32/v1.33-C1 carries a stale 13-column header while every new row has 14 fields \u2014 exactly what blocked the downstream audit expecting a trigger_tag column. The current header string (line 2226) and StringFormat row (line 2228) DO match each other at 14 columns, so only pre-v1.32 files are affected.",
+   "proposed_edit": "In LogPartialDeal, after FileOpen: if FileSize(h)>0, FileSeek(h,0,SEEK_SET) and FileReadString the first line; if StringFind(firstLine,\"trigger_tag\")<0 then FileClose(h), FileMove the old file to InpPartialLogFileV130+\".pre_v132.bak\", reopen with the same flags and write the current 14-column header, and Print a one-time notice. Do NOT fix this by changing the InpPartialLogFileV130 default value \u2014 the chart-persisted input value would survive the recompile anyway, and renaming the input to force a new default is batch C by rule 1.",
+   "batch": "B_telemetry",
+   "rationale": "Changes only what gets persisted to the CSV and preserves the legacy rows in a sidecar; no trade decision reads this file. This is the primary requested finding.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "1005-1015, 3432-3436",
+   "what": "Same header-only-when-file-empty pattern in the other two writers. Trades CSV (LogClosedTrade, line 1008-1009): header and row both 13 columns today, but the filename is unversioned (MomentumPullback_trades.csv), so any future column addition reproduces the partials bug silently. Decisions CSV (DecisionCsvMaybe, line 3436): header and row both 9 columns; monthly filename rotation bounds stale-header exposure to at most one transition month.",
+   "proposed_edit": "Apply the same first-line header-verification guard from the partials fix to LogClosedTrade (compare the first line to the current header string; on mismatch FileMove to a .bak and rewrite). Decisions CSV: no code change needed (monthly rotation is adequate); optionally add the same check for uniformity.",
+   "batch": "B_telemetry",
+   "rationale": "Defensive persistence-only change; headers currently match, so this alters nothing today but immunizes the unversioned trades file against the known bug class.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "3347-3356, 3416",
+   "what": "Decisions-CSV telemetry is coupled to the display panel: DecisionCsvMaybe() is invoked only from the tail of PanelUpdate (3416), which returns early both when InpShowPanel=false (3349-3350) and under the InpPanelRefreshSec throttle (3353-3354). Turning the panel off silently kills the per-bar decisions CSV \u2014 an observability feed masquerading as panel decoration. Live config has the panel ON, so there is no live data gap today.",
+   "proposed_edit": "In Heartbeat() (line 658-660), change `PanelUpdate();` to `PanelUpdate(); DecisionCsvMaybe();` and delete the `DecisionCsvMaybe();` call at line 3416. DecisionCsvMaybe self-gates to one row per closed working-timeframe bar (s_lastBar, 3423-3427), so row cadence is unchanged; only the dependency on panel settings is removed.",
+   "batch": "B_telemetry",
+   "rationale": "Output-only decoupling; with the live config (panel ON) the emitted rows are identical, and the function touches no trading state.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "1005, 2222, 3432",
+   "what": "File-handle pattern audit: all three CSV writers use open-per-event with FILE_READ|FILE_WRITE|FILE_TXT|FILE_ANSI, seek-to-end, write, FileClose \u2014 flush discipline is fine (close flushes, and GV writes separately use GlobalVariablesFlush consistently). Two gaps: (a) no FILE_SHARE_READ, so an external tool holding the file (Excel, a tailing audit script) makes FileOpen fail; (b) on INVALID_HANDLE the row is dropped with zero log in all three writers (LogClosedTrade and LogPartialDeal just skip the block; DecisionCsvMaybe returns).",
+   "proposed_edit": "Add FILE_SHARE_READ to the flag set of all three FileOpen calls, and add a throttled (once/minute static) PrintFormat(\"WARN: %s open failed (err %d) - row dropped\") in each INVALID_HANDLE branch.",
+   "batch": "B_telemetry",
+   "rationale": "Share-mode flags and a warning line change only logging/persistence robustness; the trade path never reads these files.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "281-285",
+   "what": "Misplaced input comment: InpBlockHours' descriptive text (\"Server hours to block NEW entries, comma-sep e.g. \\\"20,21,22\\\" (rollover). Empty=off. ...\") is glued onto the end of InpPanelRefreshSec's line 285, while InpBlockHours itself (line 281) has no trailing comment. Because MT5 displays an input's trailing comment as its label in the inputs dialog, InpBlockHours currently shows as a bare variable name and InpPanelRefreshSec shows a double-barreled label.",
+   "proposed_edit": "Move the \"Server hours to block NEW entries...\" text to line 281 as InpBlockHours' trailing comment; leave line 285 ending at \"// Panel refresh throttle (never per-tick)\". No identifier, default, or ordering changes.",
+   "batch": "B_telemetry",
+   "rationale": "Comment-only edit, but classified B rather than A because it changes the human-visible inputs-dialog labels (display output). Chart-stored VALUES are keyed by variable name, not comment, so nothing persisted is affected.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "800, 804, 2281, 2545",
+   "what": "Stale \"50%\"/\"half\" wording left over from the v1.30/v1.31 0.50 fraction after v1.33-C1 moved the default to 0.75: log/reason strings \"entry fill made the 50% target volume feasible\" (800), \"entry fill increased the 50% target; closing the remainder\" (804), \"half volume is below broker min/step or leaves invalid remainder\" (2545), and the comment \"never round a sub-min half upward\" (2281). These strings reach the journal via SetPartialState's PrintFormat, so post-hoc log audits reading \"50%\" against a 75% partial are misled.",
+   "proposed_edit": "Rewrite to fraction-neutral wording: 800 -> \"entry fill made the partial target volume feasible\"; 804 -> \"entry fill increased the partial target; closing the remainder\"; 2545 -> \"partial volume is below broker min/step or leaves invalid remainder\"; 2281 comment -> \"never round a sub-min partial upward\". Leave the v1.30 changelog block (line 67) alone \u2014 it accurately describes v1.30.",
+   "batch": "B_telemetry",
+   "rationale": "Log-string and comment text only; the arithmetic everywhere already uses InpPartialCloseFractionV130 (#defined to the V133 input), so behavior is untouched.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "1011-1012",
+   "what": "Minor telemetry-fidelity inconsistency: the trades CSV close_time column is TimeToString(TimeCurrent(), ...) \u2014 the wall-clock moment the log row is written \u2014 while the partials CSV correctly uses the deal's DEAL_TIME (line 2229). After a transaction-event delay or a busy heartbeat, close_time drifts from the actual close.",
+   "proposed_edit": "Replace TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS) at line 1012 with TimeToString((datetime)HistoryDealGetInteger(dealTicket, DEAL_TIME), TIME_DATE | TIME_SECONDS).",
+   "batch": "B_telemetry",
+   "rationale": "Changes only the timestamp written to the CSV, aligning it with the partials writer's convention; nothing reads this file for trading.",
+   "dim": "telemetry-hygiene"
+  },
+  {
+   "lines": "281, 285",
+   "what": "NEW: InpBlockHours' descriptive comment is misplaced - it is appended to the END of InpPanelRefreshSec's line 285 ('// Panel refresh throttle (never per-tick)    // Server hours to block NEW entries, comma-sep e.g. \"20,21,22\" (rollover). Empty=off. ...'), while InpBlockHours itself (line 281, inside the v1.25 group) has no comment at all. Clearly a paste error when the v1.28 panel group was inserted. The stray text pollutes InpPanelRefreshSec's MT5 inputs-dialog label.",
+   "proposed_edit": "Move the 'Server hours to block NEW entries...' text to line 281 as InpBlockHours' trailing comment; truncate line 285 after '(never per-tick)'.",
+   "batch": "B_telemetry",
+   "rationale": "Input-line trailing comments become the MT5 inputs-dialog display labels, so this changes on-screen text only - no values, names, defaults, or compiled logic.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "800, 804, 2545",
+   "what": "NEW: stale '50%' partial-close log strings. SetPartialState reasons say 'entry fill made the 50% target volume feasible' (800), 'entry fill increased the 50% target' (804), and 'half volume is below broker min/step' (2545), but InpPartialCloseFractionV133 = 0.75 live. The log/journal text misdescribes the banked fraction; the geometry itself (PartialTargetVolume, 2275-2289) correctly uses the input.",
+   "proposed_edit": "Replace '50% target' with 'partial target' (or format the actual fraction) in the three reason strings; replace 'half volume' with 'partial volume' at 2545.",
+   "batch": "B_telemetry",
+   "rationale": "Strings feed Print journal lines and the partials CSV state column reasons only; no decision logic reads them.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "912-913",
+   "what": "NEW DEFECT (same silent-pass class): NewsSoon returns false (= no block) whenever CalendarValueHistory itself fails - calendar disabled in terminal settings, never synced, or unavailable on the FTMO server. The news guard then becomes a permanent silent no-op with zero indication. (The v1.26 fix at 910-911 removed the old crash but kept fail-open-silently.)",
+   "proposed_edit": "Minimal (B): on CalendarValueHistory failure, Print a once-per-session/throttled WARNING that the news guard is inoperative, still returning false. Alternative fail-closed behavior (treat calendar-unavailable as blocked) would be batch C - listed for decision, not recommended for an evaluation account.",
+   "batch": "B_telemetry",
+   "rationale": "The proposed edit is a log line only; trading behavior is unchanged. The C alternative is flagged separately inside the proposal.",
+   "dim": "defect-reconciliation"
+  }
+ ],
+ "downgraded": [
+  {
+   "lines": "281-285",
+   "what": "The comment for InpBlockHours was orphaned onto the InpPanelRefreshSec line: line 285 carries '// Panel refresh throttle (never per-tick)    // Server hours to block NEW entries, comma-sep e.g. \"20,21,22\" ... crypto/index universe', while InpBlockHours at 281 has no comment at all; the fragment also says 'crypto/index universe' (stale \u2014 live universe is US30/US100/JP225/USDJPY)",
+   "proposed_edit": "Move the 'Server hours to block NEW entries...' fragment from the end of line 285 to line 281 as InpBlockHours' comment, replace 'this crypto/index universe' with 'this index/FX universe', and leave line 285 ending at '// Panel refresh throttle (never per-tick)'",
+   "batch": "A_inert",
+   "rationale": "Comment-only edit; MQL5 uses the trailing comment as the input's display caption in the inputs dialog \u2014 wait: that caption IS user-visible UI text, but it does not affect any stored value, name, or default, so chart-persisted values are untouched and trading behavior cannot change. Restoring the caption to the correct input actually fixes a misleading dialog label that currently shows news-blackout help text on the panel-refresh row.",
+   "dim": "dead-code",
+   "corrected_batch": "B",
+   "evidence": "The edit is factually right and cannot alter trading behavior under any input/chart/restart/broker scenario: comments never compile into logic; the only readers of the two inputs consume values, not captions (MomentumPullbackEA.mq5:890-895 `StringLen/StringSplit(InpBlockHours,...)` and :3353 `now - s_last < InpPanelRefreshSec`); chart-persisted inputs are keyed by VARIABLE NAME, not comment, proven by the live chart snapshot backtest/deploy_backups/v136-a1-before-c1-revert-20260720-220832/chart01_preclose.chr:141,144 (`InpBlockHours=` / `InpPanelRefreshSec=10`), so saved values and defaults survive untouched; a repo-wide grep found no tool that re-parses the source comments, and RestoreRiskLedger/CSV readers never see them. The stale-text fix is also verified correct: the live universe is `US30.cash,US100.cash,JP225.cash,USDJPY` (line 185) \u2014 index/FX, not crypto. HOWEVER, it fails the A_inert bar (\"changes NOTHING observable except the source text\"): MQL5 compiles the trailing same-line comment into the .ex5 as the input's display caption, so after recompile the Inputs dialog observably changes \u2014 the InpBlockHours row caption goes from the bare name \"InpBlockHours\" to the descriptive text (with the reworded \"index/FX universe\"), and the InpPanelRefreshSec row caption shrinks from the current concatenated string to just \"Panel refresh throttle (never per-tick)\". The proposal's own rationale concedes this (\"that caption IS user-visible UI text\"). That is exactly the batch-B class \u2014 display-only bytes (dialog caption ~ panel text) that no code path reads back \u2014 so the edit is safe but belongs in batch B, not A_inert."
+  },
+  {
+   "lines": "246-249",
+   "what": "The P3 cluster-cap block comment says correlation-aware concurrency is 'OFF (0) by default - adoption requires the acceptance study', and the inline comment on InpMaxPerCluster says '(0 = off, current behavior)' \u2014 but the compiled default on line 249 is 1 (ON), and line 250 ships a live v1.31 cluster spec ('US pair shares a seat; JP225 and USDJPY are independent'). The gate is enforced at lines 1134-1141 whenever InpMaxPerCluster > 0. The comment describes the pre-adoption state as if it were current.",
+   "proposed_edit": "Replace lines 246-248 with: `// P3 (brief \u00a74): correlation-aware concurrency - ON by compiled default (1 seat per` / `// cluster, spec on the next line: US30|US100 share one seat; JP225 and USDJPY are` / `// independent). 0 disables. Originally shipped OFF pending the acceptance study;` / `// Day-1 saw 4 same-direction Tech-100-cluster entries in 70 min stacking ~1.5%` / `// correlated heat. NOTE: a chart-saved value under this (unversioned) input name` / `// overrides the compiled default.` And change line 249's inline comment to `// Max open+pending per correlation cluster (0 = off; compiled default 1 = ON)`.",
+   "batch": "A_inert",
+   "rationale": "Comment-only; the input declaration itself is untouched (name and default preserved \u2014 critical rule 1). Proof: line 249 default `= 1`, line 250 populated InpClusterSpecV131, enforcement at 1134-1141. The replacement deliberately says 'compiled default' because the unversioned name means a chart-stored value could differ.",
+   "dim": "comment-rot",
+   "corrected_batch": "B",
+   "evidence": "The finding itself is factually correct: line 249 compiles `input int InpMaxPerCluster = 1` (ON), line 250 ships the populated v1.31 cluster spec, the gate is enforced at lines 1134-1141 (ClusterOf/CountClusterExposure at 3014/3032 read only InpClusterSpec and position/order symbols, never any comment text), and the 246-248 block comment falsely describes the pre-adoption OFF state \u2014 so the correction is right and safe for behavior. The only readers of InpMaxPerCluster are lines 1134/1137/1139; no restore/CSV/ledger path touches it, and chart-stored input values are keyed by the variable NAME (unchanged), so no input combination, chart-saved value, restart, or broker state changes any order, size, halt, or restored state. However, this edit does not qualify as A_inert: in MQL5 the same-line comment on an input declaration IS the parameter's display label in the MT5 Inputs dialog (and is embedded in the recompiled .ex5), so changing line 249's trailing comment from \"(0 = off, current behavior)\" to \"(0 = off; compiled default 1 = ON)\" changes user-visible UI bytes \u2014 exactly the class of observable-text change the batch rules say fails A (same footing as a log-text change). Nothing reads that label back programmatically, so it belongs in batch B (log/panel/display-text-only). Split option: the 246-248 block-comment replacement alone is genuinely A_inert (pure source text, zero compiled-output or UI effect) and could stay in A; the line-249 inline-comment change must move to B."
+  },
+  {
+   "lines": "281, 285",
+   "what": "Stranded input description: InpBlockHours (line 281) has NO comment, while its description ('Server hours to block NEW entries, comma-sep e.g. \"20,21,22\" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically for this crypto/index universe.') sits orphaned at the END of line 285 \u2014 appended after InpPanelRefreshSec's own comment ('Panel refresh throttle (never per-tick)'), inside the v1.28 panel group. It was evidently left behind when the panel group was inserted between the v1.25 inputs. MT5 renders input-line comments as the settings-dialog label, so the panel-refresh input currently displays block-hours text.",
+   "proposed_edit": "Move the fragment: line 281 becomes `input string InpBlockHours        = \"\";    // Server hours to block NEW entries, comma-sep e.g. \"20,21,22\" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically for this crypto/index universe.` and line 285 is truncated after `// Panel refresh throttle (never per-tick)`.",
+   "batch": "A_inert",
+   "rationale": "Comment-only; both input names, types, and defaults untouched (critical rule 1 respected \u2014 only the trailing // text moves). The description matches BlockedByHour's parser (lines 888-900: comma-split, hour match) and belongs to InpBlockHours; also note the crypto/index universe phrasing is itself a v1.2-era leftover \u2014 the current whitelist (line 185) is indices+USDJPY \u2014 so optionally drop that last sentence.",
+   "dim": "comment-rot",
+   "corrected_batch": "B (display-only output change: MT5 renders input trailing comments as the Inputs-dialog labels, so this edit deliberately changes visible UI text \u2014 the A_inert 'nothing observable except source text' bar fails, but it is exactly batch-B class: cosmetic bytes with no reader)",
+   "evidence": "The edit is factually correct and cannot change trading behavior: both declarations keep identical name/type/default (line 281 `input string InpBlockHours = \"\";`, line 285 `input int InpPanelRefreshSec = 10;` in C:/Users/Sanique Richards/Documents/Homework Heroes/Pokemon/Scalp-trader/mql5/MomentumPullbackEA.mq5), only trailing `//` text moves, and MQL5 strips comments from code semantics. Chart-stored values are keyed by variable NAME, not comment \u2014 verified in backtest/deploy_backups/v136-a1-before-c1-revert-20260720-220832/chart01_preclose.chr:141,144 which persists bare `InpBlockHours=` and `InpPanelRefreshSec=10` \u2014 so no restart/recompile/re-init scenario re-seeds a different value (the InpMaxSpreadPtsRaw lesson only bites on a RENAME, which this edit does not do). Readers are exhaustively: InpBlockHours -> BlockedByHour() only (lines 890, 895; comma-split hour match exactly as the orphaned description says) gating new entries at line 1167, and with the live chart value \"\" it returns false unconditionally; InpPanelRefreshSec -> panel throttle only (line 3353). No script parses the .mq5 comments (repo grep hits are docs and byte-copies in deploy_backups), and nothing (RestoreRiskLedger, CSVs, .chr) reads dialog labels back. HOWEVER, it is not A_inert by the batch's own rule: MQL5 embeds input trailing comments in the compiled .ex5 and displays them as the settings-dialog row labels (and in the strategy-tester inputs list), and changing that display is the edit's entire stated purpose \u2014 InpPanelRefreshSec's row stops showing block-hours text and InpBlockHours's row gains a label instead of its raw variable name. That is an observable output change beyond source text, so it belongs in batch B (display/log-only, no read-back), where it is safe as-is. The optional extra deletion of the stale \"crypto/index universe\" sentence is the same class (comment-only, display-only) and may ride in the same B batch; note the whitelist at line ~185 is indeed indices+USDJPY now, so dropping it is accurate."
+  },
+  {
+   "lines": "2, 221, 224",
+   "what": "Low-priority status tension: the header's top line still reads 'v1.33-C1 CANDIDATE (2026-07-18)' and the input comments on 221/224 say 'v1.33 C1 candidate', while the same header block's STATUS lines (15-18) say 'CONFIRMED on the owner's corrected-fidelity harness ... The forward demo remains live execution validation.' Version strings elsewhere are consistent (property description line 154, init print 459, panel init print 432, panel title 3360 all say v1.33-C1; #property version \"1.33\" on line 152 follows the numeric-only convention and is fine).",
+   "proposed_edit": "Minimal, history-preserving fix: line 2 becomes `//|   v1.33-C1 (2026-07-18; harness-CONFIRMED - see STATUS below): GEOMETRY  |` (keep the rest of the block verbatim), and on lines 221/224 change 'v1.33 C1 candidate:' to 'v1.33 C1:'. Alternatively accept as-is: the STATUS paragraph already supersedes the CANDIDATE headline, and 'candidate' remains defensible while the forward demo is the outstanding validation.",
+   "batch": "A_inert",
+   "rationale": "Comment-only; changelog layers are historical, so this is the weakest finding \u2014 flagged because the task asked for version/status inconsistencies. The input NAMES on 221/224 are untouched (critical rule 1).",
+   "dim": "comment-rot",
+   "corrected_batch": "A_inert: line 2 only, with flow-preserving text `//|   v1.33-C1 (2026-07-18, harness-CONFIRMED): GEOMETRY RESET of failed |` (line 3 continues \"E3 challenger, owner-authorized\" unbroken). B (display-text): lines 221 and 224, change \"v1.33 C1 candidate:\" to \"v1.33 C1:\" \u2014 these alter the Inputs-dialog captions MQL5 renders from input-line comments, an observable UI change with no read-back path.",
+   "evidence": "The edit is behaviorally safe \u2014 no input combination, chart-stored value, restart, broker condition, or data state can change an order, fill, size, halt, or restored state, because all three touched sites are comments: the input identifiers InpTakeProfitAtrMultV133/InpPartialCloseFractionV133, defaults (1.5/0.75), and #define aliases (lines 222/225) are untouched, chart-stored inputs and .set files key on the identifier not the comment, grep shows no reader of the text (\"candidate\" elsewhere only matches the unrelated candidates[] symbol array at 496-502), and RestoreRiskLedger/CSV paths never touch comment text; version strings at 152/154/432/459 and the panel remain consistent. HOWEVER it fails the A_inert bar on lines 221/224: in MQL5 the trailing // comment on an input declaration is rendered as that parameter's caption in the EA's Inputs properties dialog (and .set tooltips), so changing \"v1.33 C1 candidate:\" to \"v1.33 C1:\" alters user-visible UI text on the live chart \u2014 the same observable-text class as log lines, which the batch-A rule explicitly excludes. Line 2 alone is genuinely inert (header block comments are stripped at compile and rendered nowhere), but the proposed replacement text is also defective: it drops \"RESET of the failed\" while line 3 stays verbatim (\"E3 challenger, owner-authorized\"), garbling the sentence. Disposition: keep a corrected line-2-only edit in A_inert; move the 221/224 caption edits to batch B (log/panel/display-text-only), where they pass B's criterion (only display bytes change, no read-back path)."
+  },
+  {
+   "lines": "2124-2171, 2516-2542",
+   "what": "GV LEAK (hypothesized in the brief, confirmed): pending-ATR terminal globals MPB_v130_pending_atr_<orderTicket> are created in StorePendingSigAtr (line 2136) and deleted only via TakePendingSigAtr, which is reached exclusively through the RAM array g_pendingSigAtr (SweepStalePendingSigAtr iterates the array, not the GV namespace). After a restart the array is rebuilt by RestorePendingSigAtrFromLiveOrders (2155-2171) from LIVE orders only \u2014 so a pending cancelled/expired while the EA was offline leaves its GV orphaned forever (well, until MT5's 4-week unused-GV auto-purge). Orphans are trade-inert: PeekPendingSigAtr is only ever keyed by tickets of live orders or of entry deals of real positions, and a dead unfilled ticket can never match either.",
+   "proposed_edit": "Extend SweepStalePendingSigAtr with a throttled (e.g. once/hour static-datetime guard) namespace sweep: for i in GlobalVariablesTotal(), take names with prefix \"MPB_v130_pending_atr_\", parse the ticket; KEEP if ordInfo.Select(ticket) succeeds (live) or HistoryOrderSelect fails (history unsynced \u2014 retry later); if the order is in history with ORDER_POSITION_ID==0 (cancelled/expired unfilled) GlobalVariableDel it; if ORDER_POSITION_ID!=0, delete only when that position ID is no longer open on the account (FindOpenPositionById-style scan without the magic filter), otherwise leave it for the existing RegisterPositionState/TakePendingSigAtrForPosition recovery path.",
+   "batch": "B_telemetry",
+   "rationale": "Pure persistence hygiene: every deletion condition provably corresponds to state the trading engine can never read again. The keep-guards replicate the existing sweep's resync caution so no restorable frozen ATR is ever lost (losing one would be batch C \u2014 hence the guards are mandatory, not optional).",
+   "dim": "telemetry-hygiene",
+   "corrected_batch": "C",
+   "evidence": "The GV leak is real (StorePendingSigAtr sets the GV at line 2136; the only deleters \u2014 TakePendingSigAtr 2150, called from the array-driven SweepStalePendingSigAtr 1516-1542, ManagePendingOrders 1603, CancelAllPendings 3143 \u2014 are all keyed by tickets the EA currently tracks, and RestorePendingSigAtrFromLiveOrders 2155-2171 rebuilds the array from live orders only, so an offline-cancelled pending orphans its GV). All three GV readers (PeekPendingSigAtr call sites 741, 2163, 2187; RegisterPositionState callers 754/826/1535/1684/2818 all operate on open positions or live fill events) are covered by the proposed keep-guards WITHIN one account, and MQL5's sequential event queue rules out the sweep racing the DEAL_ENTRY_IN read at 741. However, the edit is not batch-B: it mutates persisted state the trading engine reads back, and a concrete behavior change exists \u2014 MT5 globals are terminal-wide while tickets are per-account, so with two accounts in one terminal (user runs Deriv real + FTMO trial), account B's history can contain a cancelled unfilled order whose ticket number collides with account A's still-live pending; the namespace sweep on B then deletes A's frozen-ATR GV (ORDER_POSITION_ID==0 path), and after a restart on A the fill falls back to fill-time ATR (lines 752-753), changing riskPrice (2686-2687: InpStopAtrMult*signalAtr) and partial geometry on a real position. The current code can never delete a GV it did not place/restore on the current account, so this is a new loss path, violating the proposal's own \"no restorable frozen ATR is ever lost\" invariant \u2014 by the brief's own rationale that makes it batch C. To be safe even in batch C it needs a further guard before deletion: require HistoryOrderGetInteger(ticket, ORDER_MAGIC)==InpMagicNumber (and ideally account-login scoping in new GV names). Minor: the brief's cited lines 2516-2542 are partial-close retry code; the actual pending-ATR block is 2100-2198."
+  }
+ ],
+ "C": [
+  {
+   "lines": "228-231, 1703-1709, 1867-1937, 1940-2012",
+   "what": "BATCH C CANDIDATE (config-dead feature, OFF live): the entire lock/trail ladder \u2014 inputs InpUseLockTrail/InpLockTriggerAtr/InpLockBufferPoints/InpTrailAtrMult, the desiredSL retry hook in ManageOpenPositions (1703-1709), the bar-close lock/trail body after the InpUseLockTrail early-return (1874-1937), and ApplyDesiredSL (1940-2012, whose desiredSL feed is set ONLY at 1914/1934 inside the lock/trail branch)",
+   "proposed_edit": "NO EDIT in this cleanup \u2014 removal would be feature removal (~190 lines incl. 4 input declarations whose removal breaks chart-persisted values) ; retained deliberately as the v1.23 comparison arm per the header",
+   "batch": "C_behavioral",
+   "rationale": "InpUseLockTrail=false live makes 1874-1937 dead and ApplyDesiredSL a guaranteed no-op (want<=0 at 1951), but the flag is a documented re-enable path ('InpUseLockTrail=true re-enables the old ladder for comparison', line 137) and rule 2 forbids treating flag-off features as dead. Size estimate if ever authorized: ~190 lines.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "233, 619-622, 2017-2085",
+   "what": "BATCH C CANDIDATE (config-dead, live=true): the legacy per-tick manager \u2014 InpManageOnBarClose input, the OnTick fallthrough condition, and ManagePositionPerTick (2017-2085, only call site 1743 behind !InpManageOnBarClose)",
+   "proposed_edit": "NO EDIT \u2014 flag-gated legacy engine (~75 lines); removal is feature removal and would also orphan the v1.32 inert-arm warning at 472-473",
+   "batch": "C_behavioral",
+   "rationale": "Live config runs bar-close mode, so ManagePositionPerTick is unreachable in production but reachable under InpManageOnBarClose=false, which chart-persisted values could still hold. Rule 1+2 protected.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "164, 212, 214, 1608-1660",
+   "what": "BATCH C CANDIDATE (config-dead): ENTRY_STOP_BREAKOUT geometry + pending-stop trailing \u2014 enum value (164), InpEntryOffsetAtr (212), InpTrailPending (214), the breakout offset branch in PlacePending (1296), stop-order cases (1396-1397), and the entire trail block in ManagePendingOrders (1608-1660)",
+   "proposed_edit": "NO EDIT \u2014 legacy entry mode selectable via the InpEntryMode input (~70 lines); the trail block's guard '!isStop || !InpTrailPending' (1609) makes it dead under the live PULLBACK config but live under chart-persisted breakout settings",
+   "batch": "C_behavioral",
+   "rationale": "Reachable under InpEntryMode=ENTRY_STOP_BREAKOUT + InpTrailPending=true; MT5 charts persist enum inputs by name, so the mode remains selectable. Feature removal per rule 2.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "165, 261-270, 1289, 1303-1304, 1313-1315, 1346-1391, 1625-1628, 1724, 1769-1865, 2246-2247, 2775-2778, 2844-2845, 3385",
+   "what": "BATCH C CANDIDATE (config-dead, pre-registered): the v1.32 B1/B2/B3 research arms \u2014 ENTRY_MARKET paths in PlacePending, the runner (no-TP, opposite-impulse exit, InpRunnerMaxBarsV132 backstop, GV stamps, panel display) and the bar-close-stop (disaster backstop, bar-close evaluation block) \u2014 all OFF live (defaults = v1.31 behavior)",
+   "proposed_edit": "NO EDIT \u2014 these are pre-registered forward research arms (~200 lines total: B1 ~20, B2 ~95, B3 ~85), deliberately shipped OFF; DetectImpulse's forExit parameter (1031) exists to serve B2 and must stay",
+   "batch": "C_behavioral",
+   "rationale": "Explicitly flag-gated features with persisted per-position GV stamps (a restart mid-experiment depends on 2775-2778); removal would both delete features and orphan live GVs. Rule 2 applies squarely.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "203-206, 1217-1227, 1239-1260, 2934-2972",
+   "what": "BATCH C CANDIDATE (config-dead, documented dead-end): the AVWAP discount/premium gate \u2014 inputs InpUseVwapGate/InpVwapMinBars/InpVwapMaxBars, both ScanSymbol blocks, and AnchoredVwap (2938-2972, sole call site 1221)",
+   "proposed_edit": "NO EDIT \u2014 ~80 lines behind InpUseVwapGate=false; the header itself calls it 'a documented dead end, OFF by default' yet it remains a chart-selectable feature",
+   "batch": "C_behavioral",
+   "rationale": "This is the strongest C candidate if the owner ever authorizes feature pruning (zero OOS edge, overfit per v1.2 notes, and the June-30 recheck memory), but per rules 1-2 removing the inputs or the gated code is behavior-affecting. AnchoredVwap is NOT unreachable: it has a live call site behind the flag.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "184, 507-516",
+   "what": "BATCH C CANDIDATE (config-dead): the Market-Watch scan branch in BuildSymbolUniverse, dead while InpSymbolWhitelistV131 is non-empty (it is, by versioned default)",
+   "proposed_edit": "NO EDIT \u2014 ~10 lines behind the InpScanMarketWatch input; a chart-persisted empty whitelist would resurrect it",
+   "batch": "C_behavioral",
+   "rationale": "Reachable only when the whitelist input is emptied on the chart; the input declaration protects it under rule 1.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "244, 1157-1161, 2984-2989",
+   "what": "BATCH C CANDIDATE (config-dead): the raw-points spread cap \u2014 InpMaxSpreadPtsRaw (default 0 = off), its gate in ScanSymbol, and SpreadTooWide (2984-2989)",
+   "proposed_edit": "NO EDIT \u2014 the v1.24 header documents this exact input's rename semantics; removing or renaming it is explicitly the behavior-affecting class (rule 1), and SpreadTooWide is its only implementation (~12 lines)",
+   "batch": "C_behavioral",
+   "rationale": "Returns false unconditionally at the live default, but the input exists precisely so a chart CAN re-enable it ('>0 re-enables at your own risk').",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "281, 888-900, 1167-1171",
+   "what": "BATCH C CANDIDATE (config-dead): the server-hour blackout \u2014 InpBlockHours (default \"\"), BlockedByHour (888-900, sole call site 1167), ~18 lines",
+   "proposed_edit": "NO EDIT \u2014 input-gated protective feature; a chart-persisted hour list activates it",
+   "batch": "C_behavioral",
+   "rationale": "BlockedByHour returns false immediately on the empty default but is one saved input away from live. Rule 2.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "293, 483-485, 494, 541-544, 548, 555, 567-582, 696",
+   "what": "BATCH C CANDIDATE (borderline): the g_atrHandle machinery \u2014 handles are created (541), retried (567-582), released (483-485) and passed to ScanSymbol's unused parameter (696), but their VALUES are never read anywhere (line 555's own comment: 'retained for startup data-sync tracking only'); with ReadAtr deleted, no code can ever consume an iATR buffer",
+   "proposed_edit": "NO EDIT in this cleanup beyond the A-batch parameter removal \u2014 full removal (~30 lines incl. RetryFailedAtrHandles and its Heartbeat call at 640) is deferred",
+   "batch": "C_behavioral",
+   "rationale": "Exhaustive occurrence list above (grep-verified) proves no value-read exists. However: (a) live iATR handles keep the symbol's H1 timeseries subscribed/synced in the background, and WilderAtrForSymbol's CopyRates success at cold start plausibly benefits \u2014 removal could change 'ATR unavailable'/'data not ready' skip timing at startup, which IS trading behavior; (b) the 'ATR handle recovered' log line disappears. Cannot prove behavior-invariance under all startup races, so C, not A.",
+   "dim": "dead-code"
+  },
+  {
+   "lines": "674, 3233-3284",
+   "what": "ConsecutiveLossesToday is recomputed from scratch every heartbeat scan pass: HistorySelect over the whole day plus an O(deals^2) inner loop (full re-scan of all deals per distinct position) and a FindOpenPositionById scan per exit deal. On a busy day this is the single most wasteful hot-path computation in the EA.",
+   "proposed_edit": "IF ever optimized: cache the streak keyed on (g_currentDay, HistoryDealsTotal after the HistorySelect) and invalidate on day rollover or deal-count change. DO NOT apply in this cleanup.",
+   "batch": "C_behavioral",
+   "rationale": "The streak gates new entries (line 674). Any memoization changes when open-position exclusions and late-synced history are re-evaluated, and HistorySelect/HistorySelectByPosition global selection-context interactions make equivalence unprovable without a dedicated test. The recompute-fresh behavior is what has been running live; cost is bounded (runs at most once per heartbeat, only while not halted). Flagged for completeness, classified C, recommend leaving as-is.",
+   "dim": "inferior-constructs"
+  },
+  {
+   "lines": "1070-1088",
+   "what": "KNOWN DEFECT (3) W2 candle filter silently PASSES on bad high/low data: STATUS = PRESENT. In DetectImpulse the wick check is wrapped in `if(high1 > 0.0 && low1 > 0.0)` (1074); when iHigh/iLow return 0/negative (unsynced history), the filter body is skipped and execution falls through to line 1090+ with the impulse ACCEPTED - the W2 filter is silently bypassed. Contrast the close-price path (1051-1056), which correctly skips with 'missing bar data'. Since W2 (InpMinAdvWickAtr=0.30) is part of the live signal definition, a data glitch admits trades the validated signal would reject.",
+   "proposed_edit": "In the `if(InpCandleFilter && InpMinAdvWickAtr > 0.0 && (fallingFast || risingFast))` block, add an else-branch: if high1 <= 0.0 || low1 <= 0.0 then (if !forExit LogSkip(symbol, \"missing bar data (W2 high/low)\")) and return false.",
+   "batch": "C_behavioral",
+   "rationale": "Fail-closed removes real (rare) trades the current live build would take, so it changes trading behavior even though it is the obviously correct direction. Decision item, not cleanup.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "669-698 (returns 670-677; clock consume 689-692); also 644-657",
+   "what": "KNOWN DEFECT (4) halted-day pre-loop returns skip the bar clock: STATUS = PRESENT. ScanAllOnNewBars returns before the per-symbol loop on: halted flags (670), static floor (671), max-DD (672), daily loss (673), consec-losses (674-675), daily fill cap (676-677). None of these paths advance g_lastScanBar[i], unlike the in-loop concurrency check (691-693) which deliberately consumes the bar first ('signals are dropped, never scanned late mid-bar'). When a pre-loop gate clears mid-bar - the live-reachable case is the consec-loss streak (InpMaxConsecLosses=4) ending when a winning position closes; halts clear only at midnight rollover, which is an H1 boundary and near-benign - the next heartbeat scans the stale bar mid-bar and can place a pullback limit anchored to a signal close up to ~55 min old, which the validated engine would have dropped. Same class, smaller window: Heartbeat's ledger-invalid early return (644-649) also skips clock consumption for the seconds the ledger restore is deferred.",
+   "proposed_edit": "Restructure ScanAllOnNewBars: always run the per-symbol loop and consume the bar clock (lines 681-691) first, then apply the halt/streak/cap gates as in-loop `continue` after the consume (exactly the pattern already used for the concurrency cap at 691-693).",
+   "batch": "C_behavioral",
+   "rationale": "Changes which signals are scanned live (drops late mid-bar scans the current build performs). It moves live TOWARD validated-engine semantics, but it is a trade-distribution change and must be a deliberate decision.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "902-924 (908)",
+   "what": "NEW DEFECT (same class as list item 3): the news guard checks only SYMBOL_CURRENCY_PROFIT (line 908). For USDJPY (profit currency JPY) HIGH-impact USD events - NFP, CPI, FOMC, exactly the events the 3-min guard exists for - do NOT block entries; each index CFD is likewise covered for a single currency. The guard is live (InpNewsBlockMins=3) but structurally half-blind on the FX symbol.",
+   "proposed_edit": "Query CalendarValueHistory for both SYMBOL_CURRENCY_PROFIT and SYMBOL_CURRENCY_BASE (dedupe when equal) and block on a HIGH-impact hit in either.",
+   "batch": "C_behavioral",
+   "rationale": "Widening the guard blocks entries the current live build takes (a validated-distribution-altering protective gate, per the file's own line 279 taxonomy). Decision item.",
+   "dim": "defect-reconciliation"
+  },
+  {
+   "lines": "669-672",
+   "what": "NEW (borderline, halt-ordering nuance): the hard-halt latches are evaluated only AFTER `if(g_halted || g_haltedHard) return;` (670). While a daily-loss halt is active, a static-floor or max-DD breach does not latch g_haltedHard until the day rolls over and one more heartbeat runs; if equity recovers above the floor before rollover, the persistent hard halt is never latched at all. Practical exposure is small (both halt types already cancel pendings and block entries; only the never-auto-clear persistence differs), but the ordering contradicts the intent that the static floor is a hard line.",
+   "proposed_edit": "Evaluate StaticFloorBreached()/DrawdownExceeded() and latch g_haltedHard BEFORE the g_halted early return (i.e., hoist lines 671-672 above line 670).",
+   "batch": "C_behavioral",
+   "rationale": "Changes when the persistent hard halt latches, which changes whether the EA trades on subsequent days after an intraday floor touch - risk-logic behavior, decision required.",
+   "dim": "defect-reconciliation"
+  }
+ ]
+}
