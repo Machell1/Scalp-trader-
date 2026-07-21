@@ -347,6 +347,8 @@ double   g_initialBalance = 0.0;  // v1.26: static-floor anchor
 datetime g_initTime       = 0;    // v1.26.1: for the one-shot ledger re-sync below
 bool     g_ledgerResynced = false;// v1.26.1: deal history syncs AFTER a cold start; re-read once
 bool     g_ledgerValid    = false;// v1.29.1: false until a restore ran on SYNCED account data
+bool     g_hedgingOk      = false;// v1.33-C1r3: entries blocked until a SYNCED account
+bool     g_hedgingChecked = false;// confirms RETAIL_HEDGING (deferred OnInit race fix)
 // v1.27 parity: Wilder ATR cache (one compute per symbol per closed bar) and the
 // per-symbol exit-bar cooldown (engine never signals on the bar a trade exited).
 double   g_wAtrCache[];
@@ -379,13 +381,12 @@ int OnInit()
          Print("v1.30 invalid partial-close inputs: fraction must be in (0,1) and trigger R > 0");
          return(INIT_PARAMETERS_INCORRECT);
         }
-      long accountLogin = AccountInfoInteger(ACCOUNT_LOGIN);
-      if(accountLogin > 0 &&
-         (ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE) != ACCOUNT_MARGIN_MODE_RETAIL_HEDGING)
-        {
-         Print("v1.30 partial close requires a hedging account; refusing to initialize on netting/exchange mode");
-         return(INIT_PARAMETERS_INCORRECT);
-        }
+      // v1.33-C1r3 HOTFIX: the hedging-mode check is DEFERRED to the first synced
+      // heartbeat (v1.29.1 ledger pattern). The old hard-refuse here raced account
+      // sync - ACCOUNT_LOGIN syncs before ACCOUNT_MARGIN_MODE, so a cold start could
+      // read netting(0) on a hedging account and leave the EA dead on the chart
+      // (observed live 2026-07-21 09:27:33). g_hedgingOk gates ENTRIES only;
+      // management of any existing positions always runs.
      }
 
    if(!BuildSymbolUniverse())
@@ -598,6 +599,18 @@ void Heartbeat()
       g_ledgerResynced = true;
       RestoreRiskLedger();
      }
+   // v1.33-C1r3: deferred hedging check on SYNCED data (g_ledgerValid guarantees
+   // bal/eq > 0 = the account has reported real state, so ACCOUNT_MARGIN_MODE is
+   // authoritative here). One-time: hedging -> entries enabled; netting -> entries
+   // permanently blocked with a loud refusal, but management still runs.
+   if(!g_hedgingChecked)
+     {
+      g_hedgingChecked = true;
+      g_hedgingOk = ((ENUM_ACCOUNT_MARGIN_MODE)AccountInfoInteger(ACCOUNT_MARGIN_MODE)
+                     == ACCOUNT_MARGIN_MODE_RETAIL_HEDGING);
+      if(!g_hedgingOk)
+         Print("v1.30 partial close requires a hedging account; ENTRIES DISABLED on this netting/exchange-mode account (management still active)");
+     }
    ManageAll();
    ScanAllOnNewBars();
    PanelUpdate();   // v1.28: display only, throttled, fails soft
@@ -625,7 +638,7 @@ void ScanAllOnNewBars()
    // STALE bar mid-bar with a signal-close anchor up to ~55 min old (was: pre-loop
    // returns skipped the clock). On a non-halted heartbeat blockEntries is false and the
    // loop is byte-identical to the validated engine.
-   bool blockEntries = g_halted || g_haltedHard
+   bool blockEntries = g_halted || g_haltedHard || !g_hedgingOk
                        || (InpMaxConsecLosses > 0 && ConsecutiveLossesToday() >= InpMaxConsecLosses)
                        || (g_tradesToday >= InpMaxTradesPerDay);
 
