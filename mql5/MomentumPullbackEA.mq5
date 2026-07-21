@@ -156,7 +156,7 @@
 
 // v1.33-C1r1: single source for the version tag used in prints and the panel.
 // (#property description above cannot expand macros - keep it in sync manually.)
-#define MPB_VERSION "v1.33-C1r2"
+#define MPB_VERSION "v1.33-C1r3"
 
 #include <Trade/Trade.mqh>
 #include <Trade/PositionInfo.mqh>
@@ -166,7 +166,6 @@
 enum ENUM_ENTRY_MODE
   {
    ENTRY_LIMIT_PULLBACK = 0,  // Pullback LIMIT back into the move (backtest-validated)
-   ENTRY_STOP_BREAKOUT  = 1,  // Breakout STOP beyond price (original; net loser OOS)
    ENTRY_MARKET         = 2   // v1.32 B1: Market at next bar open (research arm)
   };
 
@@ -186,7 +185,6 @@ enum ENUM_STOP_EVAL_V132
 
 //--- Symbol universe -------------------------------------------------
 input group "=== Symbol Universe ==="
-input bool   InpScanMarketWatch  = false;     // Scan Market Watch (used only when the whitelist below is empty)
 input string InpSymbolWhitelistV131 = "US30.cash,US100.cash,JP225.cash,USDJPY";  // v1.31 confirmed H1 portfolio. Versioned so saved trio-only input cannot survive.
 #define InpSymbolWhitelist InpSymbolWhitelistV131
 input string InpSyntheticBlock   = "Volatility,Crash,Boom,Step,Jump,Range Break,Vol over,Hybrid,Drift,DEX,Multi Step,Skew,1HZ,Basket"; // Skip names containing any of these
@@ -204,19 +202,11 @@ input double InpMomentumAtrMult  = 2.0;   // Move must be >= this many ATRs to c
 input int    InpAtrPeriod        = 14;    // ATR period
 input bool   InpTradeBothSides   = true;  // Trade rallies too (false = only falling assets -> sells)
 
-//--- Anchored VWAP (discount/premium gate) --------------------------
-input group "=== Anchored VWAP (AVWAP) ==="
-input bool   InpUseVwapGate       = false; // v1.2: AVWAP OFF by default (it added ZERO out-of-sample edge in testing; was overfit). Set true to re-enable.
-input int    InpVwapMinBars       = 8;    // Calibration: don't trade until this many bars into the session
-input int    InpVwapMaxBars       = 500;  // Safety cap: max bars scanned back to the session (day) open
-
 //--- Pending entry ---------------------------------------------------
 input group "=== Pending Entry ==="
-input ENUM_ENTRY_MODE InpEntryMode = ENTRY_LIMIT_PULLBACK; // Entry geometry (PULLBACK = validated; BREAKOUT = legacy)
+input ENUM_ENTRY_MODE InpEntryMode = ENTRY_LIMIT_PULLBACK; // Entry geometry (PULLBACK = validated; MARKET = v1.32 B1 research arm)
 input double InpPullbackAtr        = 0.6;  // PULLBACK mode: place the LIMIT this many ATR back toward price
-input double InpEntryOffsetAtr     = 0.05; // BREAKOUT mode: place the STOP this many ATR beyond price
 input int    InpPendingExpiryBars  = 3;    // Retains v1.29.1's measured live w4 behavior (Bars() omits placement bar); v1.30 retest assumes w4
-input bool   InpTrailPending       = true; // BREAKOUT mode only: keep the stop pending glued to price
 
 //--- Risk / exits ----------------------------------------------------
 input group "=== Risk & Exits ==="
@@ -230,12 +220,7 @@ input double InpPartialCloseFractionV133 = 0.75; // v1.33 C1: bank 75% at the tr
 #define InpPartialCloseFractionV130 InpPartialCloseFractionV133
 input double InpPartialCloseAtRV130   = 1.0;  // Trigger in initial R, using frozen signal ATR * InpStopAtrMult
 input int    InpPartialRetrySecondsV130 = 30; // Reconcile before a bounded retry after a transient server result
-input bool   InpUseLockTrail     = false; // Corrected-engine retest: every lock/trail arm remains negative; v1.30 early banking is the only enabled exit overlay.
-input double InpLockTriggerAtr   = 0.25;  // (only if InpUseLockTrail) once price is this many ATR in profit, lock the trade
-input int    InpLockBufferPoints = 0;     // (only if InpUseLockTrail) extra points locked above break-even (0 = auto: spread+2)
-input double InpTrailAtrMult      = 0.5;  // (only if InpUseLockTrail) trailing distance after lock (ATR)
 input int    InpMaxHoldingBars   = 8;     // Force-close a stagnant trade after N closed bars (0 = off)
-input bool   InpManageOnBarClose = true;  // P0: lock/trail on working-timeframe bar close (validated engine; false = legacy per-tick)
 
 //--- Portfolio risk --------------------------------------------------
 input group "=== Portfolio Risk ==="
@@ -246,7 +231,6 @@ input double InpMaxDrawdownPct   = 8.0;  // Halt if equity drawdown from peak ex
 input double InpInitialBalance   = 100000.0; // v1.26: initial balance anchoring the STATIC floor below (0 = auto-capture first-seen balance into a terminal global)
 input double InpStaticFloorPct   = 9.0;   // v1.26: HARD halt if equity <= initial*(1 - this%). Buffer inside FTMO's 10% breach line; the trailing check above cannot see across re-inits without it. 0 = off.
 input int    InpMaxConsecLosses  = 4;     // Pause for the day after this many losses in a row
-input int    InpMaxSpreadPtsRaw  = 0;     // Raw POINTS spread cap — OFF (v1.24). Points scale with nominal price, so the old 200 cap structurally blocked BTCUSD/ETHUSD/Japan 225 (validated symbols that PASS the ATR gate). Use InpMaxSpreadAtr below; >0 re-enables at your own risk. (Renamed from InpMaxSpreadPoints so the new default supersedes chart-saved values on upgrade.)
 input double InpMaxSpreadAtr      = 0.05;  // v1.2 KEY GATE: skip if current spread > this many ATR PER SIDE (0.05 = validated ceiling; the edge dies above it, e.g. LTC/BCH/Mid Cap). 0 = off.
 // P3 (brief §4): correlation-aware concurrency - ON by compiled default (1 seat per
 // cluster, spec on the next line: US30|US100 share one seat; JP225 and USDJPY are
@@ -284,11 +268,9 @@ input int    InpMaxTickAgeSec     = 60;    // Max age (s) of the latest tick bef
 input bool   InpTradeLog          = true;  // Write a per-trade CSV (MFE/MAE in R, spread@entry, exit reason) = the doc's "post-trade learning" data. Pure observability.
 input string InpTradeLogFile      = "MomentumPullback_trades.csv";
 input string InpPartialLogFileV130= "MomentumPullback_partials_v130.csv"; // Actual partial fill + level-vs-fill slippage
-// Protective but they DO alter the validated trade distribution. InpBlockHours is OFF
-// by default; InpNewsBlockMins defaults ON at 3 min (conservative FTMO-evaluation
-// guard - see its own comment).
+// Protective but it DOES alter the validated trade distribution. InpNewsBlockMins
+// defaults ON at 3 min (conservative FTMO-evaluation guard - see its own comment).
 input int    InpNewsBlockMins     = 3;     // Protective entry block is ON; evaluation accounts allow news, but this conservative gate remains chart-compatible. 0=off.
-input string InpBlockHours        = "";    // Server hours to block NEW entries, comma-sep e.g. "20,21,22" (rollover). Empty=off. The ATR/spread gate already handles most toxic spread dynamically.
 
 input group "=== v1.28 Thought-Process Panel (observability only) ==="
 input bool   InpShowPanel         = true;  // On-chart panel: per-symbol scan verdicts, trade state, risk ledger
@@ -300,7 +282,6 @@ CPositionInfo posInfo;
 COrderInfo    ordInfo;
 
 string g_symbols[];      // Tradable, non-synthetic symbols
-int    g_atrHandle[];    // Parallel ATR handle per symbol
 datetime g_lastScanBar[];// Per-symbol last processed bar (own bar clock, not chart symbol)
 
 // Pending order ticket -> signal-bar ATR frozen at placement (transferred on fill).
@@ -326,7 +307,6 @@ struct PositionMgmtState
    datetime entryBarTime;
    datetime lastMgmtBarTime;
    int      barsClosed;
-   double   desiredSL;     // pending SL level to apply (retried every heartbeat until it sticks)
    // v1.25 trade-log fields (observability only; never read by the entry/exit engine)
    double   entryPrice;
    double   riskPrice;     // initial stop distance in price (= InpStopAtrMult * signalAtr) -> R denominator
@@ -469,21 +449,16 @@ int OnInit()
       PrintFormat("CandleParity %s: %s", g_symbols[i], ps);
      }
 
-   PrintFormat("MomentumPullbackEA " + MPB_VERSION + " ready. Entry=%s. Exits=%s + TP%.2f/time. ManageOnBarClose=%s. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
+   PrintFormat("MomentumPullbackEA " + MPB_VERSION + " ready. Entry=%s. Exits=%s + TP%.2f/time. Scanning %d symbols on %s. Base risk=%.2f%%; USDJPY risk=%.2f%%. v1.32 arms: exit=%s stopEval=%s (defaults OFF = v1.31 behavior).",
                (InpEntryMode == ENTRY_LIMIT_PULLBACK ? "PULLBACK(limit)" :
                 (InpEntryMode == ENTRY_MARKET ? "MARKET(research)" : "BREAKOUT(stop)")),
                (InpUsePartialCloseV130 ? StringFormat("bank %.0f%% @ +%.2fR", 100.0 * InpPartialCloseFractionV130, InpPartialCloseAtRV130)
                                        : "partial OFF"),
                InpTakeProfitAtrMultV130,
-               (InpManageOnBarClose ? "yes" : "legacy per-tick"),
                ArraySize(g_symbols), EnumToString(InpTimeframe), InpRiskPercent,
                InpUSDJPYRiskPercentV131,
                (InpExitModeV132 == EXIT_UNCAPPED_RUNNER ? "UNCAPPED_RUNNER" : "bracket"),
                (InpStopEvalV132 == STOP_EVAL_BAR_CLOSE ? "bar-close" : "touch"));
-   // v1.32: the research arms act only on the bar-close management path - warn loudly
-   // when an arm is ON but the legacy per-tick manager is selected (arms would be inert).
-   if((InpExitModeV132 != EXIT_BRACKET_V130 || InpStopEvalV132 != STOP_EVAL_TOUCH) && !InpManageOnBarClose)
-      Print("WARNING: v1.32 research arm(s) ON but InpManageOnBarClose=false - runner/bar-close-stop exits only run on the bar-close management path; arms are INERT on legacy per-tick.");
    return(INIT_SUCCEEDED);
   }
 
@@ -493,18 +468,14 @@ void OnDeinit(const int reason)
    PanelDestroy();   // v1.28
    if(InpHeartbeatSeconds > 0)
       EventKillTimer();
-   for(int i = 0; i < ArraySize(g_atrHandle); i++)
-      if(g_atrHandle[i] != INVALID_HANDLE)
-         IndicatorRelease(g_atrHandle[i]);
   }
 
 //+------------------------------------------------------------------+
-//| Build the list of tradable, non-synthetic symbols + ATR handles  |
+//| Build the list of tradable, non-synthetic symbols                |
 //+------------------------------------------------------------------+
 bool BuildSymbolUniverse()
   {
    ArrayResize(g_symbols, 0);
-   ArrayResize(g_atrHandle, 0);
 
    string candidates[];
    if(StringLen(InpSymbolWhitelist) > 0)
@@ -517,19 +488,9 @@ bool BuildSymbolUniverse()
             AddSymbol(s);
         }
      }
-   else if(InpScanMarketWatch)
-     {
-      int total = SymbolsTotal(true); // Market Watch only
-      for(int i = 0; i < total; i++)
-        {
-         string s = SymbolName(i, true);
-         if(StringLen(s) > 0)
-            AddSymbol(s);
-        }
-     }
    else
      {
-      Print("InpScanMarketWatch is false and InpSymbolWhitelist is empty - no symbols to trade.");
+      Print("InpSymbolWhitelist is empty - no symbols to trade.");
      }
    return(ArraySize(g_symbols) > 0);
   }
@@ -548,50 +509,19 @@ void AddSymbol(string symbol)
    if(mode != SYMBOL_TRADE_MODE_FULL)
       return;
 
-   // ATR handle creation can fail transiently at terminal startup (history not yet
-   // synchronized, err 4805). Do NOT silently drop the symbol: keep it with an invalid
-   // handle and let the heartbeat retry until it recovers (RetryFailedAtrHandles).
-   int h = iATR(symbol, InpTimeframe, InpAtrPeriod);
-   if(h == INVALID_HANDLE)
-      PrintFormat("WARN: ATR handle failed for %s at init (err %d) - will retry on heartbeat",
-                  symbol, GetLastError());
-
    int idx = ArraySize(g_symbols);
    ArrayResize(g_symbols, idx + 1);
-   ArrayResize(g_atrHandle, idx + 1);
    ArrayResize(g_wAtrCache, idx + 1);      // v1.27
    ArrayResize(g_wAtrCacheBar, idx + 1);
    ArrayResize(g_noSignalUpTo, idx + 1);
    ArrayResize(g_lastVerdict, idx + 1);    // v1.28 panel
    ArrayResize(g_lastVerdictT, idx + 1);
    g_symbols[idx]   = symbol;
-   g_atrHandle[idx] = h;   // retained for startup data-sync tracking only; ATR VALUES come from WilderAtrForSymbol (v1.27)
    g_wAtrCache[idx] = 0.0;
    g_wAtrCacheBar[idx] = 0;
    g_noSignalUpTo[idx] = 0;
    g_lastVerdict[idx] = "";     // v1.28 panel
    g_lastVerdictT[idx] = 0;
-  }
-
-//+------------------------------------------------------------------+
-//| Retry ATR handles that failed at init (startup history race).    |
-//| No-op once every handle is valid.                                |
-//+------------------------------------------------------------------+
-void RetryFailedAtrHandles()
-  {
-   static datetime s_lastTry = 0;      // v1.26: cap retries at 1/second (was every tick while broken)
-   datetime nowT = TimeCurrent();
-   if(nowT == s_lastTry)
-      return;
-   s_lastTry = nowT;
-   for(int i = 0; i < ArraySize(g_atrHandle); i++)
-     {
-      if(g_atrHandle[i] != INVALID_HANDLE)
-         continue;
-      g_atrHandle[i] = iATR(g_symbols[i], InpTimeframe, InpAtrPeriod);
-      if(g_atrHandle[i] != INVALID_HANDLE)
-         PrintFormat("ATR handle recovered for %s - symbol active", g_symbols[i]);
-     }
   }
 
 //+------------------------------------------------------------------+
@@ -629,9 +559,8 @@ void OnTick()
    // v1.26/v1.32: the 5s OnTimer heartbeat already runs the full pipeline (scans are
    // bar-gated; the v1.30 partial and A2 time exit are heartbeat-checked), so per-tick
    // execution adds only redundant load (incl. full-day HistorySelect) on a 24/7 host
-   // chart. Ticks drive the pipeline only when the heartbeat is off (0) or the legacy
-   // per-tick manager is selected.
-   if(InpHeartbeatSeconds > 0 && InpManageOnBarClose)
+   // chart. Ticks drive the pipeline only when the heartbeat is off (0).
+   if(InpHeartbeatSeconds > 0)
       return;
    Heartbeat();
   }
@@ -652,7 +581,6 @@ void Heartbeat()
    if(today != g_currentDay)
       ResetDailyState();
 
-   RetryFailedAtrHandles();   // recover symbols whose ATR failed at startup (no-op when healthy)
    // v1.29.1: no trading decisions (incl. halt-driven pending cancels) until the
    // ledger has been restored from SYNCED account data. Broker-side brackets
    // protect any open position during the seconds this can last.
@@ -682,15 +610,24 @@ void Heartbeat()
 void ScanAllOnNewBars()
   {
    UpdatePeakEquity();
-   if(g_halted || g_haltedHard)
-      return;
-   if(StaticFloorBreached()) { g_haltedHard = true; CancelAllPendings("static-floor halt"); Print("STATIC FLOOR hit (equity at/below initial - floor%) - HARD halted."); return; }
-   if(DrawdownExceeded()) { g_haltedHard = true; CancelAllPendings("max-drawdown halt"); Print("Max drawdown hit - HARD halted (survives day rollover)."); return; }
-   if(DailyLossExceeded()){ g_halted = true; CancelAllPendings("daily-loss halt"); Print("Daily loss limit hit - paused for the day."); return; }
-   if(InpMaxConsecLosses > 0 && ConsecutiveLossesToday() >= InpMaxConsecLosses)
-      return;
-   if(g_tradesToday >= InpMaxTradesPerDay)
-      return;
+   // v1.33-C1r3 (C14 fix): evaluate the HARD lines (static floor / max-DD) BEFORE any
+   // early return so a floor/DD breach latches g_haltedHard even while a daily-loss halt
+   // is already active (the old g_halted early-return could skip the hard latch until day
+   // rollover, and it never latched at all if equity recovered before rollover). Same
+   // single CancelAllPendings per trip: the !g_haltedHard guards prevent re-latching.
+   if(!g_haltedHard && StaticFloorBreached()) { g_haltedHard = true; CancelAllPendings("static-floor halt"); Print("STATIC FLOOR hit (equity at/below initial - floor%) - HARD halted."); }
+   if(!g_haltedHard && DrawdownExceeded())    { g_haltedHard = true; CancelAllPendings("max-drawdown halt"); Print("Max drawdown hit - HARD halted (survives day rollover)."); }
+   if(!g_halted && !g_haltedHard && DailyLossExceeded()){ g_halted = true; CancelAllPendings("daily-loss halt"); Print("Daily loss limit hit - paused for the day."); }
+
+   // v1.33-C1r3 (C12 fix): entries may be blocked, but the bar CLOCK is consumed in the
+   // loop regardless, so a gate that clears mid-bar (live case: the consec-loss streak
+   // ending when a winning position closes) can never make the next heartbeat scan a
+   // STALE bar mid-bar with a signal-close anchor up to ~55 min old (was: pre-loop
+   // returns skipped the clock). On a non-halted heartbeat blockEntries is false and the
+   // loop is byte-identical to the validated engine.
+   bool blockEntries = g_halted || g_haltedHard
+                       || (InpMaxConsecLosses > 0 && ConsecutiveLossesToday() >= InpMaxConsecLosses)
+                       || (g_tradesToday >= InpMaxTradesPerDay);
 
    for(int i = 0; i < ArraySize(g_symbols); i++)
      {
@@ -704,8 +641,11 @@ void ScanAllOnNewBars()
         }
       if(barTime == g_lastScanBar[i])
          continue;
-      g_lastScanBar[i] = barTime;   // consume the bar even when at capacity (match validated-era
-                                    // behavior: signals are dropped, never scanned late mid-bar)
+      g_lastScanBar[i] = barTime;   // consume the bar even when blocked/at-capacity (match
+                                    // validated-era behavior: signals are dropped, never
+                                    // scanned late mid-bar)
+      if(blockEntries)
+         continue;
       if(CountOpenAndPending() >= InpMaxConcurrent)
          continue;
 
@@ -899,20 +839,6 @@ bool QuotesFresh(string symbol)
    if(InpMaxTickAgeSec > 0 && (long)(TimeCurrent() - tk.time) > InpMaxTickAgeSec)
       return(false);
    return(true);
-  }
-
-bool BlockedByHour()
-  {
-   if(StringLen(InpBlockHours) == 0)
-      return(false);
-   MqlDateTime dt;
-   TimeToStruct(TimeCurrent(), dt);
-   string parts[];
-   int np = StringSplit(InpBlockHours, ',', parts);
-   for(int i = 0; i < np; i++)
-      if((int)StringToInteger(parts[i]) == dt.hour)
-         return(true);
-   return(false);
   }
 
 bool NewsSoonForCurrency(string ccy, datetime now, int win)
@@ -1144,19 +1070,28 @@ bool DetectImpulse(string symbol, double atr, int &dir, double &impulseAtr, bool
      {
       double high1 = iHigh(symbol, InpTimeframe, 1);
       double low1  = iLow(symbol, InpTimeframe, 1);
-      if(high1 > 0.0 && low1 > 0.0)
+      // v1.33-C1r3 (C11 fix): unsynced bar data (iHigh/iLow <= 0) must NOT silently
+      // bypass the W2 signal definition. The old code fell through with the impulse
+      // ACCEPTED; now it skips like the close-price missing-data path above, so a data
+      // glitch can never admit a trade the validated signal would reject. On clean
+      // historical/live bars high1/low1 are always > 0, so the validated trade
+      // distribution is unchanged.
+      if(high1 <= 0.0 || low1 <= 0.0)
         {
-         double bodyTop  = MathMax(open1, close1);
-         double bodyBot  = MathMin(open1, close1);
-         double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
-         double advWickAtr = advWick / atr;
-         if(advWickAtr < InpMinAdvWickAtr)
-           {
-            if(!forExit)
-               LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
-                       advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
-            return(false);
-           }
+         if(!forExit)
+            LogSkip(symbol, "missing bar data (W2 high/low)");
+         return(false);
+        }
+      double bodyTop  = MathMax(open1, close1);
+      double bodyBot  = MathMin(open1, close1);
+      double advWick  = risingFast ? (high1 - bodyTop) : (bodyBot - low1);
+      double advWickAtr = advWick / atr;
+      if(advWickAtr < InpMinAdvWickAtr)
+        {
+         if(!forExit)
+            LogSkip(symbol, StringFormat("candle filter: adv wick %.2f ATR < %.2f (clean climax)",
+                    advWickAtr, InpMinAdvWickAtr), atr, spreadAtrSide, -moveAtr);
+         return(false);
         }
      }
 
@@ -1227,19 +1162,9 @@ void ScanSymbol(string symbol)
       LogSkip(symbol, "exit-bar cooldown (engine parity)");
       return;
      }
-   if(SpreadTooWide(symbol))
-     {
-      LogSkip(symbol, "spread points gate");
-      return;
-     }
    if(InpFreshnessGuard && !QuotesFresh(symbol))     // v1.25: never trade on frozen/invalid data
      {
       LogSkip(symbol, "stale/invalid quotes (freshness guard)");
-      return;
-     }
-   if(BlockedByHour())                                // v1.25: optional server-hour blackout (off by default)
-     {
-      LogSkip(symbol, "blocked server hour");
       return;
      }
    if(InpNewsBlockMins > 0 && NewsSoon(symbol))       // v1.25: optional HIGH-impact news blackout (ON by default, 3 min)
@@ -1275,28 +1200,10 @@ void ScanSymbol(string symbol)
 
    double close1    = iClose(symbol, InpTimeframe, 1);
    double closePast = iClose(symbol, InpTimeframe, InpMomentumBars);
-   double open1     = iOpen(symbol, InpTimeframe, 1);
    if(close1 == 0.0 || closePast == 0.0)
      {
       LogSkip(symbol, "missing bar data");
       return;
-     }
-
-   // Optional Anchored-VWAP discount/premium gate (OFF by default in v1.2 -- it added no
-   // out-of-sample edge and was overfit). When enabled: wait for VWAP to calibrate, then
-   // buy ONLY at a discount (below VWAP) and sell ONLY at a premium (above VWAP).
-   // v1.32 B2: calibration is still checked before the impulse verdict (v1.31 ordering);
-   // the direction filter itself is applied to the DetectImpulse result below.
-   double vwap = 0.0;
-   if(InpUseVwapGate)
-     {
-      int sessBars = 0;
-      vwap = AnchoredVwap(symbol, InpTimeframe, 1, InpVwapMaxBars, sessBars);
-      if(vwap <= 0.0 || sessBars < InpVwapMinBars)
-        {
-         LogSkip(symbol, "VWAP not calibrated");
-         return;
-        }
      }
 
    // v1.32 B2: the impulse core (6-bar move, signal-candle alignment, W2 adverse-wick
@@ -1309,28 +1216,6 @@ void ScanSymbol(string symbol)
 
    bool fallingFast = (impDir < 0);
    bool risingFast  = (impDir > 0);
-   if(InpUseVwapGate)
-     {
-      if(risingFast && close1 >= vwap)        // not a discount -> no buy
-         risingFast = false;
-      if(fallingFast && close1 <= vwap)       // not a premium -> no sell
-         fallingFast = false;
-      if(!fallingFast && !risingFast)
-        {
-         // v1.31 fell through to the candle-alignment reject for a VWAP-cleared impulse;
-         // reproduce that exact verdict here (VWAP is a documented dead end, OFF by default).
-         string actualCandle = (close1 > open1) ? "bullish" :
-                               (close1 < open1) ? "bearish" : "doji";
-         string requiredCandle = (impulseAtr > 0.0) ? "bullish" : "bearish";
-         string rejectReason = StringFormat("impulse %.2f ATR: signal candle is %s, requires %s alignment",
-                                            impulseAtr, actualCandle, requiredCandle);
-         if(InpLogNoImpulse)
-            LogSkip(symbol, rejectReason, atr, spreadAtrSide, impulseAtr);
-         else
-            SetVerdict(symbol, "SKIP " + rejectReason);
-         return;
-        }
-     }
 
    // Continuation in the direction of the move. PULLBACK uses LIMIT orders (enter on
    // the retrace); BREAKOUT uses STOP orders (chase beyond price, the legacy behaviour).
@@ -1364,8 +1249,7 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
 
    // How far the pending sits from the anchor price.
    //   PULLBACK (limit): InpPullbackAtr ATR back from the signal-bar CLOSE (validated harness).
-   //   BREAKOUT (stop) : small InpEntryOffsetAtr ATR just beyond live bid/ask.
-   double offset = isLimit ? (InpPullbackAtr * atr) : (InpEntryOffsetAtr * atr);
+   double offset = InpPullbackAtr * atr;
    offset = MathMax(offset, stopsLevel);     // respect the broker minimum distance
    if(offset <= 0.0)
       offset = 10 * point;
@@ -1467,8 +1351,6 @@ void PlacePending(string symbol, ENUM_ORDER_TYPE type, double atr, double signal
       else
       switch(type)
         {
-         case ORDER_TYPE_BUY_STOP:   ok = trade.BuyStop  (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY STOP";   break;
-         case ORDER_TYPE_SELL_STOP:  ok = trade.SellStop (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "SELL STOP";  break;
          case ORDER_TYPE_BUY_LIMIT:  ok = trade.BuyLimit (lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "BUY LIMIT";  break;
          case ORDER_TYPE_SELL_LIMIT: ok = trade.SellLimit(lots, entry, symbol, sl, tp, ttype, expiry, InpTradeComment); tag = "SELL LIMIT"; break;
          default: return;
@@ -1684,58 +1566,6 @@ void ManagePendingOrders()
             continue;                       // (a failed delete + later fill needs the true signal ATR)
            }
         }
-
-      // Only BREAKOUT stop orders are trailed to stay in front of price.
-      if(!isStop || !InpTrailPending)
-         continue;
-
-      double atr;
-      if(!WilderAtrForSymbol(symbol, atr) || atr <= 0.0)   // v1.27
-         continue;
-
-      double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
-      double stopsLevel = (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL) * point;
-      double offset = MathMax(stopsLevel, InpEntryOffsetAtr * atr);
-      double stopDist = MathMax(atr * InpStopAtrMult, stopsLevel * 1.5);
-      // v1.32: keep the research arms intact when trailing (BREAKOUT stop orders only -
-      // the default PULLBACK config never trails): a RUNNER must never re-gain a TP, and
-      // a bar-close-stop position keeps the far DISASTER stop as its broker SL.
-      double trailStopDist = stopDist;
-      if(InpStopEvalV132 == STOP_EVAL_BAR_CLOSE)
-         trailStopDist = MathMax(stopDist, atr * InpDisasterStopMultV132);
-      double trailTpDist = (InpExitModeV132 == EXIT_UNCAPPED_RUNNER) ? 0.0
-                           : ((InpTakeProfitAtrMultV130 > 0.0) ? atr * InpTakeProfitAtrMultV130 : 0.0);
-
-      double curPrice = ordInfo.PriceOpen();
-
-      // Preserve the original expiry so trailing never turns a timed order into a GTC one.
-      datetime keepExpiry = (datetime)ordInfo.TimeExpiration();
-      ENUM_ORDER_TYPE_TIME keepType = (keepExpiry > 0) ? ORDER_TIME_SPECIFIED : ORDER_TIME_GTC;
-
-      if(type == ORDER_TYPE_BUY_STOP)
-        {
-         double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
-         double newEntry = SnapPrice(symbol, ask + offset);   // v1.27 B6
-         // Only ratchet the entry DOWN toward price (price rising stays "in front").
-         if(newEntry < curPrice - point)
-           {
-            double sl = SnapPrice(symbol, newEntry - trailStopDist);   // v1.32: disaster stop when STOP_EVAL_BAR_CLOSE
-            double tp = (trailTpDist > 0.0) ? SnapPrice(symbol, newEntry + trailTpDist) : 0.0;   // v1.32: 0 for runners
-            trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
-           }
-        }
-      else // SELL_STOP
-        {
-         double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
-         double newEntry = SnapPrice(symbol, bid - offset);   // v1.27 B6
-         // Only ratchet the entry UP toward price (price falling stays "in front").
-         if(newEntry > curPrice + point)
-           {
-            double sl = SnapPrice(symbol, newEntry + trailStopDist);   // v1.32: disaster stop when STOP_EVAL_BAR_CLOSE
-            double tp = (trailTpDist > 0.0) ? SnapPrice(symbol, newEntry - trailTpDist) : 0.0;   // v1.32: 0 for runners
-            trade.OrderModify(ticket, newEntry, sl, tp, keepType, keepExpiry);
-           }
-        }
      }
   }
 
@@ -1779,14 +1609,6 @@ void ManageOpenPositions()
            }
         }
 
-      // Retry any SL update that failed/was deferred on a previous heartbeat (blocker fix).
-      if(g_posState[stateIdx].desiredSL > 0.0)
-        {
-         ApplyDesiredSL(ticket, stateIdx);
-         if(!posInfo.SelectByTicket(ticket))   // ApplyDesiredSL may have closed the position
-            continue;
-        }
-
       // v1.30 partial is tick-checked on every heartbeat, independent of the
       // bar-close lock/trail cadence. A sent close request owns this heartbeat
       // so time/SL management cannot race the server transaction chain.
@@ -1816,10 +1638,7 @@ void ManageOpenPositions()
          continue;                                // do not run other managers against a position we are trying to close
         }
 
-      if(InpManageOnBarClose)
-         ManagePositionBarClose(ticket, stateIdx);
-      else
-         ManagePositionPerTick(ticket, stateIdx);
+      ManagePositionBarClose(ticket, stateIdx);
      }
   }
 
@@ -1943,226 +1762,11 @@ void ManagePositionBarClose(ulong ticket, int stateIdx)
         }
      }
 
-   // v1.23 PURE BRACKET: with the lock/trail ladder disabled there is nothing to manage
-   // here between fill and exit - the broker-side SL/TP set at placement ARE the exit
-   // engine, plus the v1.30 +1R partial bank and the bar-count time exit, both evaluated
-   // every heartbeat in ManageOpenPositions (time exit moved there in v1.32 A2).
-   // (Exit-ladder study: the ladder cut avg win from 1.72R to 1.02R and cost
-   // ~0.027R/trade of OOS expectancy.)
-   if(!InpUseLockTrail)
-      return;
-
-   double signalAtr = g_posState[stateIdx].signalAtr;
-   if(signalAtr <= 0.0)
-     {
-      if(!ReadAtrForSymbol(symbol, signalAtr) || signalAtr <= 0.0)
-         return;
-      g_posState[stateIdx].signalAtr = signalAtr;
-     }
-
-   double barClose = iClose(symbol, InpTimeframe, 1);
-   if(barClose <= 0.0)
-      return;
-
-   int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
-   double entry  = posInfo.PriceOpen();
-   double curSL  = posInfo.StopLoss();
-   long   spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
-   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
-   double lockBuffer = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
-   double lockTrigger = InpLockTriggerAtr * signalAtr;
-   double trailDist   = InpTrailAtrMult * signalAtr;
-
-   if(posInfo.PositionType() == POSITION_TYPE_BUY)
-     {
-      double profit = barClose - entry;
-      if(profit < lockTrigger)
-         return;
-
-      double newSL = curSL;
-      double lockSL = NormalizeDouble(entry + lockBuffer, digits);
-      if(lockSL > newSL)
-         newSL = lockSL;
-      double trailSL = NormalizeDouble(barClose - trailDist, digits);
-      if(trailSL > newSL)
-         newSL = trailSL;
-
-      if(newSL > curSL)
-        {
-         // Record the harness-mandated stop and apply it reliably: if the market has
-         // already gapped through it, the validated engine's stop was HIT this bar ->
-         // close at market; on broker rejection keep retrying every heartbeat.
-         g_posState[stateIdx].desiredSL = newSL;
-         ApplyDesiredSL(ticket, stateIdx);
-        }
-     }
-   else
-     {
-      double profit = entry - barClose;
-      if(profit < lockTrigger)
-         return;
-
-      double newSL = curSL;
-      double lockSL = NormalizeDouble(entry - lockBuffer, digits);
-      if(curSL == 0.0 || lockSL < newSL)
-         newSL = lockSL;
-      double trailSL = NormalizeDouble(barClose + trailDist, digits);
-      if((trailSL < newSL || newSL == 0.0) && trailSL > 0.0)
-         newSL = trailSL;
-
-      if(curSL == 0.0 || newSL < curSL)
-        {
-         g_posState[stateIdx].desiredSL = newSL;
-         ApplyDesiredSL(ticket, stateIdx);
-        }
-     }
-  }
-
-//+------------------------------------------------------------------+
-//| Apply the pending desired SL faithfully (blocker fix, review):    |
-//|  * market already at/through the level -> the validated engine's  |
-//|    stop was hit this bar -> close at market (honest exit).        |
-//|  * within the broker stops/freeze distance -> clamp just outside. |
-//|  * broker rejection / no quote -> keep desiredSL, retry on every  |
-//|    heartbeat until it sticks (ratchet is idempotent).             |
-//+------------------------------------------------------------------+
-void ApplyDesiredSL(ulong ticket, int stateIdx)
-  {
-   double want = g_posState[stateIdx].desiredSL;
-   if(want <= 0.0)
-      return;
-
-   string symbol = posInfo.Symbol();
-   int    digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
-   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
-   double minDist = MathMax((double)SymbolInfoInteger(symbol, SYMBOL_TRADE_STOPS_LEVEL),
-                            (double)SymbolInfoInteger(symbol, SYMBOL_TRADE_FREEZE_LEVEL)) * point;
-   double curSL = posInfo.StopLoss();
-   double curTP = posInfo.TakeProfit();
-
-   if(posInfo.PositionType() == POSITION_TYPE_BUY)
-     {
-      double bid = SymbolInfoDouble(symbol, SYMBOL_BID);
-      if(bid <= 0.0)
-         return;                                  // no quote (session break): retry later
-      if(want <= curSL)
-        {
-         g_posState[stateIdx].desiredSL = 0.0;    // already ratcheted past - nothing to do
-         return;
-        }
-      if(want >= bid)
-        {
-         // Validated engine already exited at this stop level this bar.
-         if(trade.PositionClose(ticket))
-            g_posState[stateIdx].desiredSL = 0.0;
-         return;
-        }
-      double lvl = want;
-      if(minDist > 0.0 && lvl > bid - minDist)
-         lvl = NormalizeDouble(bid - minDist, digits);   // clamp inside broker constraint
-      if(lvl <= curSL)
-         return;                                  // clamp made it useless now; retry later
-      if(trade.PositionModify(ticket, lvl, curTP))
-         g_posState[stateIdx].desiredSL = 0.0;
-      // on failure desiredSL stays set -> retried next heartbeat
-     }
-   else
-     {
-      double ask = SymbolInfoDouble(symbol, SYMBOL_ASK);
-      if(ask <= 0.0)
-         return;
-      if(curSL != 0.0 && want >= curSL)
-        {
-         g_posState[stateIdx].desiredSL = 0.0;
-         return;
-        }
-      if(want <= ask)
-        {
-         if(trade.PositionClose(ticket))
-            g_posState[stateIdx].desiredSL = 0.0;
-         return;
-        }
-      double lvl = want;
-      if(minDist > 0.0 && lvl < ask + minDist)
-         lvl = NormalizeDouble(ask + minDist, digits);
-      if(curSL != 0.0 && lvl >= curSL)
-         return;
-      if(trade.PositionModify(ticket, lvl, curTP))
-         g_posState[stateIdx].desiredSL = 0.0;
-     }
-  }
-
-//+------------------------------------------------------------------+
-//| Legacy per-tick management (InpManageOnBarClose=false only).      |
-//+------------------------------------------------------------------+
-void ManagePositionPerTick(ulong ticket, int stateIdx)
-  {
-   string symbol = posInfo.Symbol();
-   double atr = g_posState[stateIdx].signalAtr;
-   if(atr <= 0.0)
-     {
-      if(!ReadAtrForSymbol(symbol, atr) || atr <= 0.0)
-         return;
-     }
-
-   datetime curBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
-   if(curBarTime != 0 && curBarTime != g_posState[stateIdx].lastMgmtBarTime)
-     {
-      g_posState[stateIdx].lastMgmtBarTime = curBarTime;
-      UpdateBarsClosed(stateIdx, symbol);
-      // v1.32 A2: the bar-count time exit moved to ManageOpenPositions and is evaluated
-      // (and retried on rejection) every heartbeat; only the bar clock is kept here.
-     }
-
-   if(!InpUseLockTrail)                 // v1.23 pure bracket: SL/TP are broker-side, nothing to trail
-      return;
-
-   double point  = SymbolInfoDouble(symbol, SYMBOL_POINT);
-   int digits    = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
-   double bid    = SymbolInfoDouble(symbol, SYMBOL_BID);
-   double ask    = SymbolInfoDouble(symbol, SYMBOL_ASK);
-   double entry  = posInfo.PriceOpen();
-   double curSL  = posInfo.StopLoss();
-   double curTP  = posInfo.TakeProfit();
-   long   spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
-
-   double lockBuffer = ((InpLockBufferPoints > 0) ? InpLockBufferPoints : (spread + 2)) * point;
-   double lockTrigger = InpLockTriggerAtr * atr;
-   double trailDist   = InpTrailAtrMult * atr;
-
-   if(posInfo.PositionType() == POSITION_TYPE_BUY)
-     {
-      double profit = bid - entry;
-      double newSL = curSL;
-
-      if(profit >= lockTrigger)
-        {
-         double lockSL = NormalizeDouble(entry + lockBuffer, digits);
-         if(lockSL > newSL)
-            newSL = lockSL;
-         double trailSL = NormalizeDouble(bid - trailDist, digits);
-         if(trailSL > newSL && trailSL < bid)
-            newSL = trailSL;
-        }
-      if(newSL > curSL && newSL < bid)
-         trade.PositionModify(ticket, newSL, curTP);
-     }
-   else
-     {
-      double profit = entry - ask;
-      double newSL = curSL;
-      if(profit >= lockTrigger)
-        {
-         double lockSL = NormalizeDouble(entry - lockBuffer, digits);
-         if(curSL == 0.0 || lockSL < newSL)
-            newSL = lockSL;
-         double trailSL = NormalizeDouble(ask + trailDist, digits);
-         if((trailSL < newSL || newSL == 0.0) && trailSL > ask)
-            newSL = trailSL;
-        }
-      if((curSL == 0.0 || newSL < curSL) && newSL > ask)
-         trade.PositionModify(ticket, newSL, curTP);
-     }
+   // v1.23 PURE BRACKET: nothing to manage here between fill and exit - the broker-side
+   // SL/TP set at placement ARE the exit engine, plus the v1.30 +1R partial bank and the
+   // bar-count time exit, both evaluated every heartbeat in ManageOpenPositions (time exit
+   // moved there in v1.32 A2). (Exit-ladder study: the lock/trail ladder cut avg win from
+   // 1.72R to 1.02R and cost ~0.027R/trade of OOS expectancy, so it was removed.)
   }
 
 //+------------------------------------------------------------------+
@@ -2740,8 +2344,6 @@ void UpdateBarsClosed(int stateIdx, string symbol)
 //| one estimator everywhere, CopyRates on closed bars; no iATR       |
 //| handles involved). Works for ANY symbol including whitelist-      |
 //| orphan positions - only the per-symbol CACHE is universe-indexed. |
-//| g_atrHandle survives solely for startup data-sync tracking        |
-//| (see AddSymbol).                                                  |
 //+------------------------------------------------------------------+
 bool ReadAtrForSymbol(string symbol, double &value)
   {
@@ -2858,7 +2460,6 @@ void RegisterPositionState(long positionId, string symbol, double signalAtr, dat
    g_posState[n].entryBarTime = entryBar;
    g_posState[n].lastMgmtBarTime = (datetime)iTime(symbol, InpTimeframe, 0);
    g_posState[n].barsClosed = barsClosed;
-   g_posState[n].desiredSL = 0.0;
    g_posState[n].entryPrice = 0.0;
    g_posState[n].riskPrice = 0.0;
    g_posState[n].dir = 0;
@@ -3026,46 +2627,6 @@ double SnapPrice(string symbol, double price)
    return(NormalizeDouble(MathRound(price / tick) * tick, digits));
   }
 
-//+------------------------------------------------------------------+
-//| Session-anchored VWAP: cumulative from the session (day) open up  |
-//| to bar `shift`, resetting every session. Tick-volume weighted.    |
-//+------------------------------------------------------------------+
-double AnchoredVwap(string symbol, ENUM_TIMEFRAMES tf, int shift, int maxBars, int &barsInSession)
-  {
-   barsInSession = 0;
-   datetime anchorTime = iTime(symbol, tf, shift);
-   if(anchorTime == 0)
-      return(0.0);
-   MqlDateTime ref;
-   TimeToStruct(anchorTime, ref);
-
-   double pv = 0.0, vv = 0.0;
-   for(int j = shift; j < shift + maxBars; j++)
-     {
-      datetime bt = iTime(symbol, tf, j);
-      if(bt == 0)
-         break;
-      MqlDateTime st;
-      TimeToStruct(bt, st);
-      // Stop at the session boundary (new calendar day = new VWAP anchor).
-      if(st.day != ref.day || st.mon != ref.mon || st.year != ref.year)
-         break;
-      barsInSession++;
-      double hi = iHigh(symbol, tf, j);
-      double lo = iLow(symbol, tf, j);
-      double cl = iClose(symbol, tf, j);
-      if(hi <= 0.0 || lo <= 0.0 || cl <= 0.0)
-         continue;
-      double typical = (hi + lo + cl) / 3.0;
-      double vol = (double)iTickVolume(symbol, tf, j);
-      if(vol <= 0.0)
-         vol = 1.0;             // equal-weight fallback if no volume
-      pv += typical * vol;
-      vv += vol;
-     }
-   return(vv > 0.0 ? pv / vv : 0.0);
-  }
-
 bool DataReady(string symbol)
   {
    if(!SymbolIsSynchronized(symbol))
@@ -3074,13 +2635,6 @@ bool DataReady(string symbol)
       return(false);
      }
    return(Bars(symbol, InpTimeframe) > InpMomentumBars + InpAtrPeriod + 2);
-  }
-
-bool SpreadTooWide(string symbol)
-  {
-   if(InpMaxSpreadPtsRaw <= 0)
-      return(false);
-   return(SymbolInfoInteger(symbol, SYMBOL_SPREAD) > InpMaxSpreadPtsRaw);
   }
 
 bool HasExposure(string symbol)
@@ -3329,8 +2883,21 @@ int ConsecutiveLossesToday()
   {
    if(!HistorySelect(g_currentDay, TimeCurrent()))
       return(0);
-   int streak = 0;
    int total = HistoryDealsTotal();
+   // v1.33-C1r3 (C10 fix): memoize the streak - it can only change when the day rolls
+   // over, a new deal lands, or a position opens/closes. Keying on all three makes the
+   // cache EXACT (any change recomputes); on a cache hit we skip the O(deals^2) rescan
+   // that ran every 5s heartbeat. Behavior-identical: the fallback is always a full
+   // recompute, so a stale cache can only cost work, never miss a halt.
+   static datetime s_cacheDay   = 0;
+   static int      s_cacheDeals = -1;
+   static int      s_cachePos   = -1;
+   static int      s_cacheStreak = 0;
+   int posTotal = PositionsTotal();
+   if(g_currentDay == s_cacheDay && total == s_cacheDeals && posTotal == s_cachePos)
+      return(s_cacheStreak);
+
+   int streak = 0;
    long seen[];
    ArrayResize(seen, 0);
    for(int i = total - 1; i >= 0; i--)
@@ -3375,6 +2942,7 @@ int ConsecutiveLossesToday()
       else if(pnl > 0.0)
          break;
      }
+   s_cacheDay = g_currentDay; s_cacheDeals = total; s_cachePos = posTotal; s_cacheStreak = streak;
    return(streak);
   }
 
