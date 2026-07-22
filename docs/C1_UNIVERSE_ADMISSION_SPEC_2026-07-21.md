@@ -39,3 +39,19 @@ input-only whitelist/cluster/risk-map change to the live EA — deployed only
 on a separate owner promotion instruction with the full config echo.
 
 *Results appended below the hash after runs.*
+
+---
+## PRE-OUTCOME AMENDMENT (2026-07-21, before any result computed)
+1. **Code base:** the harness ports from branch revision 3ac108a ("correct M15
+   placement and structural gates"), which contains the structural-parity gate
+   and actual-next-open placement — not the earlier b288a06 revision.
+2. **Placebo design (C1-era):** the A1-era placebo (C1-opportunity pool of the
+   candidate) degenerates when the study threshold IS C1. Registered
+   replacement: the placebo pool = the BASE-UNIVERSE (US30/US100/JP225/USDJPY)
+   C1 trades, matched by side x quarter to the candidate symbol's observed
+   trades — the candidate must beat already-admitted flow at the 97.5th
+   percentile, same statistic machinery otherwise.
+3. **Ledger constants:** start floor 315, maximum end 317, DSR trials 317
+   (supersedes the inherited A1-era 300/305/305).
+4. **Execution regime:** the study runs from a dedicated LF worktree
+   (core.autocrlf=false) so byte-equality provenance constants are blob-exact.
