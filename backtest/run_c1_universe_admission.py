@@ -417,6 +417,13 @@ def assert_e1_e2_structural_parity(
         normalized.pop("total_r", None)
         if normalized["kind"] == "entry_fill":
             normalized.pop("r_component", None)
+        elif "r_component" in normalized and normalized["r_component"] is not None:
+            # C1-era parity fix #2 (spec ea0fe7be amendment): gross-R components on
+            # non-entry rows are cost-INDEPENDENT algebraically, but the short-side
+            # ask arithmetic makes E1/E2 differ by float ULPs (measured: 3e-16 on a
+            # JP225 short SL final_exit). Compare at 1e-9 - a million times finer
+            # than any genuine economic divergence - by rounding both sides.
+            normalized["r_component"] = round(float(normalized["r_component"]), 9)
         return normalized
 
     def policy_structure(event) -> dict:
