@@ -208,7 +208,12 @@ internal sealed class Simulator
             if (dailyHalted) { counters[11]++; state[slot] = 3; return; }
             if (fillsToday >= 8) { counters[12]++; state[slot] = 3; return; }
             if (consecutiveLosses >= 4) { counters[13]++; state[slot] = 3; return; }
-            int eventSymbol = t.Symbol[e], active = ActiveCount(), clusterCount = 0; bool okay = active < 2;
+            // Two-book relaxation (2026-07-21, M30_FAMILIES_R2 Stage B): the account-wide
+            // ceiling rises 2 -> 4 so a second book's pre-arbitrated trades (distinct
+            // symbols/clusters) may coexist with the H1 book under bootstrap replay.
+            // Inert for single-book tapes (each is pre-arbitrated to <= 2 concurrent;
+            // proven by protected-regression reproduction after this change).
+            int eventSymbol = t.Symbol[e], active = ActiveCount(), clusterCount = 0; bool okay = active < 4;
             for (int q = 0; q < Slots; ++q) if (state[q] == 1 || state[q] == 2)
             {
                 if (sym[q] == eventSymbol) okay = false;
