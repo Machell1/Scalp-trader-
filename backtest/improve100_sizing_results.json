@@ -1,0 +1,153 @@
+{
+  "confirmation": null,
+  "counts": {
+    "JP225.cash": 426,
+    "US100.cash": 271,
+    "US30.cash": 440,
+    "USDJPY": 508
+  },
+  "forfeits": {
+    "S04": "worst-case day budget needs an entry-blocking rule hook absent from the C# kernel",
+    "S06": "daily profit lock needs a day-P&L entry hook absent from the kernel",
+    "S08": "cushion glide needs phase-progress-conditional risk absent from the kernel",
+    "S09": "ramp-in needs trading-day-indexed risk absent from the kernel",
+    "S12": "global cap hardcoded in C# kernel; config not exposed",
+    "S13": "global cap hardcoded in C# kernel; config not exposed",
+    "S14": "phase-conditional cap not exposed",
+    "S15": "conditional cluster cap not exposed",
+    "S17": "directional yen-cluster rule not expressible in the cluster map",
+    "S19": "harness ends phases at target-hit (min-days window not modeled) - vacuous per spec",
+    "S20": "per-day position-count rule hook absent from the kernel"
+  },
+  "screen": {
+    "cells": [
+      {
+        "failures": [
+          "PAIRED_LOWER_NOT_POSITIVE"
+        ],
+        "gates_pass": false,
+        "paired": {
+          "estimate": 0.077010234665983,
+          "lower": -0.005099532796318487,
+          "n01": 1566,
+          "n10": 1615,
+          "p_value": 0.08210976746230149
+        },
+        "policy": "S01_P2_STEPDOWN",
+        "rows_sha256": "d459db3a5df9ff188d7e23402b7be985317c84b0411d6d91c05596fb0163180f",
+        "summary": {
+          "both_passes": 16165,
+          "both_probability": 0.80825,
+          "both_wilson_lower": 0.8036296143999392,
+          "both_wilson_upper": 0.8127869985034589,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 0.00013525887526654124,
+          "hard_probability": 0.00475,
+          "hard_wilson_upper": 0.0056194301844296355,
+          "median_total_days_success": 596.0,
+          "p90_total_days_success": 1001.0,
+          "paths": 20000,
+          "phase1_passes": 17930,
+          "phase1_probability": 0.8965,
+          "phase2_conditional_probability": 0.9015616285554936,
+          "timeout_probability": 0.187,
+          "timeout_wilson_upper": 0.1915772378355956
+        }
+      },
+      {
+        "failures": [
+          "PAIRED_LOWER_NOT_POSITIVE",
+          "HARD_HALT_GT_1PCT"
+        ],
+        "gates_pass": false,
+        "paired": {
+          "estimate": 0.14275994246202717,
+          "lower": -0.013632629901812354,
+          "n01": 3027,
+          "n10": 2953,
+          "p_value": 0.15639257236383952
+        },
+        "policy": "S02_BARBELL",
+        "rows_sha256": "8501b9f6d1599b855ff3413f3f64da28ac4c44e890466f78229444d354da3e40",
+        "summary": {
+          "both_passes": 16042,
+          "both_probability": 0.8021,
+          "both_wilson_lower": 0.7974253421127653,
+          "both_wilson_upper": 0.8066929344747988,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 0.00013525887526654124,
+          "hard_probability": 0.0137,
+          "hard_wilson_upper": 0.01511928530733021,
+          "median_total_days_success": 543.0,
+          "p90_total_days_success": 924.0,
+          "paths": 20000,
+          "phase1_passes": 17793,
+          "phase1_probability": 0.88965,
+          "phase2_conditional_probability": 0.9015905131231383,
+          "timeout_probability": 0.1842,
+          "timeout_wilson_upper": 0.18875128708001052
+        }
+      },
+      {
+        "failures": [
+          "PAIRED_LOWER_NOT_POSITIVE",
+          "HARD_HALT_GT_1PCT",
+          "TIMEOUT_WORSE_THAN_CONTROL"
+        ],
+        "gates_pass": false,
+        "paired": {
+          "estimate": 0.13443031751999177,
+          "lower": -0.014968426689984299,
+          "n01": 2889,
+          "n10": 2784,
+          "p_value": 0.14939874420997606
+        },
+        "policy": "S16_REWEIGHT",
+        "rows_sha256": "9c22167f94d931fa8b3f9196ea0e7687cf0e3e9e14a48f74a785d3c19bcb06e9",
+        "summary": {
+          "both_passes": 16011,
+          "both_probability": 0.80055,
+          "both_wilson_lower": 0.7958619404647791,
+          "both_wilson_upper": 0.8051567554252981,
+          "firm_probability": 0.0,
+          "firm_wilson_upper": 0.00013525887526654124,
+          "hard_probability": 0.01045,
+          "hard_wilson_upper": 0.011700728200784037,
+          "median_total_days_success": 538.0,
+          "p90_total_days_success": 912.0,
+          "paths": 20000,
+          "phase1_passes": 17894,
+          "phase1_probability": 0.8947,
+          "phase2_conditional_probability": 0.8947691963786745,
+          "timeout_probability": 0.189,
+          "timeout_wilson_upper": 0.19359553832215368
+        }
+      }
+    ],
+    "control_rows_sha256": "5867a8cb317949022871ddcfa9c377c3c2743921a70899f31a740f2c193ea1d1",
+    "control_summary": {
+      "both_passes": 16116,
+      "both_probability": 0.8058,
+      "both_wilson_lower": 0.8011577814073239,
+      "both_wilson_upper": 0.8103594942645631,
+      "firm_probability": 0.0,
+      "firm_wilson_upper": 0.00013525887526654124,
+      "hard_probability": 0.0063,
+      "hard_wilson_upper": 0.00728939407337388,
+      "median_total_days_success": 559.0,
+      "p90_total_days_success": 951.0,
+      "paths": 20000,
+      "phase1_passes": 17930,
+      "phase1_probability": 0.8965,
+      "phase2_conditional_probability": 0.8988287785833798,
+      "timeout_probability": 0.1879,
+      "timeout_wilson_upper": 0.19248549718325575
+    },
+    "paths": 20000
+  },
+  "seed": 13020260711,
+  "selected": null,
+  "spec": "IMPROVE100_SPEC_2026-07-15.md",
+  "spec_sha256": "83be88817e3c0a574a1828b0dea2d317002db001234ebf5bf48b6cce5f79fea5",
+  "verdict": "NO_ADMISSION"
+}
