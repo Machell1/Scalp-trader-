@@ -55,27 +55,3 @@ on a separate owner promotion instruction with the full config echo.
    (supersedes the inherited A1-era 300/305/305).
 4. **Execution regime:** the study runs from a dedicated LF worktree
    (core.autocrlf=false) so byte-equality provenance constants are blob-exact.
-
----
-## RESULTS (appended post-run 2026-07-22)
-
-**The integrity gates passed for the first time in this study's two-era
-history**: M15_CONTROL_DETERMINISM PASS (e1 4f4bcb7a / e2 a67f4c71, 708
-control fills); E1/E2 structural parity green on the fixed builder. The
-two-era blocker decomposed into (1) a real short-TIME-exit double-charge and
-(2) float-ULP noise (3e-16) in non-entry gross-R components, now compared at
-1e-9. Both fixes committed with the evidence trail.
-
-| candidate | disc n | valid n | valid E2 | DSR@317 | placebo p | verdict |
-|---|---|---|---|---|---|---|
-| FRA40.cash | 172 | 82 | +0.0148 | 0.0028 | 0.729 | **FAIL** (discovery exp non-positive E1+E2; placebo not beaten) |
-| AUS200.cash | 154 | 63 | -0.1896 | 0.0000 | 0.990 | **FAIL** (negative everywhere) |
-
-**FINAL: NO_SYMBOL_SURVIVED_DISCOVERY.** The M15-execution grain does NOT
-rescue either candidate - consistent with, and now stronger than, the
-2026-07-13 H1-grain rejection. Neither symbol's flow beats matched draws from
-the already-admitted book (placebo p 0.73 / 0.99). Ledger 315 -> 317 as
-registered. Path #1 (more trades from the validated edge via FRA40/AUS200)
-is CLOSED with a clean negative; the complementary-flow question moves to
-the ranked alternatives (per-book-gates kernel project; new H1-native family
-discovery).
